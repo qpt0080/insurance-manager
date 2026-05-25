@@ -1,0 +1,2552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>보험 계약 관리</title>
+<!-- v6.3 -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+:root {
+  --bg:#F5F4F0; --surface:#FFFFFF; --surface2:#EEECEA; --border:#DDDBD6;
+  --text:#1A1916; --text2:#6B6860; --text3:#9B9890;
+  --accent:#2B5CE6; --accent-light:#EBF0FF;
+  --green:#1A7F4B; --green-light:#E6F5EC;
+  --amber:#B45309; --amber-light:#FEF3C7;
+  --red:#B91C1C; --red-light:#FEE2E2;
+  --purple:#6D28D9; --purple-light:#EDE9FE;
+  --radius:10px; --radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+.app{display:flex;flex-direction:column;min-height:100vh;max-width:480px;margin:0 auto;background:var(--bg);}
+
+/* 헤더 */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px 0;position:sticky;top:0;z-index:100;}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.logo{font-size:16px;font-weight:700;letter-spacing:-0.3px;}
+.logo span{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:8px;}
+.refresh-btn{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;transition:all 0.15s;}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+.refresh-btn.spinning svg{animation:spin 0.7s linear infinite;}
+.admin-badge{font-size:11px;font-weight:500;background:var(--accent-light);color:var(--accent);padding:3px 8px;border-radius:20px;}
+
+/* 탭 */
+.tabs{display:flex;}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:hover:not(.active){color:var(--text2);}
+
+/* 본문 */
+.content{flex:1;padding:16px;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* 검색 모드 토글 */
+.search-mode-toggle{display:flex;gap:6px;margin-bottom:12px;}
+.search-mode-btn{flex:1;padding:8px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.search-mode-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.search-mode-btn:not(.active):hover{border-color:var(--accent);color:var(--accent);}
+
+/* 검색 */
+.search-wrap{position:relative;margin-bottom:16px;}
+.search-wrap input{width:100%;padding:12px 16px 12px 42px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);font-size:15px;font-family:inherit;color:var(--text);transition:border-color 0.15s;outline:none;}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-wrap input::placeholder{color:var(--text3);}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:17px;pointer-events:none;}
+
+/* 카드 */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow 0.15s,border-color 0.15s;box-shadow:var(--shadow);}
+.card:hover{border-color:var(--accent);box-shadow:var(--shadow-md);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.card-name{font-size:16px;font-weight:700;}
+.card-phone{font-size:12px;color:var(--text2);margin-top:2px;}
+.card-meta{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;background:var(--surface2);color:var(--text2);}
+.chip.blue{background:var(--accent-light);color:var(--accent);}
+.chip.green{background:var(--green-light);color:var(--green);}
+.chip.amber{background:var(--amber-light);color:var(--amber);}
+.chip.red{background:var(--red-light);color:var(--red);}
+.chip.purple{background:var(--purple-light);color:var(--purple);}
+
+/* 통계 */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center;box-shadow:var(--shadow);}
+.stat-val{font-size:24px;font-weight:700;margin-bottom:2px;}
+.stat-lbl{font-size:11px;color:var(--text2);}
+.stat-val.red{color:var(--red);}
+.stat-val.blue{color:var(--accent);}
+
+/* 섹션 라벨 */
+.sec-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;margin-top:20px;}
+.sec-label:first-child{margin-top:0;}
+
+/* 상세 헤더 */
+.detail-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.detail-name{font-size:20px;font-weight:700;margin-bottom:4px;}
+.detail-sub{font-size:13px;color:var(--text2);}
+.detail-premium{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.detail-premium-lbl{font-size:12px;color:var(--text2);}
+.detail-premium-val{font-size:20px;font-weight:700;color:var(--accent);}
+
+/* 인포 그리드 */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.info-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+.info-cell.full{grid-column:1/-1;}
+.info-key{font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:500;}
+.info-val{font-size:13px;font-weight:500;}
+.info-val.editable{cursor:pointer;border-bottom:1px dashed var(--border);display:inline-block;}
+.info-val.editable:hover{border-bottom-color:var(--accent);color:var(--accent);}
+
+/* 담보 카드 리스트 */
+.dambo-list{margin-bottom:12px;}
+.dambo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;transition:border-color 0.15s;}
+.dambo-card:hover{border-color:var(--accent);}
+.dambo-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.dambo-card-name{font-weight:700;font-size:14px;line-height:1.4;}
+.dambo-card-amount{font-size:15px;font-weight:700;color:var(--accent);text-align:right;}
+.dambo-card-amount-sub{font-size:11px;color:var(--text2);text-align:right;}
+.dambo-card-meta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+.dambo-card-note{font-size:11px;color:var(--text2);line-height:1.5;padding-top:8px;border-top:1px solid var(--border);}
+.dambo-claim{margin-top:8px;padding:8px 10px;background:var(--amber-light);border-radius:var(--radius-sm);}
+.dambo-claim-label{font-size:10px;font-weight:700;color:var(--amber);margin-bottom:3px;}
+.dambo-claim-text{font-size:12px;color:var(--amber);line-height:1.4;}
+
+/* 담보 상세 슬라이드 */
+.dambo-detail-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:flex-end;}
+.dambo-detail-overlay.active{display:flex;}
+.dambo-detail-sheet{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:85vh;overflow-y:auto;padding:0 16px 32px;}
+.dambo-sheet-header{position:sticky;top:0;background:var(--surface);padding:14px 0 8px;display:flex;flex-direction:column;align-items:center;z-index:1;}
+.dambo-detail-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin-bottom:8px;}
+.dambo-close-btn{position:absolute;right:0;top:10px;background:var(--surface2);border:none;border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:background 0.15s;}
+.dambo-close-btn:hover{background:var(--border);}
+.dambo-detail-title{font-size:17px;font-weight:700;margin-bottom:4px;}
+.dambo-detail-sub{font-size:12px;color:var(--text2);margin-bottom:16px;}
+
+/* 해약환급금 */
+.refund-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow);}
+.refund-wrap table{width:100%;border-collapse:collapse;font-size:12px;}
+.refund-wrap th{padding:8px 10px;background:var(--surface2);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border);text-align:right;}
+.refund-wrap th:first-child{text-align:left;}
+.refund-wrap td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;font-size:12px;}
+.refund-wrap td:first-child{text-align:left;font-weight:600;}
+.refund-wrap td:nth-child(2){color:var(--text2);text-align:center;}
+.refund-wrap tr:last-child td{border-bottom:none;}
+.refund-wrap tr.milestone{background:var(--accent-light);}
+.refund-wrap tr.milestone td{color:var(--accent);font-weight:600;}
+.rate-bar-row{display:flex;align-items:center;gap:5px;justify-content:flex-end;}
+.rate-bar{height:5px;border-radius:3px;background:var(--accent);min-width:2px;}
+
+/* 갱신 */
+.renewal-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow);cursor:pointer;}
+.renewal-name{font-weight:600;font-size:14px;}
+.renewal-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+
+/* 폼 */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.form-row{margin-bottom:14px;}
+.form-row:last-child{margin-bottom:0;}
+.form-label{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:0.04em;}
+.form-input,.form-select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.15s;}
+.form-input:focus,.form-select:focus{border-color:var(--accent);background:var(--surface);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;resize:vertical;min-height:70px;transition:border-color 0.15s;}
+.form-textarea:focus{border-color:var(--accent);background:var(--surface);}
+.card-info-box{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px;display:none;}
+.card-info-box.show{display:block;}
+.card-info-box .form-grid{margin-top:8px;}
+
+/* 업로드 */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;background:var(--surface);margin-bottom:12px;transition:border-color 0.15s,background 0.15s;}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-light);}
+.upload-zone.dragging{border-color:var(--accent);background:var(--accent-light);}
+.upload-zone h3{font-size:14px;font-weight:600;margin-bottom:4px;}
+.upload-zone p{font-size:12px;color:var(--text3);}
+.upload-zone input{display:none;}
+
+/* 버튼 */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text);transition:all 0.15s;}
+.btn:hover{border-color:var(--text2);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{background:#1e4ad4;border-color:#1e4ad4;}
+.btn-danger{color:var(--red);border-color:var(--red);}
+.btn-full{width:100%;justify-content:center;}
+.btn-sm{padding:7px 12px;font-size:12px;}
+
+/* 뒤로가기 */
+.back-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;padding:4px 0;background:none;border:none;font-family:inherit;}
+.back-btn:hover{color:var(--text);}
+.detail-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.detail-nav-right{display:flex;gap:6px;}
+.nav-icon-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 10px;font-size:14px;cursor:pointer;transition:all 0.15s;line-height:1;}
+.nav-icon-btn:hover{border-color:var(--accent);background:var(--accent-light);}
+
+/* 액션바 */
+.action-bar{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);}
+/* 고객 매칭 확인 */
+.match-box{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:14px;margin-top:10px;}
+.match-box-title{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.match-candidate{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;}
+.match-candidate:hover{border-color:var(--accent);background:var(--accent-light);}
+.match-candidate.selected{border-color:var(--accent);background:var(--accent-light);}
+.match-candidate-info{flex:1;}
+.match-candidate-name{font-size:13px;font-weight:700;color:var(--text1);}
+.match-candidate-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.match-new-btn{display:flex;align-items:center;gap:6px;padding:10px 12px;border-radius:var(--radius-sm);border:1px dashed var(--border);background:var(--bg);cursor:pointer;font-size:12px;color:var(--text2);font-weight:600;transition:border-color .15s;}
+.match-new-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* 상태바 */
+.status-bar{padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.status-loading{background:var(--accent-light);color:var(--accent);}
+.status-done{background:var(--green-light);color:var(--green);}
+.status-error{background:var(--red-light);color:var(--red);}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* 병력/고지 섹션 */
+.medical-card{background:var(--purple-light);border:1px solid #C4B5FD;border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+.medical-card .sec-label{color:var(--purple);margin-top:0;}
+.medical-item{background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:1px solid #C4B5FD;}
+.medical-item:last-child{margin-bottom:0;}
+.medical-item-label{font-size:11px;font-weight:700;color:var(--purple);margin-bottom:3px;}
+.medical-item-text{font-size:13px;line-height:1.6;}
+
+/* 인라인 에디터 */
+.inline-edit-wrap{position:relative;}
+.inline-edit-wrap input,.inline-edit-wrap textarea,.inline-edit-wrap select{border:1.5px solid var(--accent);border-radius:var(--radius-sm);padding:6px 8px;font-size:13px;font-family:inherit;width:100%;background:var(--surface);outline:none;}
+.edit-actions{display:flex;gap:6px;margin-top:6px;}
+.edit-save{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.edit-cancel{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;}
+
+/* 담보 입력행 */
+.dambo-input-row{background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;border:1px solid var(--border);}
+
+/* 해약환급금 토글 */
+.refund-toggle-btn{width:100%;padding:8px;font-size:12px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);cursor:pointer;font-family:inherit;transition:background 0.15s;}
+.refund-toggle-btn:hover{background:var(--border);}
+/* 보장 내역 */
+.claim-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;}
+.claim-item-left{flex:1;}
+.claim-date{font-size:12px;color:var(--text2);margin-bottom:2px;}
+.claim-memo{font-size:13px;font-weight:500;}
+.claim-item-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.claim-amount{font-size:15px;font-weight:700;color:var(--accent);}
+.claim-del-btn{background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:2px 4px;line-height:1;}
+.claim-del-btn:hover{color:var(--red);}
+.empty{text-align:center;padding:40px 0;color:var(--text3);}
+.empty-icon{font-size:36px;margin-bottom:10px;}
+.empty p{font-size:13px;}
+.pb{padding-bottom:20px;}
+</style>
+</head>
+<body>
+
+<!-- ── API 키 입력 팝업 ── -->
+<div id="apikey-screen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:28px;margin-bottom:8px;">🔑</div>
+      <div style="font-size:17px;font-weight:700;">Anthropic API 키 입력</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:5px;line-height:1.6;">PDF 자동 추출 기능에 필요해요.<br>입력하면 이 기기에 저장돼서 다음엔 안 물어봐요.</div>
+    </div>
+    <input id="apikey-input" type="password" placeholder="sk-ant-api03-..." 
+      style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;outline:none;background:var(--bg);margin-bottom:12px;"
+      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+      onkeydown="if(event.key==='Enter')saveApiKey()"/>
+    <div id="apikey-error" style="display:none;background:var(--red-light);color:var(--red);padding:8px 12px;border-radius:var(--radius-sm);font-size:12px;margin-bottom:12px;"></div>
+    <button onclick="saveApiKey()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;">저장하기</button>
+    <button onclick="skipApiKey()" style="width:100%;padding:10px;background:none;color:var(--text3);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;cursor:pointer;">나중에 입력할게요 (PDF 추출 불가)</button>
+  </div>
+</div>
+
+
+<div id="login-screen" style="position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px 24px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.12);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-size:32px;margin-bottom:10px;">📋</div>
+      <div style="font-size:22px;font-weight:700;">보험<span style="color:var(--accent)">Manager</span></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:5px;">로그인하여 시작하세요</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">이메일</label>
+      <input id="login-email" type="email" autocomplete="email" placeholder="example@email.com"
+        style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;outline:none;background:var(--bg);transition:border-color .15s;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">비밀번호</label>
+      <input id="login-password" type="password" autocomplete="current-password" placeholder="••••••••"
+        style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;outline:none;background:var(--bg);transition:border-color .15s;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div id="login-error" style="display:none;background:var(--red-light);color:var(--red);padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;margin-bottom:14px;"></div>
+    <button onclick="doLogin()" id="login-btn"
+      style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s;"
+      onmouseover="this.style.background='#1e4ad4'" onmouseout="this.style.background='var(--accent)'">
+      로그인
+    </button>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- 헤더 -->
+<header class="header">
+  <div class="header-top">
+    <div class="logo">보험<span>Manager</span></div>
+    <div class="header-right">
+      <button class="refresh-btn" onclick="refreshData(this)" title="최신 데이터로 새로고침">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        새로고침
+      </button>
+      <span class="admin-badge" id="user-badge">로딩중</span>
+      <button onclick="doLogout()" title="로그아웃" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">로그아웃</button>
+      <button onclick="showApiKeyPopup()" title="API 키 변경" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">🔑</button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <div class="tab active" onclick="switchTab('search',this)">🔍 검색</div>
+    <div class="tab" onclick="switchTab('list',this)">📋 목록</div>
+    <div class="tab" onclick="switchTab('renewal',this)">🔔 갱신</div>
+    <div class="tab" onclick="switchTab('add',this)">➕ 입력</div>
+  </nav>
+</header>
+
+<main class="content">
+
+  <!-- 검색 -->
+  <section id="screen-search" class="screen active">
+    <div class="search-mode-toggle">
+      <button id="mode-name" class="search-mode-btn active" onclick="setSearchMode('name')">이름</button>
+      <button id="mode-dambo" class="search-mode-btn" onclick="setSearchMode('dambo')">담보</button>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="이름, 연락처, 보험사 검색..." oninput="doSearch()" autocomplete="off"/>
+    </div>
+    <div id="search-results"></div>
+    <div id="search-empty" class="empty">
+      <p style="color:var(--text3);font-size:13px">이름, 연락처, 보험사로 검색하세요</p>
+    </div>
+  </section>
+
+  <!-- 목록 -->
+  <section id="screen-list" class="screen">
+    <div class="stats" id="stats-area"></div>
+    <div id="company-stats-area" style="margin-bottom:4px"></div>
+    <div class="sec-label">전체 고객</div>
+    <div id="list-content"></div>
+  </section>
+
+  <!-- 갱신 -->
+  <section id="screen-renewal" class="screen">
+    <div class="sec-label">60일 내 만기 / 갱신</div>
+    <div id="renewal-content"></div>
+  </section>
+
+  <!-- 계약 입력 -->
+  <section id="screen-add" class="screen pb">
+    <div class="sec-label">AI 자동 추출</div>
+    <div class="upload-zone" id="dropzone"
+      onclick="document.getElementById('fileInput').click()"
+      ondragover="event.preventDefault();this.classList.add('dragging')"
+      ondragleave="this.classList.remove('dragging')"
+      ondrop="handleDrop(event)">
+      <div style="font-size:32px;margin-bottom:8px">📄</div>
+      <h3>계약제안서 · 청약서 업로드</h3>
+      <p>PDF, JPG, PNG · 클릭 또는 드래그</p>
+      <input type="file" id="fileInput" accept="image/*,application/pdf" onchange="handleFile(event)"/>
+    </div>
+    <div id="extract-status" style="display:none"></div>
+
+    <div class="sec-label">계약자 / 피보험자</div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-row"><label class="form-label">계약자</label><input class="form-input" id="f-contractor" placeholder="홍길동"/></div>
+        <div class="form-row"><label class="form-label">피보험자</label><input class="form-input" id="f-insured" placeholder="홍길동"/></div>
+        <div class="form-row"><label class="form-label">연락처</label><input class="form-input" id="f-phone" placeholder="010-0000-0000"/></div>
+        <div class="form-row"><label class="form-label">생년월일</label><input class="form-input" id="f-dob" placeholder="1990-01-01"/></div>
+        <div class="form-row"><label class="form-label">주민번호</label><input class="form-input" id="f-ssn" placeholder="900101-1234567"/></div>
+        <div class="form-row"><label class="form-label">직업</label><input class="form-input" id="f-job" placeholder="직장인 / 자영업 등"/></div>
+      </div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">집주소</label><input class="form-input" id="f-address" placeholder="서울시 강남구 테헤란로 123"/></div>
+    </div>
+
+    <div class="sec-label">상품 정보</div>
+    <div class="form-card">
+      <div class="form-row"><label class="form-label">보험사</label>
+        <select class="form-select" id="f-company">
+          <option value="">선택</option>
+          <option>삼성생명</option><option>한화생명</option><option>교보생명</option>
+          <option>메리츠화재</option><option>DB손해보험</option><option>현대해상</option>
+          <option>KB손해보험</option><option>흥국생명</option><option>동양생명</option><option>기타</option>
+        </select>
+      </div>
+      <div class="form-row"><label class="form-label">상품명</label><input class="form-input" id="f-product" placeholder="무배당 종신보험"/></div>
+      <div class="form-grid">
+        <div class="form-row"><label class="form-label">계약일</label><input class="form-input" id="f-start" placeholder="2026-01-01"/></div>
+        <div class="form-row"><label class="form-label">만기일</label><input class="form-input" id="f-expiry" placeholder="종신 / 2044-01-01"/></div>
+        <div class="form-row"><label class="form-label">납입기간</label><input class="form-input" id="f-pay-period" placeholder="20년납"/></div>
+        <div class="form-row"><label class="form-label">갱신 여부</label>
+          <select class="form-select" id="f-renew">
+            <option>비갱신형</option><option>갱신형</option><option>혼합</option>
+          </select>
+        </div>
+        <div class="form-row"><label class="form-label">월 보험료</label><input class="form-input" id="f-premium" placeholder="281,248"/></div>
+        <div class="form-row"><label class="form-label">납입방법</label>
+          <select class="form-select" id="f-pay-method" onchange="toggleCardInfo(this.value)">
+            <option>월납</option><option>3개월납</option><option>6개월납</option><option>연납</option>
+            <option value="신용카드">신용카드</option>
+          </select>
+        </div>
+      </div>
+      <!-- 카드 정보 -->
+      <div class="card-info-box" id="card-info-box">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.04em;">💳 카드 정보</div>
+        <div class="form-grid">
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">카드사</label>
+            <select class="form-select" id="f-card-company">
+              <option value="">선택</option>
+              <option>삼성카드</option><option>현대카드</option><option>신한카드</option>
+              <option>KB국민카드</option><option>롯데카드</option><option>우리카드</option>
+              <option>하나카드</option><option>NH농협카드</option><option>기타</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">카드 끝 4자리</label><input class="form-input" id="f-card-last4" placeholder="1234" maxlength="4"/></div>
+          <div class="form-row" style="margin-bottom:0;grid-column:1/-1"><label class="form-label">카드 명의</label><input class="form-input" id="f-card-name" placeholder="홍길동 (계약자와 다를 경우)"/></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-label">담보 목록</div>
+    <div class="form-card">
+      <div id="dambo-inputs">
+        <div class="dambo-input-row">
+          <div class="form-grid" style="margin-bottom:8px">
+            <div class="form-row" style="margin-bottom:0"><label class="form-label">담보명</label><input class="form-input" placeholder="주보험 사망"/></div>
+            <div class="form-row" style="margin-bottom:0"><label class="form-label">보장금액</label><input class="form-input" placeholder="1억원"/></div>
+            <div class="form-row" style="margin-bottom:0"><label class="form-label">담보보험료</label><input class="form-input" placeholder="189,000원"/></div>
+            <div class="form-row" style="margin-bottom:0"><label class="form-label">갱신</label>
+              <select class="form-select"><option>비갱신</option><option>갱신</option></select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:6px"><label class="form-label">면책 / 감액 / 조건</label><input class="form-input" placeholder="계약일 1년 내 50% / 90일 면책 등"/></div>
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">💰 보장 수령 이력</label><input class="form-input" placeholder="예: 2024-03 위암 진단으로 2,000만원 수령"/></div>
+        </div>
+      </div>
+      <button class="btn btn-sm" onclick="addDamboRow()" style="margin-top:8px">+ 담보 추가</button>
+    </div>
+
+    <div class="sec-label">병력 / 고지사항</div>
+    <div class="form-card">
+      <div class="form-row"><label class="form-label">기존 병력</label>
+        <textarea class="form-textarea" id="f-medical-history" placeholder="예: 고혈압(2018년~, 약 복용 중), 2020년 맹장 수술"></textarea>
+      </div>
+      <div class="form-row"><label class="form-label">가입 시 고지사항</label>
+        <textarea class="form-textarea" id="f-disclosure" placeholder="예: 최근 5년 내 입원 이력 고지, 흡연 여부 등"></textarea>
+      </div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">상담 참고사항</label>
+        <textarea class="form-textarea" id="f-consult-note" placeholder="예: 가족력(부: 심장질환), 직업 위험도, 취미 등"></textarea>
+      </div>
+    </div>
+
+    <div class="sec-label">비고</div>
+    <div class="form-card">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">메모</label>
+        <textarea class="form-textarea" id="f-memo" placeholder="납입면제 조건, 특이사항, 가족결합할인 등"></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="saveContract()" style="margin-top:4px">💾 저장하기</button>
+  </section>
+
+  <!-- 상세 -->
+  <section id="screen-detail" class="screen pb">
+    <div class="detail-nav">
+      <button class="back-btn" onclick="goBack()">← 뒤로</button>
+      <div class="detail-nav-right">
+        <button class="nav-icon-btn" onclick="goHome()" title="검색으로">🔍</button>
+        <button class="nav-icon-btn" onclick="goList()" title="목록으로">📋</button>
+      </div>
+    </div>
+    <div id="detail-content"></div>
+  </section>
+
+</main>
+</div>
+
+<!-- 담보 상세 시트 (하단 슬라이드) -->
+<div class="dambo-detail-overlay" id="dambo-overlay" onclick="closeDamboDetail(event)">
+  <div class="dambo-detail-sheet" id="dambo-sheet">
+    <div class="dambo-sheet-header">
+      <div class="dambo-detail-handle"></div>
+      <button class="dambo-close-btn" onclick="forceCloseDambo()" aria-label="닫기">✕</button>
+    </div>
+    <div id="dambo-sheet-content"></div>
+  </div>
+</div>
+
+<!-- 계약 추가 바텀시트 -->
+<div class="dambo-detail-overlay" id="add-contract-overlay" onclick="closeAddContract(event)">
+  <div class="dambo-detail-sheet" id="add-contract-sheet" style="max-height:92vh">
+    <div class="dambo-sheet-header">
+      <div class="dambo-detail-handle"></div>
+      <button class="dambo-close-btn" onclick="closeAddContractForce()" aria-label="닫기">✕</button>
+    </div>
+    <div id="add-contract-content" style="padding-bottom:32px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text1)" id="add-contract-title">📋 계약 추가</div>
+
+      <!-- 보험사/상품 -->
+      <div class="sec-label" style="margin-top:0">계약 정보</div>
+      <div class="form-card">
+        <div class="form-row"><label class="form-label">보험사</label>
+          <select class="form-select" id="ac-company">
+            <option>삼성생명</option><option>한화생명</option><option>교보생명</option>
+            <option>신한라이프</option><option>흥국생명</option><option>동양생명</option>
+            <option>삼성화재</option><option>메리츠화재</option><option>DB손해보험</option>
+            <option>현대해상</option><option>KB손해보험</option><option>기타</option>
+          </select>
+        </div>
+        <div class="form-row"><label class="form-label">상품명</label><input class="form-input" id="ac-product" placeholder="무배당 종신보험"/></div>
+        <div class="form-grid">
+          <div class="form-row"><label class="form-label">계약일</label><input class="form-input" id="ac-start" placeholder="2026-01-01"/></div>
+          <div class="form-row"><label class="form-label">만기일</label><input class="form-input" id="ac-expiry" placeholder="종신 / 2044-01-01"/></div>
+          <div class="form-row"><label class="form-label">납입기간</label><input class="form-input" id="ac-pay-period" placeholder="20년납"/></div>
+          <div class="form-row"><label class="form-label">갱신 여부</label>
+            <select class="form-select" id="ac-renew"><option>비갱신형</option><option>갱신형</option><option>혼합</option></select>
+          </div>
+          <div class="form-row"><label class="form-label">월 보험료</label><input class="form-input" id="ac-premium" placeholder="150,000"/></div>
+          <div class="form-row"><label class="form-label">납입방법</label>
+            <select class="form-select" id="ac-pay-method" onchange="toggleAcCardInfo(this.value)">
+              <option>월납</option><option>3개월납</option><option>6개월납</option><option>연납</option>
+              <option value="신용카드">신용카드</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-info-box" id="ac-card-info-box">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.04em;">💳 카드 정보</div>
+          <div class="form-grid">
+            <div class="form-row" style="margin-bottom:0"><label class="form-label">카드사</label>
+              <select class="form-select" id="ac-card-company">
+                <option value="">선택</option>
+                <option>삼성카드</option><option>현대카드</option><option>신한카드</option>
+                <option>KB국민카드</option><option>롯데카드</option><option>우리카드</option>
+                <option>하나카드</option><option>NH농협카드</option><option>기타</option>
+              </select>
+            </div>
+            <div class="form-row" style="margin-bottom:0"><label class="form-label">끝 4자리</label><input class="form-input" id="ac-card-last4" placeholder="1234" maxlength="4"/></div>
+            <div class="form-row" style="margin-bottom:0;grid-column:1/-1"><label class="form-label">카드 명의</label><input class="form-input" id="ac-card-name" placeholder="계약자와 다를 경우"/></div>
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom:0"><label class="form-label">메모</label>
+          <textarea class="form-textarea" id="ac-memo" placeholder="납입면제 조건, 특이사항 등"></textarea>
+        </div>
+      </div>
+
+      <!-- 담보 목록 -->
+      <div class="sec-label">담보 목록</div>
+      <div class="form-card">
+        <div id="ac-dambo-inputs">
+          <div class="dambo-input-row ac-dambo-row">
+            <div class="form-grid" style="margin-bottom:8px">
+              <div class="form-row" style="margin-bottom:0"><label class="form-label">담보명</label><input class="form-input" placeholder="주보험 사망"/></div>
+              <div class="form-row" style="margin-bottom:0"><label class="form-label">보장금액</label><input class="form-input" placeholder="1억원"/></div>
+              <div class="form-row" style="margin-bottom:0"><label class="form-label">담보보험료</label><input class="form-input" placeholder="189,000원"/></div>
+              <div class="form-row" style="margin-bottom:0"><label class="form-label">갱신</label>
+                <select class="form-select"><option>비갱신</option><option>갱신</option></select>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <div class="form-row" style="margin-bottom:0;flex:1"><label class="form-label">면책 / 감액 / 조건</label><input class="form-input" placeholder="계약일 1년 내 50% 등"/></div>
+              <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);flex-shrink:0;margin-top:18px" onclick="this.closest('.dambo-input-row').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-sm" onclick="addAcDamboRow()" style="margin-top:8px">+ 담보 추가</button>
+      </div>
+
+      <!-- AI 추출 -->
+      <div class="sec-label">PDF 자동 추출 <span style="font-weight:400;color:var(--text3);font-size:10px">· 선택사항</span></div>
+      <div class="form-card">
+        <div id="ac-dropzone" class="dropzone" onclick="document.getElementById('ac-file-input').click()" ondrop="handleAcDrop(event)" ondragover="event.preventDefault()" style="margin-bottom:0">
+          <div class="dropzone-icon">📄</div>
+          <div class="dropzone-text">PDF 또는 이미지 탭하여 업로드</div>
+          <div class="dropzone-sub">가입제안서를 올리면 자동으로 담보 내용을 추출해요</div>
+        </div>
+        <input type="file" id="ac-file-input" accept=".pdf,image/*" style="display:none" onchange="handleAcFile(event)"/>
+        <div id="ac-extract-status" style="display:none;margin-top:10px"></div>
+        <div id="ac-quick-save-wrap"></div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="ac-save-btn" onclick="saveAddedContract()" style="margin-top:16px">💾 이 고객에게 계약 추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// ── Firebase 설정 ──
+const firebaseConfig = {
+  apiKey: "AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
+  authDomain: "insurance-manager-c4308.firebaseapp.com",
+  projectId: "insurance-manager-c4308",
+  storageBucket: "insurance-manager-c4308.firebasestorage.app",
+  messagingSenderId: "769412429451",
+  appId: "1:769412429451:web:0c3a31bb14430f8fe5068e"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// ── Firebase 함수 전역 노출 ──
+window._db = db;
+window._auth = auth;
+window._fbCol = collection;
+window._fbDoc = doc;
+window._fbGetDocs = getDocs;
+window._fbQuery = query;
+window._fbWhere = where;
+window._fbSetDoc = setDoc;
+window._fbDeleteDoc = deleteDoc;
+window._fbUpdateDoc = updateDoc;
+
+// ── 로그인/로그아웃 ──
+window.doLogin = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  if (!email || !password) { showLoginError('이메일과 비밀번호를 입력해주세요.'); return; }
+  btn.textContent = '로그인 중...'; btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch(e) {
+    const msg =
+      ['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(e.code)
+        ? '이메일 또는 비밀번호가 올바르지 않습니다.'
+      : e.code === 'auth/too-many-requests'
+        ? '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.'
+      : '로그인 오류가 발생했습니다.';
+    showLoginError(msg);
+  } finally {
+    btn.textContent = '로그인'; btn.disabled = false;
+  }
+};
+
+window.doLogout = async function() {
+  if (!confirm('로그아웃 하시겠어요?')) return;
+  await signOut(auth);
+};
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+// ── 인증 상태 감지 ──
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    window._currentUser = user;
+    // agents 컬렉션에서 역할 확인
+    try {
+      const agentSnap = await getDocs(query(collection(db, 'agents'), where('uid', '==', user.uid)));
+      let agentData = null;
+      agentSnap.forEach(d => agentData = d.data());
+
+      if (agentData?.disabled) {
+        await signOut(auth);
+        showLoginError('계정이 비활성화되었습니다. 관리자에게 문의하세요.');
+        return;
+      }
+      window._currentAgent = agentData;
+      window._isAdmin = !agentData || agentData.role === 'admin'; // agents 문서 없으면 최초 관리자
+    } catch(e) {
+      console.warn('agents 로드 오류:', e);
+      window._isAdmin = true; // 오류 시 관리자로 처리
+    }
+
+    // 배지 업데이트
+    const badge = document.getElementById('user-badge');
+    if (badge) badge.textContent = window._isAdmin ? '관리자' : (window._currentAgent?.name || user.email.split('@')[0]);
+
+    // 로그인 화면 숨기기
+    document.getElementById('login-screen').style.display = 'none';
+    await loadFromFirebase();
+    checkApiKeyOnLogin();
+  } else {
+    window._currentUser = null;
+    window._currentAgent = null;
+    window._isAdmin = false;
+    const badge = document.getElementById('user-badge');
+    if (badge) badge.textContent = '로딩중';
+    document.getElementById('login-screen').style.display = 'flex';
+    customers = [];
+  }
+});
+
+// ── 데이터 로드 (권한별 필터) ──
+async function loadFromFirebase() {
+  try {
+    let snap;
+    if (window._isAdmin) {
+      snap = await getDocs(collection(db, "customers"));
+    } else {
+      snap = await getDocs(query(collection(db, "customers"), where("agentId", "==", window._currentUser.uid)));
+    }
+    if (!snap.empty) {
+      customers = [];
+      snap.forEach(d => customers.push({ ...d.data(), _docId: d.id }));
+      console.log(`Firebase에서 ${customers.length}명 불러옴 (${window._isAdmin ? '전체' : '내 고객'})`);
+    } else {
+      console.log('데이터 없음');
+    }
+    const activeTab = ['search','list','renewal','add'].find(t => document.getElementById('screen-'+t)?.classList.contains('active'));
+    if (activeTab === 'list') renderList();
+    if (activeTab === 'renewal') renderRenewal();
+  } catch(e) {
+    console.error('Firebase 로드 오류:', e);
+    showToast('데이터 로드 실패 - 네트워크를 확인해주세요');
+  }
+}
+
+window.addEventListener('load', () => { /* onAuthStateChanged가 처리 */ });
+</script>
+
+<script>
+// ── 데이터 ──
+// ⚠️ Anthropic API 키 — https://console.anthropic.com 에서 발급
+// ── Anthropic API 키 (localStorage에 저장, 없으면 파일에 직접 입력) ──
+const HARDCODED_KEY = ''; // ← 여기에 API 키 입력
+function getApiKey(){ return localStorage.getItem('anthropic_api_key') || HARDCODED_KEY; }
+function setApiKey(key){ localStorage.setItem('anthropic_api_key', key.trim()); }
+function ANTHROPIC_API_KEY(){ return getApiKey(); }
+
+let customers = [];
+let prevTab = 'search';
+let currentCustomerId = null;
+let searchMode = 'name';
+
+// ── 유틸 ──
+function fmt(n){return Number(String(n).replace(/,/g,'')).toLocaleString()+'원';}
+function totalPremium(c){return c.contracts.reduce((s,x)=>s+x.premium,0);}
+function companies(c){return[...new Set(c.contracts.map(x=>x.company))].join(' · ');}
+function getCust(id){return customers.find(c=>c.id===id);}
+
+// ── 담보명 접두어 제거 (보험사별 공통 접두어 목록) ──
+const DAMBO_PREFIXES=['(통합간편)','(바로보장)','(무)','(유)','(통합)','(간편)','(일반)','(표준)'];
+function cleanDamboName(name){
+  if(!name) return name;
+  let n=name.trim();
+  let prev='';
+  while(prev!==n){
+    prev=n;
+    for(const p of DAMBO_PREFIXES) n=n.replace(p,'').trim();
+    n=n.replace(/^바로보장\s*/,'').trim();
+  }
+  return n;
+}
+
+// ── 새로고침 (Firebase에서 실제 로드) ──
+async function refreshData(btn){
+  // 담보 시트 열려있으면 먼저 닫기
+  const overlay=document.getElementById('dambo-overlay');
+  if(overlay.classList.contains('active')){
+    overlay.classList.remove('active');
+    document.body.style.overflow='';
+  }
+
+  btn.classList.add('spinning');
+  try {
+    let snap;
+    if (window._isAdmin) {
+      snap = await window._fbGetDocs(window._fbCol(window._db, "customers"));
+    } else {
+      snap = await window._fbGetDocs(window._fbQuery(window._fbCol(window._db, "customers"), window._fbWhere("agentId", "==", window._currentUser?.uid)));
+    }
+    if (!snap.empty) {
+      customers = [];
+      snap.forEach(d => customers.push({ ...d.data(), _docId: d.id }));
+    }
+    // 현재 화면 그대로 유지하며 데이터만 갱신
+    const detailActive=document.getElementById('screen-detail').classList.contains('active');
+    const tabName=['search','list','renewal','add'].find(t=>document.getElementById('screen-'+t).classList.contains('active'));
+    if(detailActive && currentCustomerId){
+      showDetail(currentCustomerId); // 상세 화면이면 상세 새로고침
+    } else if(tabName==='list') renderList();
+    else if(tabName==='renewal') renderRenewal();
+    else if(tabName==='search') doSearch();
+    showToast(`최신 데이터로 업데이트됐어요 (${customers.length}명)`);
+  } catch(e) {
+    showToast('새로고침 실패 - 네트워크를 확인해주세요');
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+// ── 고객 정보 텍스트 복사 / 공유 ──
+function buildCustomerText(id){
+  const c=getCust(id);
+  if(!c)return'';
+  const lines=[
+    `[고객 정보]`,
+    `이름: ${c.name} (${c.age}세 · ${c.gender})`,
+    `연락처: ${c.phone}`,
+    c.dob?`생년월일: ${c.dob}`:'',
+    c.ssn?`주민번호: ${c.ssn}`:'',
+    c.job?`직업: ${c.job}`:'',
+    c.address?`주소: ${c.address}`:'',
+  ];
+  if(c.medicalHistory||c.disclosure){
+    lines.push('');
+    lines.push('[고지사항]');
+    if(c.medicalHistory) lines.push(`기존 병력: ${c.medicalHistory}`);
+    if(c.disclosure) lines.push(`알릴의무: ${c.disclosure}`);
+  }
+  return lines.filter(l=>l!==undefined&&l!==null).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+async function copyCustomerInfo(id){
+  const text=buildCustomerText(id);
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast('📋 고객 정보가 복사됐어요! 어디든 붙여넣기 하세요');
+  }catch(e){
+    // fallback
+    const el=document.createElement('textarea');
+    el.value=text; el.style.cssText='position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(el); el.select(); document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('📋 복사됐어요');
+  }
+}
+
+async function shareCustomerInfo(id){
+  const text=buildCustomerText(id);
+  if(navigator.share){
+    try{
+      await navigator.share({text});
+    }catch(e){
+      if(e.name!=='AbortError') showToast('공유 실패');
+    }
+  }else{
+    // 데스크탑: 클립보드 복사 후 안내
+    await copyCustomerInfo(id);
+    showToast('📋 복사됐어요 — 카톡/문자에 붙여넣기 하세요');
+  }
+}
+
+// ── API 키 팝업 ──
+function showApiKeyPopup(){
+  const popup = document.getElementById('apikey-screen');
+  const input = document.getElementById('apikey-input');
+  popup.style.display = 'flex';
+  input.value = getApiKey();
+  input.focus();
+}
+
+function saveApiKey(){
+  const key = document.getElementById('apikey-input').value.trim();
+  const errEl = document.getElementById('apikey-error');
+  if(!key || !key.startsWith('sk-ant-')){
+    errEl.textContent = 'Anthropic API 키는 sk-ant- 로 시작해요.';
+    errEl.style.display = 'block';
+    return;
+  }
+  setApiKey(key);
+  document.getElementById('apikey-screen').style.display = 'none';
+  errEl.style.display = 'none';
+  showToast('✅ API 키가 저장됐어요!');
+}
+
+function skipApiKey(){
+  document.getElementById('apikey-screen').style.display = 'none';
+}
+
+// 로그인 후 API 키 없으면 팝업 표시
+function checkApiKeyOnLogin(){
+  if(!getApiKey()){
+    setTimeout(()=> showApiKeyPopup(), 800);
+  }
+}
+
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1916;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;transition:opacity 0.3s;pointer-events:none;';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(t._timer);t._timer=setTimeout(()=>t.style.opacity='0',2000);
+}
+
+// ── 탭 전환 ──
+function switchTab(tab,el){
+  // add 탭을 떠날 때 match-box 정리
+  if(prevTab==='add' && tab!=='add'){
+    document.getElementById('match-box')?.remove();
+    window._matchTarget=null;
+  }
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  if(el)el.classList.add('active');
+  prevTab=tab;
+  if(tab==='list')renderList();
+  if(tab==='renewal')renderRenewal();
+  if(tab==='search'){
+    searchMode='name';
+    document.getElementById('mode-name')?.classList.add('active');
+    document.getElementById('mode-dambo')?.classList.remove('active');
+    document.getElementById('search-empty').style.display='';
+    document.getElementById('search-results').innerHTML='';
+    document.getElementById('search-input').value='';
+    document.getElementById('search-input').placeholder='이름, 연락처, 보험사 검색...';
+  }
+}
+
+// ── 고객 카드 ──
+function renderCard(c){
+  const total=totalPremium(c);
+  const renewal=c.contracts.filter(x=>x.daysLeft<=60);
+  const hasCard=c.contracts.some(x=>x.payMethod==='신용카드');
+  return`<div class="card" onclick="showDetail(${c.id})">
+    <div class="card-top">
+      <div><div class="card-name">${c.name}</div><div class="card-phone">${c.phone} · ${c.age}세 · ${c.gender}</div></div>
+      <div style="text-align:right"><div style="font-weight:700;font-size:15px;color:var(--accent)">${total.toLocaleString()}원</div><div style="font-size:11px;color:var(--text3)">월 합계</div></div>
+    </div>
+    <div class="card-meta">
+      <span class="chip">${c.contracts.length}건</span>
+      <span class="chip blue">${companies(c)}</span>
+      ${hasCard?'<span class="chip purple">💳 카드납</span>':''}
+      ${renewal.length?`<span class="chip red">⚠ 갱신 ${renewal.length}건</span>`:''}
+    </div>
+  </div>`;
+}
+
+// ── 검색 모드 ──
+
+function setSearchMode(mode){
+  searchMode = mode;
+  document.getElementById('mode-name').classList.toggle('active', mode==='name');
+  document.getElementById('mode-dambo').classList.toggle('active', mode==='dambo');
+  const input = document.getElementById('search-input');
+  input.placeholder = mode==='name' ? '이름, 연락처, 보험사 검색...' : '담보명 검색 (예: 뇌혈관, 수술, 암진단...)';
+  input.value = '';
+  document.getElementById('search-results').innerHTML = '';
+  document.getElementById('search-empty').style.display = '';
+  input.focus();
+}
+
+// ── 검색 ──
+function doSearch(){
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  const empty=document.getElementById('search-empty');
+  const results=document.getElementById('search-results');
+  if(!q){empty.style.display='';results.innerHTML='';return;}
+  empty.style.display='none';
+
+  if(searchMode==='name'){
+    // 이름 모드: 이름·연락처·보험사·상품명만
+    const matched=customers.filter(c=>
+      c.name.includes(q)||
+      c.phone.replace(/-/g,'').includes(q.replace(/-/g,''))||
+      c.contracts.some(x=>x.company.includes(q)||x.product.toLowerCase().includes(q))
+    );
+    results.innerHTML=matched.length
+      ?matched.map(renderCard).join('')
+      :'<div class="empty"><div class="empty-icon">🔍</div><p>검색 결과가 없어요</p></div>';
+  } else {
+    // 담보 모드: 담보명만 검색, 매칭 담보 강조
+    const matched=customers.filter(c=>
+      c.contracts.some(x=>x.dambo&&x.dambo.some(d=>d.name.toLowerCase().includes(q)))
+    );
+    results.innerHTML=matched.length
+      ?matched.map(c=>{
+          const matchedDambo=c.contracts.flatMap(x=>(x.dambo||[]).filter(d=>d.name.toLowerCase().includes(q)));
+          const baseCard=renderCard(c);
+          const hint=`<div style="font-size:11px;color:var(--accent);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">🎯 ${matchedDambo.slice(0,3).map(d=>cleanDamboName(d.name)).join(' · ')}${matchedDambo.length>3?` 외 ${matchedDambo.length-3}건`:''}</div>`;
+          return baseCard.replace('</div></div>',`${hint}</div></div>`);
+        }).join('')
+      :'<div class="empty"><div class="empty-icon">🔍</div><p>해당 담보를 가진 고객이 없어요</p></div>';
+  }
+}
+
+// ── 목록 ──
+function renderList(){
+  const total=customers.reduce((s,c)=>s+c.contracts.length,0);
+  const renewCount=customers.flatMap(c=>c.contracts).filter(x=>x.daysLeft<=60).length;
+  const totalPrem=customers.reduce((s,c)=>s+totalPremium(c),0);
+  document.getElementById('stats-area').innerHTML=`
+    <div class="stat-card"><div class="stat-val blue">${customers.length}</div><div class="stat-lbl">고객 수</div></div>
+    <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-lbl">총 계약</div></div>
+    <div class="stat-card"><div class="stat-val red">${renewCount}</div><div class="stat-lbl">갱신 임박</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:14px">${Math.round(totalPrem/10000)}만</div><div class="stat-lbl">월 합계 보험료</div></div>`;
+
+  // 보험사별 통계
+  renderCompanyStats();
+
+  document.getElementById('list-content').innerHTML=customers.map(renderCard).join('');
+}
+
+function renderCompanyStats(){
+  const allContracts = customers.flatMap(c=>c.contracts);
+  if(!allContracts.length){document.getElementById('company-stats-area').innerHTML='';return;}
+
+  // 보험사별 계약 수, 고객 수, 월 보험료 집계
+  const map={};
+  for(const ct of allContracts){
+    const co=ct.company||'기타';
+    if(!map[co]) map[co]={count:0,premium:0,customers:new Set()};
+    map[co].count++;
+    map[co].premium+=ct.premium||0;
+  }
+  // 고객 수도 집계
+  for(const c of customers){
+    for(const ct of c.contracts){
+      const co=ct.company||'기타';
+      if(map[co]) map[co].customers.add(c.id);
+    }
+  }
+
+  const sorted=Object.entries(map).sort((a,b)=>b[1].count-a[1].count);
+  const maxCount=sorted[0]?.[1]?.count||1;
+
+  // 접기/펼치기 상태
+  const isOpen=document.getElementById('company-stats-area')?.dataset.open==='1';
+
+  const barRows=sorted.map(([co,d])=>{
+    const pct=Math.round(d.count/maxCount*100);
+    return`<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-size:12px;font-weight:600;color:var(--text1)">${co}</span>
+        <span style="font-size:11px;color:var(--text3)">${d.count}건 · ${d.customers.size}명 · ${Math.round(d.premium/10000)}만원/월</span>
+      </div>
+      <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px;transition:width .4s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('company-stats-area').innerHTML=`
+    <div style="margin:0 0 8px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${isOpen?'12px':'0'};cursor:pointer" onclick="toggleCompanyStats()">
+        <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.04em">📊 보험사별 현황</span>
+        <span style="font-size:11px;color:var(--accent)" id="company-stats-toggle-icon">${isOpen?'▲ 접기':'▼ 펼치기'}</span>
+      </div>
+      <div id="company-stats-body" style="display:${isOpen?'block':'none'}">${barRows}</div>
+    </div>`;
+  document.getElementById('company-stats-area').dataset.open=isOpen?'1':'0';
+}
+
+function toggleCompanyStats(){
+  const area=document.getElementById('company-stats-area');
+  const body=document.getElementById('company-stats-body');
+  const icon=document.getElementById('company-stats-toggle-icon');
+  const header=body?.previousElementSibling;
+  const isOpen=area.dataset.open==='1';
+  area.dataset.open=isOpen?'0':'1';
+  if(body) body.style.display=isOpen?'none':'block';
+  if(icon) icon.textContent=isOpen?'▼ 펼치기':'▲ 접기';
+  if(header) header.style.marginBottom=isOpen?'0':'12px';
+}
+
+// ── 갱신 ──
+function renderRenewal(){
+  const items=customers.flatMap(c=>
+    c.contracts.filter(x=>x.daysLeft<=60).map(x=>({...x,customerName:c.name,phone:c.phone,customerId:c.id}))
+  ).sort((a,b)=>a.daysLeft-b.daysLeft);
+  if(!items.length){document.getElementById('renewal-content').innerHTML='<div class="empty"><div class="empty-icon">✅</div><p>60일 내 갱신 계약이 없어요</p></div>';return;}
+  document.getElementById('renewal-content').innerHTML=items.map(x=>{
+    const cls=x.daysLeft<=14?'red':x.daysLeft<=30?'amber':'green';
+    return`<div class="renewal-item" onclick="showDetail(${x.customerId})">
+      <div><div class="renewal-name">${x.customerName} · ${x.company}</div><div class="renewal-sub">${x.product} · ${x.premium.toLocaleString()}원/월</div></div>
+      <span class="chip ${cls}">${x.daysLeft}일 후</span>
+    </div>`;
+  }).join('');
+}
+
+// ── 상세 ──
+function showDetail(id){
+  currentCustomerId=id;
+  const c=getCust(id);
+  if(!c)return;
+  const totalPrem=totalPremium(c);
+
+  // 계약 정보 렌더
+  let contractsHTML='';
+  for(const ct of c.contracts){
+    const payInfo=ct.payMethod==='신용카드'&&ct.cardCompany
+      ?`신용카드 (${ct.cardCompany} ${ct.cardLast4?'끝번호 '+ct.cardLast4:''} · ${ct.cardName||ct.cardName})`
+      :ct.payMethod;
+
+    // 담보 카드 리스트
+    let damboHTML='';
+    if(ct.dambo&&ct.dambo.length){
+      damboHTML=ct.dambo.map(d=>{
+        // 갱신 태그 (갱신종료나이 포함)
+        const isRenew=d.renew&&d.renew!=='비갱신';
+        const renewLabel=d.renew+(d.갱신종료나이?` (~${d.갱신종료나이}세)`:'');
+        const renewChip=isRenew
+          ?`<span class="chip amber">🔄 ${renewLabel}</span>`
+          :`<span class="chip green">✓ 비갱신</span>`;
+        // 환급금 태그
+        const refundChip=d.refundType&&d.refundType.includes('미지급')
+          ?`<span class="chip red">환급금0</span>`:'';
+        // 1년내 감액 경고
+        const yearWarn=d.yearReduce
+          ?`<div style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:#FEF3C7;color:#B45309;font-size:10px;font-weight:700">⚠ 1년내 ${d.yearReduce}</div>`:
+          d['1년내감액']?`<div style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:#FEF3C7;color:#B45309;font-size:10px;font-weight:700">⚠ 1년내 ${d['1년내감액']}</div>`:'';
+        // 바로보장 태그
+        const baroChip=d.name&&d.name.includes('바로보장')
+          ?`<span class="chip blue">⚡ 바로보장</span>`:'';
+        // 일당형 태그
+        const dailyChip=d.isDaily
+          ?`<span class="chip" style="background:#F0FDF4;color:#15803D;font-weight:700">📅 일당</span>`:'';
+        // 납입기간/보험기간이 계약과 다른 경우 표시
+        const periodDiff=d.payPeriod&&d.expiry&&(d.payPeriod!==ct.payPeriod||d.expiry!==ct.expiry)
+          ?`<span class="chip" style="background:var(--surface2)">${d.payPeriod||''}/${d.expiry||''}</span>`:'';
+        // 다단계 보장금액 (amountLevels 배열이 있는 경우)
+        const amountHTML=d.amountLevels&&d.amountLevels.length
+          ?`<div>${d.amountLevels.map(lv=>`<div style="font-size:11px;color:var(--text2);text-align:right">${lv.label} <b style="color:var(--accent)">${lv.amount}</b></div>`).join('')}</div>`
+          :`<div><div class="dambo-card-amount">${d.amount}</div>${d.amountSub?`<div class="dambo-card-amount-sub">${d.amountSub}</div>`:''}</div>`;
+        return`<div class="dambo-card" onclick="openDamboDetail('${ct.id}','${d.id}')">
+          <div class="dambo-card-top">
+            <div class="dambo-card-name">${cleanDamboName(d.name)}</div>
+            ${amountHTML}
+          </div>
+          <div class="dambo-card-meta">
+            ${baroChip}${dailyChip}${renewChip}${refundChip}${yearWarn}${periodDiff}
+            <span class="chip">${d.premium}</span>
+          </div>
+          ${d.note?`<div class="dambo-card-note">${d.note}</div>`:''}
+          ${d.claims&&d.claims.length?`<div class="dambo-claim"><div class="dambo-claim-label">💰 보장 내역 ${d.claims.length}건</div><div class="dambo-claim-text">${d.claims.map(cl=>`${cl.date} · ${cl.amount}${cl.memo?' ('+cl.memo+')':''}`).join('<br>')}</div></div>`:''}
+        </div>`;
+      }).join('');
+    }
+
+    // 해약환급금
+    let refundHTML='';
+    if(ct.refund&&ct.refund.length){
+      const maxRate=Math.max(...ct.refund.map(r=>r.rate));
+      const ctId=ct.id;
+      // 주요 시점만 기본 표시 (milestone + 5년 단위 + 전체 10개 이하면 다 표시)
+      const isLong=ct.refund.length>10;
+      const keyRows=isLong?ct.refund.filter((r,i)=>r.milestone||r.period.includes('납입완료')||i===0||i===ct.refund.length-1||Number(r.period.replace(/[^0-9]/g,''))%5===0):ct.refund;
+      const renderRow=r=>`<tr${r.milestone?' class="milestone"':''}>
+        <td>${r.period}</td>
+        <td style="text-align:center;color:var(--text2)">${r.age||''}</td>
+        <td>${Number(String(r.paid).replace(/,/g,'')).toLocaleString()}</td>
+        <td style="color:${r.refund==='0'||r.refund===0||r.refund==='0원'?'var(--red)':'inherit'}">${typeof r.refund==='number'?r.refund.toLocaleString():r.refund}</td>
+        <td><div class="rate-bar-row"><div class="rate-bar" style="width:${Math.round(r.rate/maxRate*60)}px"></div><span style="font-size:11px;color:var(--text2)">${r.rate}%</span></div></td>
+      </tr>`;
+      const allRowsHTML=ct.refund.map(renderRow).join('');
+      const keyRowsHTML=keyRows.map(renderRow).join('');
+      refundHTML=`<div class="sec-label">해약환급금 예시</div>
+      <div class="refund-wrap">
+        <table>
+          <thead><tr><th>경과</th><th>나이</th><th>납입누계</th><th>환급금</th><th>환급률</th></tr></thead>
+          <tbody id="refund-body-${ctId}">${isLong?keyRowsHTML:allRowsHTML}</tbody>
+        </table>
+      </div>
+      ${isLong?`<button class="refund-toggle-btn" id="refund-toggle-${ctId}" onclick="toggleRefund('${ctId}',${JSON.stringify(allRowsHTML).replace(/'/g,"&#39;")},${JSON.stringify(keyRowsHTML).replace(/'/g,"&#39;")})">▼ 전체 ${ct.refund.length}개 보기</button>`:''}`;
+    }
+
+    // 간편/무심사 배지
+    const examBadge=ct.product&&ct.product.includes('간편')?'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#EDE9FE;color:#6D28D9;margin-left:6px">간편가입</span>':ct.product&&ct.product.includes('무심사')?'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FEE2E2;color:#B91C1C;margin-left:6px">무심사</span>':'';
+
+    contractsHTML+=`
+      <div class="sec-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>📄 ${ct.company} · ${ct.product}${examBadge}</span>
+        <button onclick="deleteContract('${c.id}','${ct.id}')" style="font-size:10px;padding:2px 8px;border:1px solid var(--border);border-radius:20px;background:none;color:var(--text3);cursor:pointer">🗑 계약 삭제</button>
+      </div>
+      <div class="info-grid" style="margin-bottom:12px">
+        <div class="info-cell"><div class="info-key">계약일</div><div class="info-val" contenteditable="false" onclick="startEdit(this,'계약일','${c.id}','${ct.id}',null)">${ct.start}</div></div>
+        <div class="info-cell"><div class="info-key">만기일</div><div class="info-val">${ct.expiry}</div></div>
+        <div class="info-cell"><div class="info-key">납입기간</div><div class="info-val">${ct.payPeriod}</div></div>
+        <div class="info-cell"><div class="info-key">납입방법</div><div class="info-val">${payInfo}</div></div>
+        <div class="info-cell"><div class="info-key">월 보험료</div><div class="info-val" style="color:var(--accent);font-weight:700">${ct.premium.toLocaleString()}원</div></div>
+        <div class="info-cell"><div class="info-key">갱신 여부</div><div class="info-val">${ct.renew}</div></div>
+        ${ct.memo?`<div class="info-cell full"><div class="info-key">메모</div><div class="info-val" style="font-weight:400;font-size:12px;line-height:1.6">${ct.memo}</div></div>`:''}
+      </div>
+      ${ct.dambo&&ct.dambo.length?`<div class="sec-label">담보 목록 <span style="font-weight:400;color:var(--text3);font-size:10px">· 탭하면 상세 보기</span></div><div class="dambo-list">${damboHTML}</div>`:''}
+      ${refundHTML}`;
+  }
+
+  // 병력/고지
+  const medHTML=`
+    <div class="sec-label">병력 / 고지사항</div>
+    <div class="medical-card">
+      <div style="margin-bottom:10px">
+        <div class="medical-item">
+          <div class="medical-item-label">📋 기존 병력</div>
+          <div class="medical-item-text">${c.medicalHistory||'기록 없음'}</div>
+        </div>
+        <div class="medical-item">
+          <div class="medical-item-label">📝 가입 시 고지사항</div>
+          <div class="medical-item-text">${c.disclosure||'기록 없음'}</div>
+        </div>
+        <div class="medical-item" style="margin-bottom:0">
+          <div class="medical-item-label">💬 상담 참고사항</div>
+          <div class="medical-item-text">${c.consultNote||'기록 없음'}</div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('detail-content').innerHTML=`
+    <div class="detail-header">
+      <div class="detail-name">${c.name} <span style="font-size:14px;font-weight:400;color:var(--text2)">${c.age}세 · ${c.gender}</span></div>
+      <div class="detail-sub">${c.phone} · 생년월일 ${c.dob}</div>
+      ${c.ssn?`<div style="font-size:12px;color:var(--text2);margin-top:3px">주민번호 ${c.ssn}</div>`:''}
+      ${c.job||c.address?`<div style="font-size:12px;color:var(--text2);margin-top:3px">${[c.job,c.address].filter(Boolean).join(' · ')}</div>`:''}
+      <div class="detail-premium">
+        <span class="detail-premium-lbl">월 합계 보험료</span>
+        <span class="detail-premium-val">${totalPrem.toLocaleString()}원</span>
+      </div>
+      <!-- 빠른 액션 버튼 -->
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+        <a href="tel:${c.phone}" style="flex:1;min-width:70px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;background:var(--green-light);color:var(--green);border:1.5px solid #A7F3D0;border-radius:var(--radius-sm);font-size:13px;font-weight:700;text-decoration:none;font-family:inherit;">
+          📞 전화
+        </a>
+        <a href="sms:${c.phone}" style="flex:1;min-width:70px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;background:var(--accent-light);color:var(--accent);border:1.5px solid #BFDBFE;border-radius:var(--radius-sm);font-size:13px;font-weight:700;text-decoration:none;font-family:inherit;">
+          ✉️ 문자
+        </a>
+        <button onclick="copyCustomerInfo('${c.id}')" style="flex:1;min-width:70px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;background:var(--amber-light);color:var(--amber);border:1.5px solid #FCD34D;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+          📋 복사
+        </button>
+        <button onclick="shareCustomerInfo('${c.id}')" style="flex:1;min-width:70px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;background:#F3E8FF;color:#7C3AED;border:1.5px solid #DDD6FE;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+          📤 공유
+        </button>
+      </div>
+    </div>
+    ${contractsHTML}
+    ${medHTML}
+    <div class="action-bar">
+      <button class="btn btn-sm btn-danger" onclick="deleteCustomer('${c.id}')">🗑 삭제</button>
+      <button class="btn btn-sm" onclick="editCustomerNote('${c.id}')">✏️ 메모 수정</button>
+      <button class="btn btn-sm btn-primary" onclick="openAddContract(${c.id})">➕ 계약 추가</button>
+    </div>
+    <!-- 보장 요약 카드 -->
+    <div style="margin-top:8px">
+      <button class="btn btn-sm btn-full" id="coverage-summary-toggle-${c.id}" onclick="toggleCoverageSummary(${c.id})" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-weight:600">
+        🛡 보장 요약 보기 (수술·암·입원 얼마?)
+      </button>
+      <div id="coverage-summary-${c.id}" style="display:none;margin-top:8px"></div>
+    </div>`;
+
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-detail').classList.add('active');
+  pushDetailState();
+}
+
+// ── 해약환급금 접기/펼치기 ──
+function toggleRefund(ctId, allHTML, keyHTML){
+  const tbody=document.getElementById('refund-body-'+ctId);
+  const btn=document.getElementById('refund-toggle-'+ctId);
+  if(!tbody||!btn)return;
+  const isExpanded=btn.dataset.expanded==='1';
+  tbody.innerHTML=isExpanded?keyHTML:allHTML;
+  btn.dataset.expanded=isExpanded?'0':'1';
+  btn.textContent=isExpanded?`▼ 전체 보기`:`▲ 접기`;
+}
+
+function goBack(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const tabs=['search','list','renewal','add'];
+  const idx=tabs.indexOf(prevTab);
+  document.getElementById('screen-'+prevTab).classList.add('active');
+  document.querySelectorAll('.tab')[idx]?.classList.add('active');
+  if(prevTab==='list')renderList();
+  if(prevTab==='renewal')renderRenewal();
+}
+
+// ── 담보 상세 시트 ──
+function openDamboDetail(contractId,damboId){
+  const c=getCust(currentCustomerId);
+  if(!c)return;
+  const ct=c.contracts.find(x=>x.id===contractId);
+  const d=ct?.dambo.find(x=>x.id===damboId);
+  if(!d)return;
+
+  document.getElementById('dambo-sheet-content').innerHTML=`
+    <div class="dambo-detail-title">${cleanDamboName(d.name)}</div>
+    <div class="dambo-detail-sub">${ct.company} · ${ct.product}</div>
+    ${d.name.includes('바로보장')?'<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:var(--accent-light);color:var(--accent);font-size:11px;font-weight:700;margin-bottom:12px">⚡ 바로보장형</div>':''}
+    ${d.isDaily?'<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:#F0FDF4;color:#15803D;font-size:11px;font-weight:700;margin-bottom:12px;margin-left:4px">📅 일당형</div>':''}
+    <div class="info-grid">
+      <div class="info-cell ${d.amountLevels&&d.amountLevels.length?'full':''}">
+        <div class="info-key">보장금액</div>
+        ${d.amountLevels&&d.amountLevels.length
+          ?`<div>${d.amountLevels.map(lv=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">${lv.label}</span><b style="color:var(--accent)">${lv.amount}</b></div>`).join('')}</div>`
+          :`<div class="info-val" style="color:var(--accent);font-weight:700;font-size:16px">${d.amount}</div>`}
+      </div>
+      <div class="info-cell"><div class="info-key">담보보험료</div><div class="info-val">${d.premium}</div></div>
+      <div class="info-cell">
+        <div class="info-key">갱신 여부</div>
+        <div class="info-val">
+          <span class="chip ${d.renew==='비갱신'?'green':'amber'}">${d.renew}</span>
+          ${d.갱신종료나이?`<span style="font-size:11px;color:var(--text2);margin-left:4px">~${d.갱신종료나이}세</span>`:''}
+        </div>
+      </div>
+      ${d.payPeriod||d.expiry?`<div class="info-cell"><div class="info-key">납입/보험기간</div><div class="info-val">${d.payPeriod||'-'} / ${d.expiry||'-'}</div></div>`:''}
+      ${d.amountSub?`<div class="info-cell full"><div class="info-key">추가 보장</div><div class="info-val" style="color:var(--accent)">${d.amountSub}</div></div>`:''}
+    </div>
+    ${d.note?`<div class="sec-label" style="margin-top:12px">면책 / 감액 / 조건</div>
+    <div style="background:var(--amber-light);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.6;color:var(--amber)">${d.note}</div>`:''}
+    ${(d.claims&&d.claims.length)||true?`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;margin-bottom:8px">
+      <div class="sec-label" style="margin:0">💰 보장 내역</div>
+      <button class="btn btn-sm" onclick="addClaim('${contractId}','${damboId}')" style="padding:4px 10px;font-size:11px">+ 추가</button>
+    </div>
+    <div id="claim-list-area">
+      ${renderClaimList(d, contractId, damboId)}
+    </div>`:''}
+    `;
+
+  document.getElementById('dambo-overlay').classList.add('active');
+  document.body.style.overflow='hidden';
+  pushDamboState();
+}
+
+// ── 보장 내역 렌더 ──
+function renderClaimList(d, contractId, damboId){
+  if(!d.claims||!d.claims.length){
+    return`<div style="font-size:13px;color:var(--text3);padding:8px 0">아직 보장 내역이 없어요</div>`;
+  }
+  return d.claims.map((cl,i)=>`
+    <div class="claim-item">
+      <div class="claim-item-left">
+        <div class="claim-date">${cl.date||'-'}</div>
+        <div class="claim-memo">${cl.memo||''}</div>
+      </div>
+      <div class="claim-item-right">
+        <div class="claim-amount">${cl.amount||''}</div>
+        <button class="claim-del-btn" onclick="deleteClaim('${contractId}','${damboId}',${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function addClaim(contractId, damboId){
+  const area=document.getElementById('claim-list-area');
+  // 이미 입력폼 열려있으면 중복 방지
+  if(document.getElementById('claim-input-form'))return;
+  const form=document.createElement('div');
+  form.id='claim-input-form';
+  form.style.cssText='background:var(--bg);border:1.5px solid var(--accent);border-radius:var(--radius-sm);padding:12px;margin-top:8px;';
+  form.innerHTML=`
+    <div class="form-grid" style="margin-bottom:8px;gap:8px">
+      <div><label class="form-label">날짜</label><input class="form-input" id="cl-date" placeholder="2025-03-15" type="date"/></div>
+      <div><label class="form-label">수령금액</label><input class="form-input" id="cl-amount" placeholder="1,000만원"/></div>
+    </div>
+    <div style="margin-bottom:8px"><label class="form-label">메모</label><input class="form-input" id="cl-memo" placeholder="암 진단, 수술 등 간단 메모"/></div>
+    <div style="display:flex;gap:8px">
+      <button class="edit-save" onclick="saveClaim('${contractId}','${damboId}')">저장</button>
+      <button class="edit-cancel" onclick="document.getElementById('claim-input-form').remove()">취소</button>
+    </div>`;
+  area.appendChild(form);
+  document.getElementById('cl-date').focus();
+}
+
+async function saveClaim(contractId, damboId){
+  const date=document.getElementById('cl-date').value.trim();
+  const amount=document.getElementById('cl-amount').value.trim();
+  const memo=document.getElementById('cl-memo').value.trim();
+  if(!date||!amount){showToast('날짜와 금액을 입력해주세요');return;}
+
+  const c=getCust(currentCustomerId);
+  const ct=c.contracts.find(x=>x.id===contractId);
+  const d=ct.dambo.find(x=>x.id===damboId);
+  if(!d.claims)d.claims=[];
+  d.claims.push({date,amount,memo});
+  d.claims.sort((a,b)=>a.date>b.date?-1:1); // 최신순
+
+  const docId=c._docId||String(c.id);
+  const data={...c}; delete data._docId;
+  try{
+    await window._fbSetDoc(window._fbDoc(window._db,'customers',docId),data);
+    showToast('보장 내역이 저장됐어요');
+  }catch(e){showToast('⚠ 로컬 저장됨');}
+
+  document.getElementById('claim-list-area').innerHTML=renderClaimList(d,contractId,damboId);
+  const form=document.getElementById('claim-input-form');
+  if(form)form.remove();
+  showDetail(currentCustomerId);
+}
+
+async function deleteClaim(contractId, damboId, idx){
+  if(!confirm('이 보장 내역을 삭제할까요?'))return;
+  const c=getCust(currentCustomerId);
+  const ct=c.contracts.find(x=>x.id===contractId);
+  const d=ct.dambo.find(x=>x.id===damboId);
+  d.claims.splice(idx,1);
+
+  const docId=c._docId||String(c.id);
+  const data={...c}; delete data._docId;
+  try{
+    await window._fbSetDoc(window._fbDoc(window._db,'customers',docId),data);
+    showToast('삭제됐어요');
+  }catch(e){showToast('⚠ 로컬 삭제됨');}
+
+  document.getElementById('claim-list-area').innerHTML=renderClaimList(d,contractId,damboId);
+  showDetail(currentCustomerId);
+}
+
+function editClaimHistory(contractId,damboId){} // 하위호환 빈 함수
+function saveClaimHistory(contractId,damboId){} // 하위호환 빈 함수
+
+// ── 고객 삭제 ──
+async function deleteContract(customerId, contractId){
+  if(!confirm('이 계약을 삭제할까요?\n담보 정보도 함께 삭제됩니다.'))return;
+  const c=getCust(customerId);
+  if(!c)return;
+  c.contracts=c.contracts.filter(x=>x.id!==contractId);
+  const docId=c._docId||String(c.id);
+  const data={...c}; delete data._docId;
+  try{
+    await window._fbSetDoc(window._fbDoc(window._db,'customers',docId),data);
+    showToast('✅ 계약이 삭제됐어요');
+    showDetail(customerId);
+  }catch(e){
+    showToast('❌ 삭제 실패: '+e.message);
+  }
+}
+
+async function deleteCustomer(customerId){
+  if(!confirm('정말 삭제할까요?\n이 고객의 모든 계약 정보가 삭제됩니다.'))return;
+  const c=getCust(customerId);
+  if(!c)return;
+  const docId=c._docId||String(c.id);
+  try{
+    await window._fbDeleteDoc(window._fbDoc(window._db,'customers',docId));
+    customers=customers.filter(x=>x.id!==customerId);
+    showToast('삭제됐어요');
+    goBack();
+  }catch(e){
+    showToast('❌ 삭제 실패: '+e.message);
+  }
+}
+
+// ── 상담 메모 수정 ──
+function editCustomerNote(customerId){
+  const c=getCust(customerId);
+  if(!c)return;
+  const cur=c.consultNote||'';
+  const newNote=prompt('상담 참고사항 수정:', cur);
+  if(newNote===null)return;
+  c.consultNote=newNote;
+  const docId=c._docId||String(c.id);
+  const data={...c}; delete data._docId;
+  window._fbSetDoc(window._fbDoc(window._db,'customers',docId),data)
+    .then(()=>{showToast('메모 저장됐어요');showDetail(customerId);})
+    .catch(()=>showToast('⚠ Firebase 오류'));
+}
+
+function closeDamboDetail(e){
+  if(e.target===document.getElementById('dambo-overlay')){
+    forceCloseDambo();
+  }
+}
+
+function forceCloseDambo(){
+  document.getElementById('dambo-overlay').classList.remove('active');
+  document.body.style.overflow='';
+  // history에서 dambo 항목만 제거 (상세화면은 유지)
+  if(history.state&&history.state.dambo){
+    history.replaceState({detail: currentCustomerId}, '');
+  }
+}
+
+// ── 홈(검색)/목록 바로가기 ──
+function goHome(){
+  forceCloseDambo();
+  switchTab('search', document.querySelectorAll('.tab')[0]);
+}
+function goList(){
+  forceCloseDambo();
+  switchTab('list', document.querySelectorAll('.tab')[1]);
+}
+
+// ── 안드로이드/브라우저 뒤로가기 연동 ──
+function pushDetailState(){
+  history.pushState({detail: currentCustomerId}, '');
+}
+function pushDamboState(){
+  history.pushState({dambo: true}, '');
+}
+window.addEventListener('popstate', function(e){
+  const overlay = document.getElementById('dambo-overlay');
+  if(overlay.classList.contains('active')){
+    // 담보 시트 열려있으면 닫기
+    overlay.classList.remove('active');
+    document.body.style.overflow='';
+    return;
+  }
+  const detailActive = document.getElementById('screen-detail').classList.contains('active');
+  if(detailActive){
+    // 상세 화면이면 뒤로
+    goBack();
+    return;
+  }
+});
+
+// ── 납입방법 카드 토글 ──
+function toggleCardInfo(val){
+  const box=document.getElementById('card-info-box');
+  box.classList.toggle('show', val==='신용카드');
+}
+
+// ── 담보 행 추가 ──
+function addDamboRow(){
+  const wrap=document.getElementById('dambo-inputs');
+  const row=document.createElement('div');
+  row.className='dambo-input-row';
+  row.innerHTML=`
+    <div class="form-grid" style="margin-bottom:8px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">담보명</label><input class="form-input" placeholder="담보명"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">보장금액</label><input class="form-input" placeholder="0원"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">담보보험료</label><input class="form-input" placeholder="0원"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">갱신</label><select class="form-select"><option>비갱신</option><option>갱신</option></select></div>
+    </div>
+    <div class="form-row" style="margin-bottom:6px"><label class="form-label">면책 / 감액 / 조건</label><input class="form-input" placeholder="면책기간, 감액기간, 조건 등"/></div>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      <div class="form-row" style="margin-bottom:0;flex:1"><label class="form-label">💰 보장 수령 이력</label><input class="form-input" placeholder="예: 2024-03 위암 진단으로 2,000만원 수령"/></div>
+      <button class="btn btn-sm btn-danger" onclick="this.closest('.dambo-input-row').remove()">✕</button>
+    </div>`;
+  wrap.appendChild(row);
+}
+
+// ── AI 추출 ──
+function handleDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('dragging');processFile(e.dataTransfer.files[0]);}
+function handleFile(e){processFile(e.target.files[0]);}
+function processFile(file){
+  if(!file)return;
+  if(!getApiKey()){
+    showApiKeyPopup();
+    showExtractStatus('error','API 키를 먼저 입력해주세요 (🔑 버튼)');
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    const base64=reader.result.split(',')[1];
+    showExtractStatus('loading','AI가 계약서를 읽는 중...');
+    await extractWithAI(base64,file.type||'image/jpeg');
+  };
+  reader.readAsDataURL(file);
+}
+function showExtractStatus(type,msg){
+  const el=document.getElementById('extract-status');
+  el.style.display='';el.className='status-bar status-'+type;
+  el.innerHTML=type==='loading'?`<span class="spinner"></span> ${msg}`:`${type==='done'?'✅':'❌'} ${msg}`;
+}
+async function extractWithAI(base64,type){
+  const isPDF=type==='application/pdf';
+  const block=isPDF?{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}:{type:'image',source:{type:'base64',media_type:type,data:base64}};
+
+  const prompt=`당신은 보험계약서 전문 데이터 추출 AI입니다. JSON만 반환, 설명/마크다운 없이 순수 JSON만 출력.
+
+=== 다양한 보험사/문서 유형 처리 규칙 ===
+【계약자/피보험자】계약자와 피보험자 반드시 분리. "고객님" 같은 익명도 그대로 기재.
+【보험사유형】삼성생명/한화/교보/신한라이프 등=생명보험. 현대해상/DB/KB/메리츠/삼성화재 등=손해보험.
+【심사유형】상품명에 "간편" 포함=간편심사형(간편가입 포함). "무심사" 포함=무심사형. 그외=일반심사형.
+【바로보장】담보명에 "(바로보장)" 또는 "바로보장" 포함 시 바로보장:true로 표시.
+【담보 규칙】
+  - 번호: 원문 그대로 기재. [1],[2-1] 형식도, 2/4/556 같은 숫자만 있는 형식도, "1." 같은 점(.) 형식도 모두 허용.
+  - 담보명: 번호 제외하고 전체 담보명 기재. "(통합간편)","(바로보장)","(통합)","(간편)" 등 보험사 접두어는 제거하고 실제 담보명만 기재.
+  - 갱신형: 갱신형이면 갱신여부="갱신형", 갱신주기=숫자(예:10), 갱신종료나이가 있으면 갱신종료나이 필드에 기재.
+  - 비갱신: 갱신여부="비갱신"
+  - 납기만기: payPeriod와 expiry 필드에 원문 그대로(예:"10년납","10년만기").
+【일당형 담보】입원일당/통원일당처럼 일 단위로 지급되는 담보: 보장금액에 "3만원/일" 형식으로 기재. isDaily:true 추가.
+【다단계보장금액】수술보장특약처럼 1종/2종/3종 또는 급별로 금액이 다른 경우: amountLevels 배열에 [{label:"1종",amount:"20만원"},…] 형태로 기재.
+【감액규칙】90일이내/이후 구분 있으면 "90일내 10%, 90일-1년 50%" 형식. 1년미만만 있으면 "50%".
+【해약환급금】
+  - 이율 컬럼이 여러 개(최저보증이율/평균공시이율/공시이율)인 경우: 공시이율 컬럼 우선 사용.
+  - 납입완료 시점 반드시 포함. 주계약+특약 합산 우선.
+  - 갱신형 상품은 최초 보험기간만 있어도 그대로 기재.
+【월보험료】"보장보험료 합계"/"합계보험료"/"적용(초회)보험료"/"할인후초회보험료" 중 찾아서 기재.
+【납입면제】5대/6대/1대 등 납입면제 조건 있으면 납입면제조건 필드에 간단히 기재.
+없는 항목은 null.
+
+{
+  "계약자": "",
+  "피보험자": "",
+  "피보험자나이": "",
+  "피보험자성별": "",
+  "연락처": null,
+  "생년월일": null,
+  "보험사": "",
+  "보험사유형": "",
+  "상품명": "",
+  "상품유형": "",
+  "심사유형": "",
+  "해약환급금형태": "",
+  "발행번호": null,
+  "설계번호": null,
+  "계약일": null,
+  "보험기간": "",
+  "납입기간": "",
+  "납입방법": "",
+  "월보험료": "",
+  "상해급수": null,
+  "보험료상령일": null,
+  "컨설턴트": null,
+  "컨설턴트연락처": null,
+  "소속지점": null,
+  "담보목록": [
+    {
+      "번호": "",
+      "담보명": "",
+      "바로보장": false,
+      "isDaily": false,
+      "보장금액": "",
+      "amountLevels": [],
+      "담보보험료": "",
+      "payPeriod": "",
+      "expiry": "",
+      "갱신여부": "",
+      "갱신주기": null,
+      "갱신종료나이": null,
+      "면책기간": null,
+      "1년내감액": null,
+      "기타조건": null
+    }
+  ],
+  "해약환급금": [
+    {
+      "경과": "",
+      "나이": null,
+      "납입누계": "",
+      "환급금": "",
+      "환급률": ""
+    }
+  ],
+  "납입면제조건": null,
+  "특이사항": null
+}`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-allow-browser':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:4000,
+        messages:[{role:'user',content:[block,{type:'text',text:prompt}]}]
+      })
+    });
+    const data=await res.json();
+    const raw=data.content.map(b=>b.text||'').join('');
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    window._lastParsed=parsed; // 원클릭 저장용 임시 보관
+    fillForm(parsed);
+    showExtractStatus('done',`추출 완료! 담보 ${parsed.담보목록?.length||0}개 인식됐어요.`);
+
+    // 기존 고객 매칭 확인 UI 표시
+    showMatchUI(parsed);
+  }catch(e){
+    console.error(e);
+    showExtractStatus('error','추출 실패. 다시 시도하거나 이미지 품질을 확인해주세요.');
+  }
+}
+
+// ── 고객 매칭 확인 UI ──
+// _matchTarget: null(미선택) | 'new' | customer 객체
+window._matchTarget = null;
+
+function normPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function normName(n){ return (n||'').replace(/\s/g,''); }
+
+function showMatchUI(parsed){
+  const name = normName(parsed.계약자||'');
+  const dob  = parsed.생년월일||'';
+  const phone= normPhone(parsed.연락처||'');
+
+  // 후보: 이름 완전 일치 or 연락처 일치 or 이름 포함
+  const candidates = customers.filter(c=>{
+    const cName = normName(c.name);
+    const cPhone= normPhone(c.phone);
+    if(name && cName === name) return true;           // 이름 완전 일치
+    if(phone && cPhone === phone) return true;        // 연락처 일치
+    if(name && cName.includes(name)) return true;    // 이름 포함
+    return false;
+  });
+
+  // 기존 match-box 제거
+  document.getElementById('match-box')?.remove();
+  window._matchTarget = null;
+
+  // 후보가 없으면 → 바로 신규 저장 버튼만
+  if(!candidates.length){
+    window._matchTarget = 'new';
+    renderSaveButton(null, parsed);
+    return;
+  }
+
+  // 후보 있으면 확인 UI 표시
+  const box = document.createElement('div');
+  box.id = 'match-box';
+  box.className = 'match-box';
+
+  const candidateRows = candidates.map(c=>{
+    const contracts = c.contracts.map(x=>x.company).join(' · ') || '계약 없음';
+    const matchReason = normPhone(c.phone)===phone ? '📞 연락처 일치' : '👤 이름 일치';
+    return `<div class="match-candidate" id="mc-${c.id}" onclick="selectMatchCandidate(${c.id})">
+      <div class="match-candidate-info">
+        <div class="match-candidate-name">${c.name} <span style="font-size:10px;color:var(--text3)">${c.age}세 · ${c.gender}</span></div>
+        <div class="match-candidate-sub">${c.phone} · ${c.dob} · ${contracts}</div>
+        <div style="margin-top:4px"><span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:20px;font-weight:700">${matchReason}</span></div>
+      </div>
+      <div style="font-size:18px;margin-left:8px;color:var(--accent)">＋</div>
+    </div>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="match-box-title">🔍 기존 고객과 일치할 수 있어요 — 어떻게 저장할까요?</div>
+    ${candidateRows}
+    <div class="match-new-btn" onclick="selectMatchNew()">
+      <span style="font-size:16px">➕</span>
+      <span>신규 고객으로 새로 등록</span>
+    </div>
+    <div id="match-save-area" style="margin-top:12px"></div>`;
+
+  document.getElementById('extract-status').after(box);
+}
+
+function selectMatchCandidate(custId){
+  // 선택 강조
+  document.querySelectorAll('.match-candidate').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('mc-'+custId)?.classList.add('selected');
+  window._matchTarget = getCust(custId);
+  renderSaveButton(custId, window._lastParsed);
+}
+
+function selectMatchNew(){
+  document.querySelectorAll('.match-candidate').forEach(el=>el.classList.remove('selected'));
+  window._matchTarget = 'new';
+  renderSaveButton(null, window._lastParsed);
+}
+
+function renderSaveButton(custId, parsed){
+  const area = document.getElementById('match-save-area') || document.getElementById('extract-status');
+  const label = custId
+    ? `⚡ ${getCust(custId)?.name}님 계약에 추가`
+    : `⚡ 신규 고객으로 저장 (${parsed?.계약자||''})`;
+
+  // match-box 안이면 내부, 없으면 extract-status 뒤
+  const target = document.getElementById('match-save-area');
+  if(target){
+    target.innerHTML = `<button class="btn btn-primary btn-full" onclick="saveContract()">${label}</button>`;
+  } else {
+    let quickBtn = document.getElementById('quick-save-btn');
+    if(!quickBtn){
+      quickBtn = document.createElement('button');
+      quickBtn.id = 'quick-save-btn';
+      quickBtn.className = 'btn btn-primary btn-full';
+      quickBtn.style.marginTop = '8px';
+      document.getElementById('extract-status').after(quickBtn);
+    }
+    quickBtn.textContent = label;
+    quickBtn.onclick = ()=>saveContract();
+    quickBtn.style.display = '';
+  }
+}
+
+function fillForm(d){
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+  set('f-contractor',d.계약자);
+  set('f-insured',d.피보험자);
+  set('f-phone',d.연락처);
+  set('f-dob',d.생년월일);
+  set('f-company',d.보험사);
+  set('f-product',d.상품명);
+  set('f-start',d.계약일);
+  set('f-expiry',d.보험기간);
+  set('f-pay-period',d.납입기간);
+  set('f-premium',d.월보험료);
+  set('f-memo',[
+    d.해약환급금형태?`해약환급금형태: ${d.해약환급금형태}`:'',
+    d.납입면제조건?`납입면제: ${d.납입면제조건}`:'',
+    d.특이사항||'',
+    d.컨설턴트?`컨설턴트: ${d.컨설턴트} ${d.컨설턴트연락처||''}`:'',
+  ].filter(Boolean).join('\n'));
+  if(d.납입방법){set('f-pay-method',d.납입방법);toggleCardInfo(d.납입방법);}
+
+  // 담보 목록 자동 렌더링
+  if(d.담보목록&&d.담보목록.length){
+    const wrap=document.getElementById('dambo-inputs');
+    wrap.innerHTML='';
+    d.담보목록.forEach((dm,i)=>{
+      const renewTag=dm.갱신여부&&dm.갱신여부.includes('갱신형')
+        ?`<span style="display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;background:#FEF3C7;color:#B45309">갱신형${dm.갱신주기?` (${dm.갱신주기})`:''}↑</span>`
+        :`<span style="display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;background:#E6F5EC;color:#1A7F4B">비갱신</span>`;
+      const miTag=dm.해약환급금형태&&dm.해약환급금형태.includes('미지급')
+        ?`<span style="display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;background:#FEE2E2;color:#B91C1C">환급금0</span>`:'';
+      const note=[
+        dm.면책기간?`면책 ${dm.면책기간}`:'',
+        dm['1년내감액']?`1년내 ${dm['1년내감액']}`:'',
+        dm.기타조건||'',
+      ].filter(Boolean).join(' / ')||'';
+
+      const row=document.createElement('div');
+      row.className='dambo-input-row';
+      row.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;border:1px solid var(--border);';
+      const cleanedName=cleanDamboName(dm.담보명);
+      row.dataset.damboName=cleanedName;
+      const baroTag=dm.바로보장?`<span style="display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;background:#EBF0FF;color:#2B5CE6">⚡바로보장</span>`:'';
+      const levelPreview=dm.amountLevels&&dm.amountLevels.length
+        ?`<div style="font-size:11px;color:var(--text2);margin-top:4px">${dm.amountLevels.map(lv=>`${lv.label}:${lv.amount}`).join(' / ')}</div>`:'';
+      row.innerHTML=`
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:var(--text3)">[${dm.번호||i+1}]</span>
+          <span style="font-size:13px;font-weight:600;flex:1">${cleanedName}</span>
+          ${baroTag}${renewTag}${miTag}
+        </div>
+        <div class="form-grid" style="margin-bottom:8px">
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">보장금액</label><input class="form-input" value="${dm.보장금액||''}"/>${levelPreview}</div>
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">담보보험료</label><input class="form-input" value="${dm.담보보험료||''}"/></div>
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">납입기간</label><input class="form-input" value="${dm.payPeriod||''}"/></div>
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">보험기간</label><input class="form-input" value="${dm.expiry||''}"/></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div class="form-row" style="margin-bottom:0;flex:1"><label class="form-label">면책 / 감액 / 조건</label><input class="form-input" value="${note}"/></div>
+          <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);flex-shrink:0" onclick="this.closest('.dambo-input-row').remove()">✕</button>
+        </div>`;
+      wrap.appendChild(row);
+    });
+  }
+
+  // 해약환급금 미리보기 표시
+  if(d.해약환급금&&d.해약환급금.length){
+    let prev=document.getElementById('refund-preview');
+    if(!prev){
+      prev=document.createElement('div');
+      prev.id='refund-preview';
+      document.getElementById('dambo-inputs').parentElement.after(prev);
+    }
+    const miType=d.해약환급금형태||'';
+    const rows=d.해약환급금.map(r=>`<tr>
+      <td style="padding:6px 8px;font-weight:600;font-size:12px">${r.경과}</td>
+      <td style="padding:6px 8px;font-size:12px;color:var(--text2);text-align:center">${r.나이}</td>
+      <td style="padding:6px 8px;font-size:12px;text-align:right">${r.납입누계}</td>
+      <td style="padding:6px 8px;font-size:12px;text-align:right;font-weight:600;color:${r.환급금==='0'||r.환급금==='0원'?'var(--red)':'var(--accent)'}">${r.환급금}</td>
+      <td style="padding:6px 8px;font-size:12px;text-align:right">${r.환급률}%</td>
+    </tr>`).join('');
+    prev.innerHTML=`
+      <div style="margin-bottom:12px">
+        <div class="sec-label">해약환급금 예시 ${miType.includes('미지급')?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:20px;font-size:10px">납입기간 중 환급금 없음</span>':''}</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="background:var(--surface2)">
+              <th style="padding:7px 8px;font-size:10px;font-weight:700;color:var(--text3);text-align:left;border-bottom:1px solid var(--border)">경과</th>
+              <th style="padding:7px 8px;font-size:10px;font-weight:700;color:var(--text3);text-align:center;border-bottom:1px solid var(--border)">나이</th>
+              <th style="padding:7px 8px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border)">납입누계</th>
+              <th style="padding:7px 8px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border)">환급금</th>
+              <th style="padding:7px 8px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border)">환급률</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+}
+
+// ── 저장 (Firebase 실제 저장) ──
+// ── 보장 요약 카드 ──
+const COVERAGE_CATEGORIES = [
+  { key:'surgery',   label:'수술',     icon:'🔪', keywords:['수술비','수술특약','수술보장','로봇수술','다빈치'], color:'#6366F1' },
+  { key:'cancer',    label:'암 진단',  icon:'🎗', keywords:['암진단','암진단비','암진단특약','암보험금','통합암','소액암'], color:'#EF4444' },
+  { key:'cancer_tx', label:'암 치료',  icon:'💊', keywords:['항암','표적항암','방사선치료','중입자','양성자','암수술비','암주요치료'], color:'#F97316' },
+  { key:'brain',     label:'뇌·심장',  icon:'🫀', keywords:['뇌졸중','뇌혈관','뇌출혈','급성심근경색','허혈심장','심질환'], color:'#DC2626' },
+  { key:'hosp',      label:'입원 일당',icon:'🏥', keywords:['입원일당','입원비','질병입원','상해입원'], color:'#0EA5E9' },
+  { key:'death',     label:'사망',     icon:'🕊', keywords:['사망','주보험','사망보험금'], color:'#64748B' },
+  { key:'disability',label:'후유장해', icon:'♿', keywords:['후유장해','장해','장애'], color:'#8B5CF6' },
+  { key:'nursing',   label:'간병·치매',icon:'👵', keywords:['치매','간병','장기요양','경증치매'], color:'#EC4899' },
+  { key:'other',     label:'기타',     icon:'📋', keywords:[], color:'#94A3B8' },
+];
+
+function categorizeDambo(damboName) {
+  const n = damboName.toLowerCase();
+  for (const cat of COVERAGE_CATEGORIES) {
+    if (cat.key === 'other') continue;
+    if (cat.keywords.some(k => n.includes(k))) return cat;
+  }
+  return COVERAGE_CATEGORIES.find(c => c.key === 'other');
+}
+
+function toggleCoverageSummary(custId) {
+  const el = document.getElementById('coverage-summary-'+custId);
+  const btn = document.getElementById('coverage-summary-toggle-'+custId);
+  if (el.style.display !== 'none') {
+    el.style.display = 'none';
+    btn.textContent = '🛡 보장 요약 보기 (수술·암·입원 얼마?)';
+    return;
+  }
+  const c = getCust(custId);
+  if (!c) return;
+
+  // 모든 담보를 카테고리별로 수집
+  const catMap = {};
+  for (const cat of COVERAGE_CATEGORIES) catMap[cat.key] = [];
+
+  for (const ct of c.contracts) {
+    for (const d of (ct.dambo||[])) {
+      const cat = categorizeDambo(d.name);
+      catMap[cat.key].push({ ...d, _company: ct.company, _product: ct.product, _ctId: ct.id });
+    }
+  }
+
+  // 카테고리 카드 렌더
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  for (const cat of COVERAGE_CATEGORIES) {
+    const items = catMap[cat.key];
+    if (!items.length) continue;
+
+    // 대표 금액: amountLevels가 있으면 첫 번째, 아니면 amount 중 숫자 포함한 것
+    const topAmounts = items.slice(0,3).map(d => {
+      if (d.amountLevels && d.amountLevels.length) return d.amountLevels[0].amount;
+      return d.amount || '';
+    }).filter(Boolean);
+
+    const totalItems = items.length;
+    const renewCount = items.filter(d => d.renew && d.renew.includes('갱신')).length;
+
+    html += `
+      <div onclick="showCoverageDetail(${custId},'${cat.key}')" style="
+        background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+        padding:12px 10px;cursor:pointer;transition:box-shadow .15s
+      " onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span style="font-size:18px">${cat.icon}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--text1)">${cat.label}</span>
+          <span style="margin-left:auto;font-size:10px;background:${cat.color}22;color:${cat.color};padding:1px 6px;border-radius:20px;font-weight:700">${totalItems}건</span>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:${cat.color};line-height:1.4">
+          ${topAmounts[0] || '-'}
+        </div>
+        ${topAmounts[1] ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">${topAmounts[1]}${topAmounts[2]?' · '+topAmounts[2]:''}</div>` : ''}
+        ${renewCount ? `<div style="font-size:10px;color:#B45309;margin-top:4px">⚠ 갱신형 ${renewCount}건</div>` : ''}
+      </div>`;
+  }
+  html += '</div>';
+  html += `<div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:4px">카드를 탭하면 담보 목록을 볼 수 있어요</div>`;
+
+  el.innerHTML = html;
+  el.style.display = 'block';
+  btn.textContent = '🛡 보장 요약 접기';
+}
+
+function showCoverageDetail(custId, catKey) {
+  const c = getCust(custId);
+  if (!c) return;
+  const cat = COVERAGE_CATEGORIES.find(x => x.key === catKey);
+
+  const catMap = {};
+  for (const cc of COVERAGE_CATEGORIES) catMap[cc.key] = [];
+  for (const ct of c.contracts) {
+    for (const d of (ct.dambo||[])) {
+      const cc = categorizeDambo(d.name);
+      catMap[cc.key].push({ ...d, _company: ct.company, _product: ct.product, _ctId: ct.id });
+    }
+  }
+  const items = catMap[catKey];
+
+  const rows = items.map(d => {
+    const amtHTML = d.amountLevels && d.amountLevels.length
+      ? d.amountLevels.map(lv=>`<span style="font-size:10px;color:var(--text2)">${lv.label} <b style="color:${cat.color}">${lv.amount}</b></span>`).join(' ')
+      : `<b style="color:${cat.color}">${d.amount||'-'}</b>`;
+    const renewChip = d.renew && d.renew.includes('갱신')
+      ? `<span style="font-size:10px;background:#FEF3C7;color:#B45309;padding:1px 5px;border-radius:10px">갱신</span>` : '';
+    const noteStr = d.note || d['1년내감액'] ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">${[d.note, d['1년내감액']?'1년내감액: '+d['1년내감액']:''].filter(Boolean).join(' / ')}</div>` : '';
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:var(--text1);margin-bottom:3px">${cleanDamboName(d.name)}</div>
+          <div style="font-size:10px;color:var(--text3)">${d._company} · ${d._product}</div>
+          ${noteStr}
+        </div>
+        <div style="text-align:right;flex-shrink:0">${amtHTML}${renewChip}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dambo-sheet-content').innerHTML = `
+    <div class="dambo-detail-title">${cat.icon} ${cat.label} 담보 목록</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${c.name}님의 ${cat.label} 관련 담보 ${items.length}건</div>
+    <div>${rows}</div>`;
+  document.getElementById('dambo-overlay').classList.add('active');
+}
+
+// ── 계약 추가 바텀시트 ──
+let _addContractTargetId = null;
+
+function openAddContract(custId) {
+  _addContractTargetId = custId;
+  const c = getCust(custId);
+  if (c) {
+    document.getElementById('add-contract-title').textContent = `📋 ${c.name}님 계약 추가`;
+  }
+  // 폼 초기화
+  ['ac-product','ac-start','ac-expiry','ac-pay-period','ac-premium','ac-memo','ac-card-last4','ac-card-name'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const acDambo = document.getElementById('ac-dambo-inputs');
+  acDambo.innerHTML = `<div class="dambo-input-row ac-dambo-row">
+    <div class="form-grid" style="margin-bottom:8px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">담보명</label><input class="form-input" placeholder="주보험 사망"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">보장금액</label><input class="form-input" placeholder="1억원"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">담보보험료</label><input class="form-input" placeholder="189,000원"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">갱신</label>
+        <select class="form-select"><option>비갱신</option><option>갱신</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="form-row" style="margin-bottom:0;flex:1"><label class="form-label">면책 / 감액 / 조건</label><input class="form-input" placeholder="계약일 1년 내 50% 등"/></div>
+      <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);flex-shrink:0;margin-top:18px" onclick="this.closest('.dambo-input-row').remove()">✕</button>
+    </div>
+  </div>`;
+  document.getElementById('ac-extract-status').style.display='none';
+  document.getElementById('ac-quick-save-wrap').innerHTML='';
+  document.getElementById('ac-card-info-box').style.display='none';
+  document.getElementById('add-contract-overlay').classList.add('active');
+  document.body.style.overflow='hidden';
+}
+
+function closeAddContract(e) {
+  if (e.target === document.getElementById('add-contract-overlay')) closeAddContractForce();
+}
+function closeAddContractForce() {
+  document.getElementById('add-contract-overlay').classList.remove('active');
+  document.body.style.overflow='';
+}
+
+function toggleAcCardInfo(val) {
+  document.getElementById('ac-card-info-box').style.display = val==='신용카드' ? '' : 'none';
+}
+
+function addAcDamboRow() {
+  const wrap = document.getElementById('ac-dambo-inputs');
+  const row = document.createElement('div');
+  row.className = 'dambo-input-row ac-dambo-row';
+  row.innerHTML = `
+    <div class="form-grid" style="margin-bottom:8px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">담보명</label><input class="form-input" placeholder="담보명"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">보장금액</label><input class="form-input" placeholder="0원"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">담보보험료</label><input class="form-input" placeholder="0원"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">갱신</label>
+        <select class="form-select"><option>비갱신</option><option>갱신</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="form-row" style="margin-bottom:0;flex:1"><label class="form-label">면책 / 감액 / 조건</label><input class="form-input" placeholder="면책기간, 감액 등"/></div>
+      <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);flex-shrink:0;margin-top:18px" onclick="this.closest('.dambo-input-row').remove()">✕</button>
+    </div>`;
+  wrap.appendChild(row);
+}
+
+function handleAcDrop(e){e.preventDefault();if(e.dataTransfer.files[0]) processAcFile(e.dataTransfer.files[0]);}
+function handleAcFile(e){if(e.target.files[0]) processAcFile(e.target.files[0]);}
+
+async function processAcFile(file) {
+  showAcExtractStatus('loading','📄 분석 중...');
+  try {
+    const base64Data = await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(',')[1]);
+      r.onerror=()=>rej(new Error('파일 읽기 실패'));
+      r.readAsDataURL(file);
+    });
+    const isPdf = file.type==='application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const content = isPdf
+      ? [{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64Data}},{type:'text',text:acPrompt}]
+      : [{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:base64Data}},{type:'text',text:acPrompt}];
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-allow-browser':'true'
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content}]})
+    });
+    const data = await resp.json();
+    const raw = data.content?.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+    fillAcForm(parsed);
+    showAcExtractStatus('done',`✅ 추출 완료! 담보 ${parsed.담보목록?.length||0}개`);
+    const qbtn = document.getElementById('ac-quick-save-wrap');
+    qbtn.innerHTML = `<button class="btn btn-primary btn-full" style="margin-top:8px" onclick="saveAddedContract()">⚡ 바로 저장 (${parsed.보험사||''}·${parsed.상품명||''})</button>`;
+  } catch(e) {
+    console.error(e);
+    showAcExtractStatus('error','❌ 추출 실패. 다시 시도해주세요.');
+  }
+}
+
+function showAcExtractStatus(type, msg) {
+  const el = document.getElementById('ac-extract-status');
+  el.style.display='';
+  el.innerHTML = `<div style="padding:8px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;
+    background:${type==='loading'?'var(--surface2)':type==='done'?'#F0FDF4':'#FEF2F2'};
+    color:${type==='loading'?'var(--text2)':type==='done'?'#15803D':'#DC2626'}">${msg}</div>`;
+}
+
+function fillAcForm(d) {
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null)el.value=val;};
+  // 보험사 select 맞추기
+  const compSel = document.getElementById('ac-company');
+  if (d.보험사 && compSel) {
+    [...compSel.options].forEach(o=>{if(o.value===d.보험사||o.text===d.보험사)compSel.value=o.value;});
+  }
+  set('ac-product', d.상품명);
+  set('ac-start', d.계약일);
+  set('ac-expiry', d.보험기간);
+  set('ac-pay-period', d.납입기간);
+  set('ac-premium', d.월보험료);
+  set('ac-memo', [
+    d.해약환급금형태?`해약환급금형태: ${d.해약환급금형태}`:'',
+    d.납입면제조건?`납입면제: ${d.납입면제조건}`:'',
+    d.특이사항||'',
+  ].filter(Boolean).join('\n'));
+
+  // 담보 목록
+  if (d.담보목록 && d.담보목록.length) {
+    const wrap = document.getElementById('ac-dambo-inputs');
+    wrap.innerHTML = '';
+    d.담보목록.forEach((dm, i) => {
+      const cleanedName = cleanDamboName(dm.담보명);
+      const renewTag = dm.갱신여부&&dm.갱신여부.includes('갱신형')
+        ? `<span style="font-size:10px;background:#FEF3C7;color:#B45309;padding:1px 6px;border-radius:10px">갱신↑</span>`
+        : `<span style="font-size:10px;background:#E6F5EC;color:#1A7F4B;padding:1px 6px;border-radius:10px">비갱신</span>`;
+      const note = [dm.면책기간?`면책 ${dm.면책기간}`:'', dm['1년내감액']?`1년내 ${dm['1년내감액']}`:'', dm.기타조건||''].filter(Boolean).join(' / ') || '';
+      const row = document.createElement('div');
+      row.className = 'dambo-input-row ac-dambo-row';
+      row.dataset.damboName = cleanedName;
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:var(--text3)">[${dm.번호||i+1}]</span>
+          <span style="font-size:13px;font-weight:600;flex:1">${cleanedName}</span>
+          ${renewTag}
+        </div>
+        <div class="form-grid" style="margin-bottom:8px">
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">보장금액</label><input class="form-input" value="${dm.보장금액||''}"/></div>
+          <div class="form-row" style="margin-bottom:0"><label class="form-label">담보보험료</label><input class="form-input" value="${dm.담보보험료||''}"/></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="form-row" style="margin-bottom:0;flex:1"><label class="form-label">면책 / 감액 / 조건</label><input class="form-input" value="${note}"/></div>
+          <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);flex-shrink:0;margin-top:18px" onclick="this.closest('.dambo-input-row').remove()">✕</button>
+        </div>`;
+      wrap.appendChild(row);
+    });
+  }
+}
+
+async function saveAddedContract() {
+  if (!_addContractTargetId) return;
+  const existing = getCust(_addContractTargetId);
+  if (!existing) return;
+
+  const btn = document.getElementById('ac-save-btn');
+  btn.textContent = '저장 중...'; btn.disabled = true;
+
+  // 담보 수집 (ac-dambo-inputs 한정)
+  const damboRows = [...document.querySelectorAll('#ac-dambo-inputs .dambo-input-row')];
+  const damboList = damboRows.map((row,i) => {
+    const inputs = row.querySelectorAll('input');
+    const selects = row.querySelectorAll('select');
+    const isAiRow = !!row.dataset.damboName;
+    return {
+      id: 'd'+Date.now()+'_'+i,
+      name: isAiRow ? row.dataset.damboName : (inputs[0]?.value||''),
+      amount: isAiRow ? (inputs[0]?.value||'') : (inputs[1]?.value||''),
+      premium: isAiRow ? (inputs[1]?.value||'') : (inputs[2]?.value||''),
+      renew: selects[0]?.value||'비갱신',
+      note: isAiRow ? (inputs[2]?.value||'') : (inputs[3]?.value||''),
+      claimHistory: '', amountSub: '', refundType: '', yearReduce: null
+    };
+  });
+
+  const payMethod = document.getElementById('ac-pay-method')?.value||'월납';
+  const contractData = {
+    id: 'c'+Date.now(),
+    company: document.getElementById('ac-company')?.value||'',
+    product: document.getElementById('ac-product')?.value||'',
+    start: document.getElementById('ac-start')?.value||'',
+    expiry: document.getElementById('ac-expiry')?.value||'',
+    payPeriod: document.getElementById('ac-pay-period')?.value||'',
+    payMethod,
+    cardCompany: payMethod==='신용카드'?(document.getElementById('ac-card-company')?.value||''):'',
+    cardLast4: payMethod==='신용카드'?(document.getElementById('ac-card-last4')?.value||''):'',
+    cardName: payMethod==='신용카드'?(document.getElementById('ac-card-name')?.value||''):'',
+    premium: parseInt(String(document.getElementById('ac-premium')?.value||'0').replace(/[^0-9]/g,''))||0,
+    renew: document.getElementById('ac-renew')?.value||'비갱신형',
+    daysLeft: 999,
+    memo: document.getElementById('ac-memo')?.value||'',
+    dambo: damboList,
+    refund: []
+  };
+
+  existing.contracts.push(contractData);
+  const docId = existing._docId || String(existing.id);
+  const saveData = {...existing}; delete saveData._docId;
+
+  try {
+    await window._fbSetDoc(window._fbDoc(window._db,'customers',docId), saveData);
+    existing._docId = docId;
+    showToast(`✅ ${existing.name}님 계약 추가됐어요!`);
+    closeAddContractForce();
+    showDetail(_addContractTargetId); // 상세 새로고침
+  } catch(e) {
+    console.error(e);
+    showToast('❌ 저장 실패: '+e.message);
+  } finally {
+    btn.textContent = '💾 이 고객에게 계약 추가'; btn.disabled = false;
+  }
+}
+
+// ── 계약 추가용 AI 프롬프트 (경량 버전) ──
+const acPrompt = `보험 가입제안서에서 JSON만 추출. 마크다운/설명 없이 순수 JSON.
+{"보험사":"","상품명":"","계약일":null,"보험기간":"","납입기간":"","납입방법":"","월보험료":"","해약환급금형태":"","납입면제조건":null,"특이사항":null,
+"담보목록":[{"번호":"","담보명":"","바로보장":false,"보장금액":"","담보보험료":"","payPeriod":"","expiry":"","갱신여부":"","갱신주기":null,"면책기간":null,"1년내감액":null,"기타조건":null}]}
+규칙: 담보명에서 (통합간편)(바로보장)(통합)(간편) 접두어 제거. 번호는 원문 그대로. 없는 항목은 null.`;
+
+async function saveContract(){
+  const name=document.getElementById('f-contractor').value.trim();
+  if(!name){alert('계약자 이름을 입력해주세요.');return;}
+
+  // 담보 목록 수집
+  const damboRows=[...document.querySelectorAll('.dambo-input-row')];
+  const damboList=damboRows.map((row,i)=>{
+    const inputs=row.querySelectorAll('input');
+    const selects=row.querySelectorAll('select');
+    // AI 자동 row: data-dambo-name + inputs[0~3] = 보장금액/담보보험료/납입기간/보험기간/조건
+    // 수동 row: inputs[0]=담보명, inputs[1]=보장금액, inputs[2]=담보보험료, inputs[3]=조건
+    const isAiRow=!!row.dataset.damboName;
+    return{
+      id:'d'+Date.now()+'_'+i,
+      name: isAiRow ? row.dataset.damboName : (inputs[0]?.value||''),
+      amount: isAiRow ? (inputs[0]?.value||'') : (inputs[1]?.value||''),
+      premium: isAiRow ? (inputs[1]?.value||'') : (inputs[2]?.value||''),
+      renew:selects[0]?.value||'비갱신',
+      note: isAiRow ? (inputs[4]?.value||'') : (inputs[3]?.value||''),
+      claimHistory: isAiRow ? '' : (inputs[4]?.value||''),
+      amountSub:'', refundType:'', yearReduce:null
+    };
+  });
+
+  const payMethod=document.getElementById('f-pay-method')?.value||'월납';
+  const contractData={
+    id:'c'+Date.now(),
+    company:document.getElementById('f-company').value||'',
+    product:document.getElementById('f-product').value||'',
+    start:document.getElementById('f-start').value||'',
+    expiry:document.getElementById('f-expiry').value||'',
+    payPeriod:document.getElementById('f-pay-period').value||'',
+    payMethod,
+    cardCompany:payMethod==='신용카드'?(document.getElementById('f-card-company')?.value||''):'',
+    cardLast4:payMethod==='신용카드'?(document.getElementById('f-card-last4')?.value||''):'',
+    cardName:payMethod==='신용카드'?(document.getElementById('f-card-name')?.value||''):'',
+    premium:parseInt(String(document.getElementById('f-premium').value||'0').replace(/[^0-9]/g,''))||0,
+    renew:document.getElementById('f-renew')?.value||'비갱신형',
+    daysLeft:999,
+    memo:document.getElementById('f-memo').value||'',
+    dambo:damboList,
+    refund:[]
+  };
+
+  // 기존 고객 찾기: _matchTarget 우선, 없으면 폼 값으로 자동 매칭
+  const dob=document.getElementById('f-dob').value||'';
+  const phone=document.getElementById('f-phone').value||'';
+
+  let existing;
+  if(window._matchTarget && window._matchTarget !== 'new'){
+    // 사용자가 직접 선택한 기존 고객
+    existing = window._matchTarget;
+  } else if(window._matchTarget === 'new'){
+    // 사용자가 신규 등록 선택
+    existing = null;
+  } else {
+    // match UI 없이 직접 저장하는 경우 (수동 입력) - 기존 로직
+    existing = customers.find(c=>normName(c.name)===normName(name)&&(c.dob===dob||normPhone(c.phone)===normPhone(phone)));
+  }
+
+  let docId, customerData;
+  if(existing){
+    // 기존 고객에 계약 추가
+    existing.contracts.push(contractData);
+    docId=existing._docId||String(existing.id);
+    customerData={...existing};
+    delete customerData._docId;
+  } else {
+    // 신규 고객 생성
+    const insured=document.getElementById('f-insured').value.trim()||name;
+    const dobYear=dob?parseInt(dob.split('-')[0]):2000;
+    const age=new Date().getFullYear()-dobYear;
+    docId='cust_'+Date.now();
+    customerData={
+      id:Date.now(),
+      name,
+      phone,
+      dob,
+      age,
+      gender:document.getElementById('f-gender')?.value||'남',
+      ssn: document.getElementById('f-ssn')?.value||'',
+      job: document.getElementById('f-job')?.value||'',
+      address: document.getElementById('f-address')?.value||'',
+      agentId: window._currentUser?.uid || '',
+      medicalHistory:'',
+      disclosure:'',
+      consultNote:'',
+      contracts:[contractData]
+    };
+  }
+
+  try{
+    const saveBtn=document.querySelector('[onclick="saveContract()"]');
+    if(saveBtn){saveBtn.textContent='저장 중...';saveBtn.disabled=true;}
+
+    await window._fbSetDoc(window._fbDoc(window._db,'customers',docId), customerData);
+
+    // 로컬 반영
+    if(existing){
+      existing._docId=docId;
+    } else {
+      customers.push({...customerData,_docId:docId});
+    }
+
+    showToast('✅ Firebase에 저장됐어요!');
+    // 폼 초기화
+    ['f-contractor','f-insured','f-phone','f-dob','f-ssn','f-job','f-address','f-product','f-start','f-expiry','f-pay-period','f-premium','f-memo'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.value='';
+    });
+    document.getElementById('dambo-inputs').innerHTML='';
+    document.getElementById('extract-status').style.display='none';
+    const refPrev=document.getElementById('refund-preview');if(refPrev)refPrev.remove();
+    const quickBtn=document.getElementById('quick-save-btn');if(quickBtn)quickBtn.style.display='none';
+    document.getElementById('match-box')?.remove();
+    window._matchTarget=null;
+    window._lastParsed=null;
+
+    if(saveBtn){saveBtn.textContent='💾 저장하기';saveBtn.disabled=false;}
+  }catch(e){
+    console.error(e);
+    showToast('❌ 저장 실패: '+e.message);
+    const saveBtn=document.querySelector('[onclick="saveContract()"]');
+    if(saveBtn){saveBtn.textContent='💾 저장하기';saveBtn.disabled=false;}
+  }
+}
+</script>
+<script>
+/* ── 데스크탑/반응형 CSS 주입 ── */
+(function(){
+  const style = document.createElement('style');
+  style.textContent = `
+    /* ── 데스크탑 레이아웃 ── */
+    @media (min-width: 768px) {
+      body { background: #E8E6E0; }
+
+      .app {
+        max-width: 1100px;
+        width: 100%;
+        margin: 0 auto;
+        flex-direction: row;
+        align-items: flex-start;
+        min-height: 100vh;
+        background: transparent;
+        gap: 24px;
+        padding: 24px;
+      }
+
+      /* 왼쪽: 사이드바 네비 */
+      .header {
+        position: sticky;
+        top: 24px;
+        width: 200px;
+        flex-shrink: 0;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 20px 0 8px;
+        box-shadow: var(--shadow-md);
+        align-self: flex-start;
+        z-index: 20;
+      }
+      .header-top { padding: 0 16px; margin-bottom: 20px; flex-direction: column; align-items: flex-start; gap: 10px; }
+      .logo { font-size: 18px; }
+      .header-right { flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; }
+      .refresh-btn { width: 100%; justify-content: center; }
+
+      .tabs { flex-direction: column; gap: 2px; padding: 0 8px 8px; }
+      .tab {
+        text-align: left;
+        border-bottom: none;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .tab.active { background: var(--accent-light); border-bottom: none; }
+      .tab:hover:not(.active) { background: var(--surface2); }
+
+      /* 오른쪽: 메인 콘텐츠 */
+      .content {
+        flex: 1;
+        background: transparent;
+        padding: 0;
+        min-width: 0;
+      }
+
+      .screen.active {
+        background: var(--surface);
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 24px;
+        box-shadow: var(--shadow-md);
+        min-height: 600px;
+        overflow: visible;
+      }
+
+      /* 검색창 크게 */
+      .search-wrap input { font-size: 16px; padding: 14px 16px 14px 46px; }
+
+      /* 카드 그리드 */
+      #list-content, #search-results, #renewal-content { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      #list-content .card, #search-results .card { margin-bottom: 0; }
+      #renewal-content .renewal-item { margin-bottom: 0; }
+
+      /* 통계 4열 */
+      .stats { grid-template-columns: repeat(3, 1fr); }
+
+      /* 상세화면은 단일 컬럼 */
+      #screen-detail .info-grid { grid-template-columns: repeat(3, 1fr); }
+
+      /* 하단 시트 → 데스크탑에서 우측 패널처럼 */
+      .dambo-detail-overlay { align-items: center; justify-content: center; }
+      .dambo-detail-overlay.active { display: flex; }
+      .dambo-detail-sheet {
+        border-radius: 14px;
+        max-height: 80vh;
+        max-width: 480px;
+        width: 90%;
+        margin: 0;
+      }
+      .dambo-sheet-header { border-radius: 14px 14px 0 0; }
+
+      /* 폼 2열 */
+      .form-card .form-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── 태블릿 ── */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .app { gap: 16px; padding: 16px; }
+      .header { width: 180px; }
+      #list-content, #search-results { grid-template-columns: 1fr; }
+    }
+
+    /* ── 모바일 터치 개선 ── */
+    @media (hover: none) {
+      .card:hover { border-color: var(--border); box-shadow: var(--shadow); }
+      .tab { -webkit-tap-highlight-color: transparent; }
+      .dambo-card:hover { border-color: var(--border); }
+    }
+
+    /* ── 모바일 입력창 확대 방지 (iOS/안드로이드 16px 미만 시 자동 확대됨) ── */
+    @media (max-width: 767px) {
+      .form-input, .form-select, .form-textarea,
+      input[type="text"], input[type="email"], input[type="password"],
+      input[type="date"], input[type="tel"], select, textarea {
+        font-size: 16px !important;
+      }
+      /* 버튼/탭은 작아도 됨 */
+      .tab { font-size: 12px; }
+      /* 카드 터치 영역 확보 */
+      .btn { min-height: 40px; }
+      .nav-icon-btn { min-height: 36px; min-width: 36px; }
+      /* 바텀시트 더 높게 */
+      .dambo-detail-sheet { max-height: 92vh; }
+      /* 액션 버튼 행 줄바꿈 방지 */
+      .detail-header > div:last-child { flex-wrap: wrap; }
+    }
+
+    /* ── 갤럭시 폴드 접힌 화면 (≤280px) ── */
+    @media (max-width: 280px) {
+      .tabs { gap: 0; }
+      .tab { font-size: 10px; padding: 8px 2px; }
+      .logo { font-size: 13px; }
+      .logo-sub, .admin-badge { display: none; }
+      .card-name { font-size: 14px; }
+      .info-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .dambo-detail-sheet { max-height: 92vh; }
+      .detail-nav-right .nav-icon-btn { padding: 4px 7px; font-size: 12px; }
+      /* 빠른 액션 버튼 2열로 */
+      .detail-header a, .detail-header button[onclick*="copy"], .detail-header button[onclick*="share"] {
+        min-width: calc(50% - 4px) !important; flex: none !important;
+      }
+      .refresh-btn span { display: none; }
+    }
+
+    /* ── 갤럭시 폴드 펼친 화면 (281~512px) ── */
+    @media (min-width: 281px) and (max-width: 512px) {
+      .app { max-width: 100%; }
+      .dambo-detail-sheet { max-height: 90vh; }
+    }
+
+    /* ── 모바일: 홈화면 추가 시 상단 안전영역 ── */
+    @media (max-width: 767px) {
+      .header { padding-top: max(14px, env(safe-area-inset-top)); }
+      .content { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+    }
+
+    /* ── 공통: 스크롤바 스타일 ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  `;
+  document.head.appendChild(style);
+
+  // PWA 매니페스트 동적 생성
+  const manifest = {
+    name: '보험 계약 관리',
+    short_name: '보험Manager',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#F5F4F0',
+    theme_color: '#2B5CE6',
+    icons: [{
+      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%232B5CE6'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle' fill='white'%3E📋%3C/text%3E%3C/svg%3E",
+      sizes: '192x192', type: 'image/svg+xml'
+    }]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel = 'manifest'; link.href = url;
+  document.head.appendChild(link);
+
+  // 모바일 상태바 색상
+  const meta = document.createElement('meta');
+  meta.name = 'theme-color'; meta.content = '#2B5CE6';
+  document.head.appendChild(meta);
+
+  // Apple 홈화면 추가 지원
+  const appleMeta = document.createElement('meta');
+  appleMeta.name = 'apple-mobile-web-app-capable'; appleMeta.content = 'yes';
+  document.head.appendChild(appleMeta);
+})();
+</script>
+</body>
+</html>

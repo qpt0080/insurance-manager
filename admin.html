@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>보험Manager · 관리자</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F5F4F0; --surface:#FFFFFF; --surface2:#EEECEA; --border:#DDDBD6;
+  --text:#1A1916; --text2:#6B6860; --text3:#9B9890;
+  --accent:#2B5CE6; --accent-light:#EBF0FF;
+  --green:#1A7F4B; --green-light:#E6F5EC;
+  --amber:#B45309; --amber-light:#FEF3C7;
+  --red:#B91C1C; --red-light:#FEE2E2;
+  --radius:10px; --radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* 헤더 */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.logo{font-size:16px;font-weight:700;}
+.logo span{color:var(--accent);}
+.logo-sub{font-size:11px;color:var(--text3);margin-left:8px;font-weight:400;}
+.header-right{display:flex;align-items:center;gap:10px;}
+
+/* 레이아웃 */
+.container{max-width:900px;margin:0 auto;padding:28px 20px;}
+
+/* 카드 */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* 통계 */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;box-shadow:var(--shadow);}
+.stat-val{font-size:28px;font-weight:700;color:var(--accent);}
+.stat-lbl{font-size:11px;color:var(--text2);margin-top:3px;}
+
+/* 폼 */
+.form-row{margin-bottom:12px;}
+.form-label{font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
+.form-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;}
+.form-input:focus{border-color:var(--accent);background:var(--surface);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* 버튼 */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;}
+.btn:hover{border-color:var(--text2);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{background:#1e4ad4;border-color:#1e4ad4;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-danger{color:var(--red);border-color:var(--red);}
+.btn-danger:hover{background:var(--red-light);}
+.btn-full{width:100%;justify-content:center;}
+
+/* 에이전트 목록 */
+.agent-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);}
+.agent-item.disabled{opacity:.55;}
+.agent-avatar{width:40px;height:40px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.agent-info{flex:1;min-width:0;}
+.agent-name{font-size:14px;font-weight:700;}
+.agent-email{font-size:12px;color:var(--text2);margin-top:2px;}
+.agent-actions{display:flex;gap:6px;flex-shrink:0;}
+
+/* 배지 */
+.chip{font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;background:var(--surface2);color:var(--text2);}
+.chip.blue{background:var(--accent-light);color:var(--accent);}
+.chip.red{background:var(--red-light);color:var(--red);}
+.chip.green{background:var(--green-light);color:var(--green);}
+
+/* 상태 메시지 */
+.status-bar{padding:10px 14px;border-radius:var(--radius-sm);margin-top:12px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.status-loading{background:var(--accent-light);color:var(--accent);}
+.status-done{background:var(--green-light);color:var(--green);}
+.status-error{background:var(--red-light);color:var(--red);}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.empty{text-align:center;padding:32px;color:var(--text3);font-size:13px;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header class="header">
+  <div style="display:flex;align-items:center;">
+    <div class="logo">보험<span>Manager</span> <span class="logo-sub">관리자</span></div>
+  </div>
+  <div class="header-right">
+    <span id="admin-name-badge" style="font-size:12px;font-weight:600;color:var(--text2);"></span>
+    <button onclick="doLogout()" class="btn btn-sm">🚪 로그아웃</button>
+  </div>
+</header>
+
+<!-- 로그인 화면 -->
+<div id="login-screen" style="position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px 24px;width:100%;max-width:360px;box-shadow:var(--shadow-md);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-size:32px;margin-bottom:10px;">🔐</div>
+      <div style="font-size:20px;font-weight:700;">관리자 로그인</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:5px;">보험Manager 관리자 전용</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label class="form-label">이메일</label>
+      <input id="login-email" type="email" class="form-input" placeholder="admin@email.com" autocomplete="email"/>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label class="form-label">비밀번호</label>
+      <input id="login-password" type="password" class="form-input" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div id="login-error" style="display:none;background:var(--red-light);color:var(--red);padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;margin-bottom:14px;"></div>
+    <button onclick="doLogin()" id="login-btn" class="btn btn-primary btn-full" style="font-size:14px;">로그인</button>
+  </div>
+</div>
+
+<!-- 메인 콘텐츠 -->
+<div id="main-content" class="container" style="display:none;">
+
+  <!-- 통계 -->
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-val" id="stat-agents">-</div>
+      <div class="stat-lbl">설계사 수</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="stat-customers">-</div>
+      <div class="stat-lbl">전체 고객</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="stat-contracts">-</div>
+      <div class="stat-lbl">전체 계약</div>
+    </div>
+  </div>
+
+  <!-- 계정 생성 -->
+  <div class="card">
+    <div class="card-title">➕ 새 설계사 계정 생성</div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">이름</label>
+        <input class="form-input" id="new-name" placeholder="홍길동"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">이메일</label>
+        <input class="form-input" id="new-email" type="email" placeholder="agent@email.com"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">초기 비밀번호</label>
+        <input class="form-input" id="new-password" type="text" placeholder="8자 이상"/>
+      </div>
+      <div class="form-row" style="display:flex;align-items:flex-end;">
+        <button onclick="createAgent()" class="btn btn-primary btn-full">계정 생성</button>
+      </div>
+    </div>
+    <div id="create-status" style="display:none;"></div>
+  </div>
+
+  <!-- 설계사 목록 -->
+  <div class="card">
+    <div class="card-title">👥 설계사 계정 목록</div>
+    <div id="agent-list"><div class="empty">불러오는 중...</div></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
+  authDomain: "insurance-manager-c4308.firebaseapp.com",
+  projectId: "insurance-manager-c4308",
+  storageBucket: "insurance-manager-c4308.firebasestorage.app",
+  messagingSenderId: "769412429451",
+  appId: "1:769412429451:web:0c3a31bb14430f8fe5068e"
+};
+
+// 메인 앱
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// 서브 앱 (계정 생성용 — 관리자 로그아웃 없이 신규 계정 생성)
+const subApp = initializeApp(firebaseConfig, "sub");
+const subAuth = getAuth(subApp);
+
+let currentAdmin = null;
+let agentsCache = [];
+
+// ── 인증 상태 ──
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    // 관리자 확인
+    let agentData = null;
+    try {
+      const snap = await getDocs(query(collection(db, 'agents'), where('uid', '==', user.uid)));
+      snap.forEach(d => agentData = d.data());
+    } catch(e) {}
+
+    const isAdmin = !agentData || agentData.role === 'admin';
+    if (!isAdmin) {
+      await signOut(auth);
+      showLoginError('관리자 계정만 접근할 수 있습니다.');
+      return;
+    }
+
+    currentAdmin = { user, agentData };
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('admin-name-badge').textContent = agentData?.name || user.email;
+
+    await loadAll();
+  } else {
+    currentAdmin = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('main-content').style.display = 'none';
+  }
+});
+
+// ── 전체 데이터 로드 ──
+async function loadAll() {
+  await Promise.all([loadAgents(), loadStats()]);
+}
+
+async function loadAgents() {
+  const snap = await getDocs(collection(db, 'agents'));
+  agentsCache = [];
+  snap.forEach(d => agentsCache.push({ ...d.data(), _docId: d.id }));
+  agentsCache.sort((a, b) => {
+    if (a.role === 'admin' && b.role !== 'admin') return -1;
+    if (b.role === 'admin' && a.role !== 'admin') return 1;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+  renderAgents();
+}
+
+async function loadStats() {
+  const [custSnap] = await Promise.all([getDocs(collection(db, 'customers'))]);
+  let totalCust = 0, totalContracts = 0;
+  custSnap.forEach(d => {
+    totalCust++;
+    const data = d.data();
+    totalContracts += data.contracts?.length || 0;
+  });
+  document.getElementById('stat-agents').textContent = agentsCache.filter(a => a.role !== 'admin').length;
+  document.getElementById('stat-customers').textContent = totalCust;
+  document.getElementById('stat-contracts').textContent = totalContracts;
+}
+
+function renderAgents() {
+  const el = document.getElementById('agent-list');
+  if (!agentsCache.length) {
+    el.innerHTML = '<div class="empty">등록된 설계사가 없어요</div>';
+    return;
+  }
+
+  el.innerHTML = agentsCache.map(a => {
+    const isMe = a.uid === currentAdmin?.user?.uid;
+    const isAdmin = a.role === 'admin';
+    const disabled = a.disabled;
+    return `
+    <div class="agent-item ${disabled ? 'disabled' : ''}">
+      <div class="agent-avatar">${isAdmin ? '👑' : '👤'}</div>
+      <div class="agent-info">
+        <div class="agent-name">
+          ${escHtml(a.name || '이름 없음')}
+          ${isAdmin ? '<span class="chip blue" style="margin-left:6px">관리자</span>' : '<span class="chip">설계사</span>'}
+          ${disabled ? '<span class="chip red">비활성</span>' : ''}
+          ${isMe ? '<span class="chip green">나</span>' : ''}
+        </div>
+        <div class="agent-email">${escHtml(a.email || '')}</div>
+      </div>
+      <div class="agent-actions">
+        ${!isMe ? `
+          <button class="btn btn-sm" onclick="sendReset('${a.email}')" title="비밀번호 초기화 이메일 발송">🔑 비번초기화</button>
+          <button class="btn btn-sm ${disabled ? 'btn-primary' : ''}" onclick="toggleDisable('${a.uid}', ${disabled})" title="${disabled ? '활성화' : '비활성화'}">
+            ${disabled ? '✅ 활성화' : '⛔ 비활성화'}
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="deleteAgent('${a.uid}', '${escHtml(a.name || a.email)}')" title="삭제">🗑</button>
+        ` : '<span style="font-size:11px;color:var(--text3);">내 계정</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 계정 생성 ──
+window.createAgent = async function() {
+  const name = document.getElementById('new-name').value.trim();
+  const email = document.getElementById('new-email').value.trim();
+  const password = document.getElementById('new-password').value;
+  const statusEl = document.getElementById('create-status');
+
+  if (!name || !email || !password) {
+    showCreateStatus('error', '이름, 이메일, 비밀번호를 모두 입력해주세요.');
+    return;
+  }
+  if (password.length < 8) {
+    showCreateStatus('error', '비밀번호는 8자 이상이어야 합니다.');
+    return;
+  }
+
+  showCreateStatus('loading', '계정 생성 중...');
+  try {
+    // 서브 앱으로 계정 생성 (관리자 로그아웃 없이)
+    const cred = await createUserWithEmailAndPassword(subAuth, email, password);
+    const uid = cred.user.uid;
+
+    // Firestore에 에이전트 정보 저장
+    await setDoc(doc(db, 'agents', uid), {
+      uid,
+      name,
+      email,
+      role: 'agent',
+      disabled: false,
+      createdAt: new Date().toISOString()
+    });
+
+    // 서브 앱 로그아웃
+    await subAuth.signOut();
+
+    showCreateStatus('done', `✅ ${name}님 계정이 생성됐어요! (${email})`);
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-email').value = '';
+    document.getElementById('new-password').value = '';
+    await loadAll();
+  } catch(e) {
+    const msg = e.code === 'auth/email-already-in-use'
+      ? '이미 사용 중인 이메일입니다.'
+      : e.code === 'auth/invalid-email'
+      ? '올바른 이메일 형식이 아닙니다.'
+      : `오류: ${e.message}`;
+    showCreateStatus('error', msg);
+  }
+};
+
+// ── 비밀번호 초기화 이메일 발송 ──
+window.sendReset = async function(email) {
+  if (!confirm(`${email}로 비밀번호 초기화 이메일을 보낼까요?`)) return;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    alert(`✅ ${email}로 초기화 이메일을 발송했어요.\n설계사에게 이메일을 확인하라고 알려주세요.`);
+  } catch(e) {
+    alert('이메일 발송 실패: ' + e.message);
+  }
+};
+
+// ── 활성화/비활성화 ──
+window.toggleDisable = async function(uid, currentlyDisabled) {
+  const action = currentlyDisabled ? '활성화' : '비활성화';
+  if (!confirm(`이 계정을 ${action}할까요?`)) return;
+  try {
+    await updateDoc(doc(db, 'agents', uid), { disabled: !currentlyDisabled });
+    await loadAgents();
+  } catch(e) {
+    alert('변경 실패: ' + e.message);
+  }
+};
+
+// ── 삭제 ──
+window.deleteAgent = async function(uid, name) {
+  if (!confirm(`${name} 계정을 삭제할까요?\n⚠ 이 계정이 입력한 고객 데이터는 유지됩니다.`)) return;
+  try {
+    await deleteDoc(doc(db, 'agents', uid));
+    await loadAll();
+  } catch(e) {
+    alert('삭제 실패: ' + e.message);
+  }
+};
+
+// ── 로그인/로그아웃 ──
+window.doLogin = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  if (!email || !password) { showLoginError('이메일과 비밀번호를 입력해주세요.'); return; }
+  btn.textContent = '로그인 중...'; btn.disabled = true;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch(e) {
+    const msg = ['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(e.code)
+      ? '이메일 또는 비밀번호가 올바르지 않습니다.'
+      : '로그인 오류가 발생했습니다.';
+    showLoginError(msg);
+  } finally {
+    btn.textContent = '로그인'; btn.disabled = false;
+  }
+};
+
+window.doLogout = async function() {
+  if (!confirm('로그아웃 하시겠어요?')) return;
+  await signOut(auth);
+};
+
+// ── 유틸 ──
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function showCreateStatus(type, msg) {
+  const el = document.getElementById('create-status');
+  el.style.display = '';
+  const bgMap = { loading: 'var(--accent-light)', done: 'var(--green-light)', error: 'var(--red-light)' };
+  const colorMap = { loading: 'var(--accent)', done: 'var(--green)', error: 'var(--red)' };
+  el.innerHTML = `<div class="status-bar" style="background:${bgMap[type]};color:${colorMap[type]}">
+    ${type==='loading'?'<span class="spinner"></span>':''}${msg}
+  </div>`;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
