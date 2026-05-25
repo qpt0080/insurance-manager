@@ -252,10 +252,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
     <div style="text-align:center;margin-bottom:20px;">
       <div style="font-size:28px;margin-bottom:8px;">🔑</div>
-      <div style="font-size:17px;font-weight:700;">Anthropic API 키 입력</div>
+      <div style="font-size:17px;font-weight:700;">Gemini API 키 입력</div>
       <div style="font-size:12px;color:var(--text3);margin-top:5px;line-height:1.6;">PDF 자동 추출 기능에 필요해요.<br>입력하면 이 기기에 저장돼서 다음엔 안 물어봐요.</div>
     </div>
-    <input id="apikey-input" type="password" placeholder="sk-ant-api03-..." 
+    <input id="apikey-input" type="password" placeholder="AIzaSy..." 
       style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;outline:none;background:var(--bg);margin-bottom:12px;"
       onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
       onkeydown="if(event.key==='Enter')saveApiKey()"/>
@@ -726,11 +726,11 @@ window.addEventListener('load', () => { /* onAuthStateChanged가 처리 */ });
 
 <script>
 // ── 데이터 ──
-// ⚠️ Anthropic API 키 — https://console.anthropic.com 에서 발급
-// ── Anthropic API 키 (localStorage에 저장, 없으면 파일에 직접 입력) ──
+// ⚠️ Gemini API 키 — https://aistudio.google.com 에서 발급
+// ── Gemini API 키 (localStorage에 저장, 없으면 파일에 직접 입력) ──
 const HARDCODED_KEY = ''; // ← 여기에 API 키 입력
-function getApiKey(){ return localStorage.getItem('anthropic_api_key') || HARDCODED_KEY; }
-function setApiKey(key){ localStorage.setItem('anthropic_api_key', key.trim()); }
+function getApiKey(){ return localStorage.getItem('gemini_api_key') || HARDCODED_KEY; }
+function setApiKey(key){ localStorage.setItem('gemini_api_key', key.trim()); }
 function ANTHROPIC_API_KEY(){ return getApiKey(); }
 
 let customers = [];
@@ -859,8 +859,8 @@ function showApiKeyPopup(){
 function saveApiKey(){
   const key = document.getElementById('apikey-input').value.trim();
   const errEl = document.getElementById('apikey-error');
-  if(!key || !key.startsWith('sk-ant-')){
-    errEl.textContent = 'Anthropic API 키는 sk-ant- 로 시작해요.';
+  if(!key || !key.startsWith('AIza')){
+    errEl.textContent = 'Gemini API 키는 AIza 로 시작해요.';
     errEl.style.display = 'block';
     return;
   }
@@ -1549,7 +1549,7 @@ function showExtractStatus(type,msg){
 }
 async function extractWithAI(base64,type){
   const isPDF=type==='application/pdf';
-  const block=isPDF?{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}:{type:'image',source:{type:'base64',media_type:type,data:base64}};
+  const block={inline_data:{mime_type:isPDF?'application/pdf':type,data:base64}};
 
   const prompt=`당신은 보험계약서 전문 데이터 추출 AI입니다. JSON만 반환, 설명/마크다운 없이 순수 JSON만 출력.
 
@@ -1633,22 +1633,16 @@ async function extractWithAI(base64,type){
 }`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getApiKey()}`,{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': getApiKey(),
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-allow-browser':'true'
-      },
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:4000,
-        messages:[{role:'user',content:[block,{type:'text',text:prompt}]}]
+        contents:[{parts:[block,{text:prompt}]}],
+        generationConfig:{maxOutputTokens:4000}
       })
     });
     const data=await res.json();
-    const raw=data.content.map(b=>b.text||'').join('');
+    const raw=data.candidates[0].content.parts[0].text;
     const clean=raw.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
     window._lastParsed=parsed; // 원클릭 저장용 임시 보관
@@ -2070,22 +2064,18 @@ async function processAcFile(file) {
       r.readAsDataURL(file);
     });
     const isPdf = file.type==='application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const content = isPdf
-      ? [{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64Data}},{type:'text',text:acPrompt}]
-      : [{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:base64Data}},{type:'text',text:acPrompt}];
+    const content = [
+      {inline_data:{mime_type:isPdf?'application/pdf':(file.type||'image/jpeg'),data:base64Data}},
+      {text:acPrompt}
+    ];
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getApiKey()}`,{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': getApiKey(),
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-allow-browser':'true'
-      },
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content}]})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:content}],generationConfig:{maxOutputTokens:1000}})
     });
     const data = await resp.json();
-    const raw = data.content?.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+    const raw = data.candidates[0].content.parts[0].text?.replace(/```json|```/g,'').trim();
     const parsed = JSON.parse(raw);
     fillAcForm(parsed);
     showAcExtractStatus('done',`✅ 추출 완료! 담보 ${parsed.담보목록?.length||0}개`);
