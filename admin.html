@@ -219,6 +219,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       </div>
     </div>
 
+    <!-- 미배정 고객 -->
+    <div class="card" id="orphan-card" style="display:none;border-color:var(--amber);background:var(--amber-light);">
+      <div class="card-title" style="color:var(--amber);">⚠️ 미배정 고객 <span id="orphan-count" class="chip amber"></span></div>
+      <div style="font-size:12px;color:var(--amber);margin-bottom:12px;line-height:1.6;">설계사가 삭제·변경되어 담당자가 없는 고객이에요. 아래에서 다시 배정해주세요.</div>
+      <div id="orphan-list"></div>
+    </div>
+
     <!-- 설계사별 실적 -->
     <div class="card">
       <div class="card-title">📈 설계사별 실적</div>
@@ -469,6 +476,38 @@ function renderDashboard() {
     return {a, myCusts: myCusts.length, myContracts, myPremium};
   }).sort((x,y) => y.myContracts - x.myContracts);
 
+  // ── 미배정 고객 감지 ──
+  const agentUids = new Set(agentsCache.map(a => a.uid));
+  const orphans = customersCache.filter(c => !agentUids.has(c.agentId));
+  const orphanCard = document.getElementById('orphan-card');
+  const orphanList = document.getElementById('orphan-list');
+  if (orphans.length > 0) {
+    orphanCard.style.display = 'block';
+    document.getElementById('orphan-count').textContent = orphans.length + '명';
+    const agentOptions = agentsCache.map(a => `<option value="${a.uid}">${escHtml(a.name||a.email)}</option>`).join('');
+    orphanList.innerHTML = orphans.map(c => {
+      const contracts = c.contracts||[];
+      const consultName = contracts[0]?.rawJson?.컨설턴트 || c.agentName || '';
+      // 이름으로 자동 매칭 시도
+      const autoMatch = agentsCache.find(a => consultName && (a.name||'').includes(consultName.slice(0,2)));
+      return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">${escHtml(c.name||'')} <span style="font-size:11px;color:var(--text3);font-weight:400">계약 ${contracts.length}건</span></div>
+        ${consultName?`<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">기존 담당: ${escHtml(consultName)}</div>`:''}
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="reassign-${c._docId}" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);outline:none;">
+            <option value="">설계사 선택</option>
+            ${agentOptions}
+          </select>
+          <button class="btn btn-sm btn-primary" onclick="reassignCustomer('${c._docId}')">배정</button>
+        </div>
+        ${autoMatch?`<div style="font-size:11px;color:var(--green);margin-top:6px;">💡 "${escHtml(autoMatch.name)}"으로 자동 매칭 가능 — <span style="cursor:pointer;text-decoration:underline" onclick="document.getElementById('reassign-${c._docId}').value='${autoMatch.uid}'">선택하기</span></div>`:''}
+      </div>`;
+    }).join('');
+  } else {
+    orphanCard.style.display = 'none';
+  }
+
   if (!rows.length) { el.innerHTML='<div class="empty">데이터 없음</div>'; return; }
 
   el.innerHTML = rows.map(({a,myCusts,myContracts,myPremium}) => `
@@ -498,6 +537,21 @@ function renderDashboard() {
     </div>
   `).join('');
 }
+
+// ── 미배정 고객 재배정 ──
+window.reassignCustomer = async function(docId) {
+  const agentUid = document.getElementById(`reassign-${docId}`).value;
+  if (!agentUid) { showToast('❌ 설계사를 선택해주세요.'); return; }
+  const agent = agentsCache.find(a => a.uid === agentUid);
+  try {
+    await updateDoc(doc(db,'customers',docId), {
+      agentId: agentUid,
+      agentName: agent?.name || ''
+    });
+    showToast(`✅ ${agent?.name||''}님으로 배정 완료!`);
+    await loadAll();
+  } catch(e) { showToast('❌ 배정 실패: ' + e.message); }
+};
 
 // ── 설계사 관리 ──
 function renderAgents() {
