@@ -191,6 +191,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <nav class="tab-nav">
   <div class="tab-nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">📊 대시보드</div>
   <div class="tab-nav-item" onclick="switchTab('upload')" id="nav-upload">📋 계약 업로드</div>
+  <div class="tab-nav-item" onclick="switchTab('contracts')" id="nav-contracts">🗂 계약 관리</div>
   <div class="tab-nav-item" onclick="switchTab('agents')" id="nav-agents">👥 설계사 관리</div>
   <div class="tab-nav-item" onclick="switchTab('links')" id="nav-links">🔗 뷰어 링크</div>
 </nav>
@@ -311,7 +312,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     </div>
   </div>
 
-  <!-- ───────────── 탭 3: 설계사 관리 ───────────── -->
+  <!-- 탭 3: 계약 관리 -->
+  <div id="tab-contracts" class="tab-panel">
+    <div class="card">
+      <div class="card-title">🗂 고객 / 계약 관리</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">계약 삭제, 가설계 제거 등을 여기서 관리하세요.</div>
+      <div class="form-row"><label class="form-label">설계사 필터</label>
+        <select class="form-select" id="contracts-agent-filter" onchange="renderContractsList()"><option value="all">전체</option></select>
+      </div>
+      <input class="form-input" id="contracts-search" placeholder="🔍 고객명 검색" oninput="renderContractsList()" style="margin-bottom:0;"/>
+    </div>
+    <div id="contracts-list"></div>
+  </div>
+
+  <!-- 탭 4: 설계사 관리 -->
   <div id="tab-agents" class="tab-panel">
 
     <!-- 계정 생성 -->
@@ -955,3 +969,92 @@ function escHtml(str) {
 </script>
 </body>
 </html>
+<script>
+// ── 탭 전환 (contracts 탭 지원) 패치 ──
+const _origSwitchTab = window.switchTab;
+window.switchTab = function(tab) {
+  _origSwitchTab(tab);
+  if (tab === 'contracts') { renderContractsFilter(); renderContractsList(); }
+};
+
+// ── 계약 관리 탭 ──
+function renderContractsFilter() {
+  const sel = document.getElementById('contracts-agent-filter');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">전체</option>' +
+    agentsCache.map(a => `<option value="${a.uid}">${escHtml(a.name||a.email)}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+window.renderContractsList = function() {
+  const sel = document.getElementById('contracts-agent-filter');
+  const searchEl = document.getElementById('contracts-search');
+  if (!sel || !searchEl) return;
+  const agentFilter = sel.value;
+  const q = searchEl.value.trim();
+  const el = document.getElementById('contracts-list');
+  if (!el) return;
+
+  let list = [...customersCache];
+  if (agentFilter !== 'all') list = list.filter(c => c.agentId === agentFilter);
+  if (q) list = list.filter(c => (c.name||'').includes(q));
+  list.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+
+  if (!list.length) { el.innerHTML='<div class="empty">해당하는 고객이 없어요</div>'; return; }
+
+  el.innerHTML = list.map(c => {
+    const contracts = c.contracts||[];
+    const agentName = agentsCache.find(a=>a.uid===c.agentId)?.name || c.agentName || '미배정';
+    return `
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div>
+          <div style="font-size:15px;font-weight:700;">${escHtml(c.name||'')}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">${escHtml(c.phone||'')} · 담당: ${escHtml(agentName)} · 계약 ${contracts.length}건</div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="deleteCustomer('${c._docId}','${escHtml(c.name||'')}')">🗑 고객삭제</button>
+      </div>
+      ${contracts.length===0 ? '<div style="font-size:12px;color:var(--text3);padding:6px 0;">계약 없음</div>' :
+        contracts.map((ct,i) => {
+          const company = ct.company||ct.rawJson?.보험사||'';
+          const product = ct.product||ct.rawJson?.상품명||'';
+          const prem = ct.premium ? Number(ct.premium).toLocaleString()+'원' : ct.rawJson?.월보험료||'-';
+          const isTemp = (ct.rawJson?.계약자||'').includes('가설계') || (ct.rawJson?.특이사항||'').includes('가설계');
+          return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border:1.5px solid ${isTemp?'var(--amber)':'var(--border)'};border-radius:var(--radius-sm);margin-bottom:6px;${isTemp?'background:var(--amber-light)':''}">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;">${escHtml(company)} · ${escHtml(product)}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px;">${escHtml(prem)}${isTemp?' &nbsp;<span style="color:var(--amber);font-weight:700">⚠ 가설계</span>':''}</div>
+            </div>
+            <button class="btn btn-sm btn-danger" style="flex-shrink:0;margin-left:8px;" onclick="deleteContract('${c._docId}','${ct.id||'ct'+i}','${escHtml(company+' '+product)}')">🗑 삭제</button>
+          </div>`;
+        }).join('')
+      }
+    </div>`;
+  }).join('');
+};
+
+window.deleteContract = async function(custDocId, ctId, name) {
+  if (!confirm(`"${name}" 계약을 삭제할까요?\n이 작업은 되돌릴 수 없어요.`)) return;
+  const cust = customersCache.find(c => c._docId === custDocId);
+  if (!cust) return;
+  const updated = (cust.contracts||[]).filter((ct,i) => (ct.id||'ct'+i) !== ctId);
+  try {
+    await window._fbUpdateDoc(window._fbDoc(window._db,'customers',custDocId), {contracts: updated});
+    showToast('✅ 계약이 삭제됐어요.');
+    await loadAll();
+    renderContractsList();
+  } catch(e) { showToast('❌ 삭제 실패: '+e.message); }
+};
+
+window.deleteCustomer = async function(custDocId, name) {
+  if (!confirm(`"${name}" 고객과 모든 계약 데이터를 삭제할까요?\n이 작업은 되돌릴 수 없어요.`)) return;
+  try {
+    await window._fbDeleteDoc(window._fbDoc(window._db,'customers',custDocId));
+    showToast('✅ 고객이 삭제됐어요.');
+    await loadAll();
+    renderContractsList();
+  } catch(e) { showToast('❌ 삭제 실패: '+e.message); }
+};
+</script>
