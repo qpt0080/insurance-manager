@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 고객 계약 조회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F5F4F0; --surface:#FFFFFF; --surface2:#EEECEA; --border:#DDDBD6;
+  --text:#1A1916; --text2:#6B6860; --text3:#9B9890;
+  --accent:#2B5CE6; --accent-light:#EBF0FF;
+  --green:#1A7F4B; --green-light:#E6F5EC;
+  --amber:#B45309; --amber-light:#FEF3C7;
+  --red:#B91C1C; --red-light:#FEE2E2;
+  --purple:#6D28D9; --purple-light:#EDE9FE;
+  --radius:10px; --radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+.app{max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh;}
+
+/* ── 헤더 ── */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px 0;position:sticky;top:0;z-index:100;}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.logo{font-size:16px;font-weight:700;}
+.logo span{color:var(--accent);}
+.agent-badge{font-size:11px;background:var(--accent-light);color:var(--accent);padding:3px 10px;border-radius:20px;font-weight:600;}
+
+/* ── 탭 ── */
+.tabs{display:flex;}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── 본문 ── */
+.content{flex:1;padding:16px;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ── 검색 ── */
+.search-wrap{position:relative;margin-bottom:12px;}
+.search-wrap input{width:100%;padding:12px 16px 12px 42px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);font-size:15px;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s;}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-wrap input::placeholder{color:var(--text3);}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:17px;pointer-events:none;}
+
+/* ── 필터 ── */
+.filter-bar{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;}
+.filter-chip{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;font-family:inherit;}
+.filter-chip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:700;}
+
+/* ── 통계 ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;box-shadow:var(--shadow);}
+.stat-val{font-size:22px;font-weight:700;color:var(--accent);}
+.stat-lbl{font-size:10px;color:var(--text2);margin-top:2px;}
+
+/* ── 카드 ── */
+.cust-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s,border-color .15s;box-shadow:var(--shadow);}
+.cust-card:hover{border-color:var(--accent);box-shadow:var(--shadow-md);}
+.cust-name{font-size:16px;font-weight:700;}
+.cust-phone{font-size:12px;color:var(--text2);margin-top:2px;}
+.cust-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.chip{font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;background:var(--surface2);color:var(--text2);}
+.chip.blue{background:var(--accent-light);color:var(--accent);}
+.chip.green{background:var(--green-light);color:var(--green);}
+.chip.amber{background:var(--amber-light);color:var(--amber);}
+.chip.red{background:var(--red-light);color:var(--red);}
+.chip.purple{background:var(--purple-light);color:var(--purple);}
+
+/* ── 갱신 임박 ── */
+.renew-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);}
+.renew-name{font-weight:600;font-size:14px;}
+.renew-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+
+/* ── 상세 ── */
+.detail-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.back-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;padding:4px 0;background:none;border:none;font-family:inherit;}
+.back-btn:hover{color:var(--text);}
+.detail-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.detail-name{font-size:20px;font-weight:700;margin-bottom:4px;}
+.detail-sub{font-size:13px;color:var(--text2);}
+.detail-premium{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.detail-premium-lbl{font-size:12px;color:var(--text2);}
+.detail-premium-val{font-size:20px;font-weight:700;color:var(--accent);}
+
+.sec-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;margin-top:18px;}
+.sec-label:first-child{margin-top:0;}
+
+/* ── 계약 카드 ── */
+.contract-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s;}
+.contract-card:hover{border-color:var(--accent);}
+.contract-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.contract-name{font-weight:700;font-size:14px;}
+.contract-premium{font-size:15px;font-weight:700;color:var(--accent);}
+.contract-meta{display:flex;flex-wrap:wrap;gap:5px;}
+
+/* ── 담보 시트 ── */
+.sheet-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:flex-end;}
+.sheet-overlay.active{display:flex;}
+.sheet{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:88vh;overflow-y:auto;padding:0 16px 32px;}
+.sheet-header{position:sticky;top:0;background:var(--surface);padding:14px 0 8px;display:flex;flex-direction:column;align-items:center;z-index:1;}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin-bottom:8px;}
+.sheet-close{position:absolute;right:0;top:10px;background:var(--surface2);border:none;border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
+.sheet-title{font-size:17px;font-weight:700;}
+.sheet-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+
+/* ── 담보 행 ── */
+.coverage-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);}
+.coverage-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.coverage-name{font-weight:700;font-size:13px;line-height:1.4;}
+.coverage-amt{font-size:14px;font-weight:700;color:var(--accent);text-align:right;}
+.coverage-meta{display:flex;flex-wrap:wrap;gap:4px;}
+
+/* ── 해약환급금 표 ── */
+.refund-table{width:100%;border-collapse:collapse;font-size:12px;background:var(--surface);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);}
+.refund-table th{padding:8px 10px;background:var(--surface2);font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);}
+.refund-table th:first-child{text-align:left;}
+.refund-table td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;}
+.refund-table td:first-child{text-align:left;font-weight:600;}
+.refund-table tr:last-child td{border-bottom:none;}
+
+/* ── 인포 그리드 ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.info-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+.info-cell.full{grid-column:1/-1;}
+.info-key{font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:500;}
+.info-val{font-size:13px;font-weight:500;}
+
+/* ── 오류 화면 ── */
+#error-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;padding:24px;text-align:center;}
+#error-screen.show{display:flex;}
+
+/* ── 로딩 ── */
+#loading-screen{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.spinner-lg{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.empty{text-align:center;padding:40px 0;color:var(--text3);}
+.empty-icon{font-size:36px;margin-bottom:10px;}
+.pb{padding-bottom:24px;}
+
+/* ── 새로고침 버튼 ── */
+.refresh-btn{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- 로딩 -->
+<div id="loading-screen">
+  <div class="spinner-lg"></div>
+  <div style="font-size:13px;color:var(--text2);">데이터 불러오는 중...</div>
+</div>
+
+<!-- 오류 -->
+<div id="error-screen">
+  <div>
+    <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px;">접근 불가</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7;" id="error-msg">
+      유효하지 않은 링크입니다.<br>담당자에게 링크를 다시 받아주세요.
+    </div>
+  </div>
+</div>
+
+<!-- 앱 본체 -->
+<div class="app" id="app" style="display:none;">
+
+  <!-- 헤더 -->
+  <header class="header">
+    <div class="header-top">
+      <div class="logo">보험<span>Manager</span></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="agent-badge" id="agent-badge">설계사명</span>
+        <button class="refresh-btn" onclick="refreshData()">↻ 새로고침</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('search')" id="tab-search">🔍 검색</div>
+      <div class="tab" onclick="showTab('list')" id="tab-list">📋 전체</div>
+      <div class="tab" onclick="showTab('renewal')" id="tab-renewal">🔄 갱신</div>
+    </div>
+  </header>
+
+  <div class="content pb">
+
+    <!-- 검색 화면 -->
+    <div id="screen-search" class="screen active">
+      <div class="stats" id="stats-area"></div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="search" placeholder="고객 이름으로 검색" id="search-input"
+          oninput="doSearch()" autocomplete="off"/>
+      </div>
+      <div id="search-results"></div>
+    </div>
+
+    <!-- 전체 목록 -->
+    <div id="screen-list" class="screen">
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-chip active" onclick="setFilter('all',this)">전체</button>
+        <button class="filter-chip" onclick="setFilter('생명보험',this)">생명보험</button>
+        <button class="filter-chip" onclick="setFilter('손해보험',this)">손해보험</button>
+        <button class="filter-chip" onclick="setFilter('갱신형',this)">갱신형</button>
+        <button class="filter-chip" onclick="setFilter('비갱신형',this)">비갱신형</button>
+      </div>
+      <div id="list-results"></div>
+    </div>
+
+    <!-- 갱신 임박 -->
+    <div id="screen-renewal" class="screen">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">갱신 예정 담보를 확인하세요.</div>
+      <div id="renewal-list"></div>
+    </div>
+
+    <!-- 고객 상세 -->
+    <div id="screen-detail" class="screen pb">
+      <div class="detail-nav">
+        <button class="back-btn" onclick="goBack()">← 뒤로</button>
+      </div>
+      <div id="detail-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 담보 상세 시트 -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
+  <div class="sheet">
+    <div class="sheet-header">
+      <div class="sheet-handle"></div>
+      <button class="sheet-close" onclick="forceCloseSheet()">✕</button>
+      <div class="sheet-title" id="sheet-title"></div>
+      <div class="sheet-sub" id="sheet-sub"></div>
+    </div>
+    <div id="sheet-content" style="padding-top:8px;"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, query, where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
+  authDomain: "insurance-manager-c4308.firebaseapp.com",
+  projectId: "insurance-manager-c4308",
+  storageBucket: "insurance-manager-c4308.firebasestorage.app",
+  messagingSenderId: "769412429451",
+  appId: "1:769412429451:web:0c3a31bb14430f8fe5068e"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── URL에서 토큰 읽기 ──
+const urlParams = new URLSearchParams(location.search);
+const token = urlParams.get('token');
+
+let customers = [];
+let currentFilter = 'all';
+let prevScreen = 'search';
+let currentCustomerId = null;
+let agentInfo = null;
+
+async function init() {
+  if (!token) {
+    showError('링크에 접근 코드가 없습니다.\n담당자에게 링크를 다시 받아주세요.');
+    return;
+  }
+
+  try {
+    // 토큰으로 설계사 조회
+    const agentSnap = await getDocs(query(collection(db,'agents'), where('viewerToken','==',token)));
+    if (agentSnap.empty) {
+      showError('유효하지 않은 링크입니다.\n담당자에게 링크를 다시 받아주세요.');
+      return;
+    }
+    agentSnap.forEach(d => agentInfo = d.data());
+
+    if (agentInfo.disabled) {
+      showError('비활성화된 계정입니다.\n담당자에게 문의해주세요.');
+      return;
+    }
+
+    // 해당 설계사 고객 로드
+    document.getElementById('agent-badge').textContent = agentInfo.name || agentInfo.email;
+    await loadCustomers();
+
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderStats();
+    renderList();
+    renderRenewal();
+
+  } catch(e) {
+    showError('데이터를 불러오지 못했습니다.\n네트워크를 확인하거나 담당자에게 문의해주세요.');
+    console.error(e);
+  }
+}
+
+async function loadCustomers() {
+  const snap = await getDocs(query(collection(db,'customers'), where('agentId','==', agentInfo.uid)));
+  customers = [];
+  snap.forEach(d => customers.push({...d.data(), _docId: d.id}));
+  customers.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+}
+
+window.refreshData = async function() {
+  try {
+    await loadCustomers();
+    renderStats();
+    renderList();
+    renderRenewal();
+    if (currentCustomerId) showDetail(currentCustomerId);
+  } catch(e) { console.error(e); }
+};
+
+// ── 통계 ──
+function renderStats() {
+  const total = customers.length;
+  const contracts = customers.reduce((s,c) => s+(c.contracts||[]).length, 0);
+  let premium = 0;
+  customers.forEach(c => (c.contracts||[]).forEach(ct => {
+    premium += parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
+  }));
+  document.getElementById('stats-area').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-lbl">내 고객</div></div>
+    <div class="stat-card"><div class="stat-val">${contracts}</div><div class="stat-lbl">계약 수</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:16px;">${premium>0?Math.round(premium/10000)+'만':'0'}</div><div class="stat-lbl">월 보험료</div></div>
+  `;
+}
+
+// ── 검색 ──
+window.doSearch = function() {
+  const q = document.getElementById('search-input').value.trim();
+  const el = document.getElementById('search-results');
+  if (!q) { el.innerHTML=''; return; }
+  const results = customers.filter(c =>
+    (c.name||'').includes(q) ||
+    (c.phone||'').includes(q)
+  );
+  if (!results.length) {
+    el.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><p>검색 결과가 없어요</p></div>';
+    return;
+  }
+  el.innerHTML = results.map(c => renderCustCard(c)).join('');
+};
+
+// ── 전체 목록 ──
+window.setFilter = function(val, btn) {
+  currentFilter = val;
+  document.querySelectorAll('.filter-chip').forEach(el => el.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+};
+
+function renderList() {
+  const el = document.getElementById('list-results');
+  let list = [...customers];
+  if (currentFilter !== 'all') {
+    list = list.filter(c => {
+      const contracts = c.contracts || [];
+      if (currentFilter === '생명보험') return contracts.some(ct => isLife(ct.company||ct.rawJson?.보험사유형||''));
+      if (currentFilter === '손해보험') return contracts.some(ct => !isLife(ct.company||ct.rawJson?.보험사유형||''));
+      if (currentFilter === '갱신형') return contracts.some(ct =>
+        (ct.coverages||[]).some(cv => cv.renew==='갱신형') ||
+        (ct.rawJson?.담보목록||[]).some(d => d.갱신여부==='갱신형')
+      );
+      if (currentFilter === '비갱신형') return contracts.some(ct =>
+        (ct.coverages||[]).some(cv => cv.renew==='비갱신' || cv.renew==='비갱신형') ||
+        (ct.rawJson?.담보목록||[]).some(d => d.갱신여부==='비갱신')
+      );
+      return true;
+    });
+  }
+  if (!list.length) {
+    el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>해당하는 고객이 없어요</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(c => renderCustCard(c)).join('');
+}
+
+function isLife(s) {
+  return /생명|라이프/.test(s);
+}
+
+function renderCustCard(c) {
+  const contracts = c.contracts || [];
+  const totalPrem = contracts.reduce((s,ct) => s + (parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0), 0);
+  const companies = [...new Set(contracts.map(ct => ct.company||ct.rawJson?.보험사||''))].filter(Boolean);
+  return `
+  <div class="cust-card" onclick="showDetail('${c._docId||c.id}')">
+    <div class="cust-name">${escHtml(c.name||'')}</div>
+    <div class="cust-phone">${escHtml(c.phone||'')}</div>
+    <div class="cust-meta">
+      <span class="chip blue">${contracts.length}건</span>
+      ${totalPrem > 0 ? `<span class="chip green">월 ${Math.round(totalPrem/10000)}만원</span>` : ''}
+      ${companies.slice(0,3).map(co => `<span class="chip">${escHtml(co)}</span>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ── 갱신 임박 ──
+function renderRenewal() {
+  const el = document.getElementById('renewal-list');
+  const today = new Date();
+  const rows = [];
+
+  customers.forEach(c => {
+    (c.contracts||[]).forEach(ct => {
+      const coverages = ct.coverages || ct.rawJson?.담보목록 || [];
+      coverages.forEach(cv => {
+        const isRenew = cv.renew === '갱신형' || cv.갱신여부 === '갱신형';
+        if (!isRenew) return;
+        rows.push({custName: c.name, custId: c._docId||c.id, company: ct.company||ct.rawJson?.보험사||'', product: ct.product||ct.rawJson?.상품명||'', covName: cv.name||cv.담보명||'', renew: cv.renew||cv.갱신여부});
+      });
+    });
+  });
+
+  if (!rows.length) {
+    el.innerHTML='<div class="empty"><div class="empty-icon">🔄</div><p>갱신형 담보가 없어요</p></div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => `
+    <div class="renew-item" onclick="showDetail('${r.custId}')">
+      <div class="renew-name">${escHtml(r.custName)} · ${escHtml(r.covName)}</div>
+      <div class="renew-sub">${escHtml(r.company)} ${escHtml(r.product)}</div>
+    </div>`).join('');
+}
+
+// ── 고객 상세 ──
+window.showDetail = function(id) {
+  const activeScreen = ['search','list','renewal'].find(t => document.getElementById('screen-'+t).classList.contains('active'));
+  if (activeScreen) prevScreen = activeScreen;
+  currentCustomerId = id;
+
+  const c = customers.find(x => (x._docId||x.id) === id);
+  if (!c) return;
+
+  showScreen('detail');
+
+  const contracts = c.contracts || [];
+  const totalPrem = contracts.reduce((s,ct) => s + (parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0), 0);
+
+  let html = `
+    <div class="detail-header">
+      <div class="detail-name">${escHtml(c.name||'')}</div>
+      <div class="detail-sub">${escHtml(c.phone||'')}${c.birth?' · '+escHtml(c.birth):''}${c.gender?' · '+escHtml(c.gender):''}</div>
+      ${totalPrem > 0 ? `
+      <div class="detail-premium">
+        <div class="detail-premium-lbl">월 납입 보험료 합계</div>
+        <div class="detail-premium-val">${fmt(totalPrem)}</div>
+      </div>` : ''}
+    </div>
+    <div class="sec-label">보험 계약 (${contracts.length}건)</div>
+  `;
+
+  if (!contracts.length) {
+    html += '<div class="empty"><div class="empty-icon">📋</div><p>계약 없음</p></div>';
+  } else {
+    html += contracts.map((ct, idx) => {
+      const rawJson = ct.rawJson || {};
+      const company = ct.company || rawJson.보험사 || '';
+      const product = ct.product || rawJson.상품명 || '';
+      const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
+      const coverages = ct.coverages || rawJson.담보목록 || [];
+      const hasRenew = coverages.some(cv => (cv.renew||cv.갱신여부||'').includes('갱신형'));
+      return `
+      <div class="contract-card" onclick="openContractSheet('${c._docId||c.id}',${idx})">
+        <div class="contract-header">
+          <div>
+            <div class="contract-name">${escHtml(company)} · ${escHtml(product)}</div>
+          </div>
+          ${prem > 0 ? `<div class="contract-premium">${fmt(prem)}</div>` : ''}
+        </div>
+        <div class="contract-meta">
+          ${ct.startDate||rawJson.계약일 ? `<span class="chip">${escHtml(ct.startDate||rawJson.계약일||'')}</span>` : ''}
+          ${ct.payPeriod||rawJson.납입기간 ? `<span class="chip">${escHtml(ct.payPeriod||rawJson.납입기간||'')}</span>` : ''}
+          ${ct.expiryDate||rawJson.보험기간 ? `<span class="chip">${escHtml(ct.expiryDate||rawJson.보험기간||'')}</span>` : ''}
+          <span class="chip blue">${coverages.length}개 담보</span>
+          ${hasRenew ? '<span class="chip amber">갱신형 포함</span>' : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('detail-content').innerHTML = html;
+};
+
+window.openContractSheet = function(custId, ctIdx) {
+  const c = customers.find(x => (x._docId||x.id) === custId);
+  if (!c) return;
+  const ct = (c.contracts||[])[ctIdx];
+  if (!ct) return;
+
+  const rawJson = ct.rawJson || {};
+  const coverages = ct.coverages || rawJson.담보목록 || [];
+  const company = ct.company || rawJson.보험사 || '';
+  const product = ct.product || rawJson.상품명 || '';
+  const refunds = ct.refunds || rawJson.해약환급금 || [];
+
+  document.getElementById('sheet-title').textContent = `${company} · ${product}`;
+  document.getElementById('sheet-sub').textContent = `${ct.payPeriod||rawJson.납입기간||''} · ${ct.expiryDate||rawJson.보험기간||''}`;
+
+  let html = '';
+
+  // 기본 정보
+  html += `<div class="sec-label" style="margin-top:0">계약 정보</div>
+  <div class="info-grid">
+    ${[
+      ['보험사', company],
+      ['상품명', product],
+      ['계약일', ct.startDate||rawJson.계약일],
+      ['보험기간', ct.expiryDate||rawJson.보험기간],
+      ['납입기간', ct.payPeriod||rawJson.납입기간],
+      ['납입방법', ct.payMethod||rawJson.납입방법],
+      ['월 보험료', ct.premium ? fmt(ct.premium) : rawJson.월보험료],
+    ].filter(([,v])=>v).map(([k,v]) => `
+    <div class="info-cell">
+      <div class="info-key">${k}</div>
+      <div class="info-val">${escHtml(String(v))}</div>
+    </div>`).join('')}
+  </div>`;
+
+  // 담보
+  if (coverages.length) {
+    html += `<div class="sec-label">담보 목록 (${coverages.length}개)</div>`;
+    html += coverages.map(cv => {
+      const name = cv.name || cv.담보명 || '';
+      const amt = cv.amount || cv.보장금액 || '';
+      const renew = cv.renew || cv.갱신여부 || '';
+      const exemp = cv.exemption || cv.면책기간 || '';
+      const note = cv.note || cv.기타조건 || '';
+      const isRenew = renew.includes('갱신형');
+      return `
+      <div class="coverage-row">
+        <div class="coverage-top">
+          <div class="coverage-name">${escHtml(name)}</div>
+          <div class="coverage-amt">${escHtml(amt)}</div>
+        </div>
+        <div class="coverage-meta">
+          ${renew ? `<span class="chip ${isRenew?'amber':''}">${escHtml(renew)}</span>` : ''}
+          ${exemp ? `<span class="chip">면책 ${escHtml(exemp)}</span>` : ''}
+          ${note ? `<span class="chip">${escHtml(note)}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // 해약환급금
+  if (refunds.length) {
+    html += `<div class="sec-label">해약환급금</div>
+    <div style="overflow-x:auto;margin-bottom:12px;">
+    <table class="refund-table">
+      <thead><tr>
+        <th style="text-align:left">경과</th>
+        <th>납입누계</th>
+        <th>환급금</th>
+        <th>환급률</th>
+      </tr></thead>
+      <tbody>
+        ${refunds.map(r => `
+        <tr>
+          <td>${escHtml(r.경과||'')}</td>
+          <td>${escHtml(r.납입누계||'-')}</td>
+          <td>${escHtml(r.환급금||'-')}</td>
+          <td>${escHtml(r.환급률||'-')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+  }
+
+  // 메모
+  const memo = ct.memo || rawJson.특이사항;
+  if (memo) {
+    html += `<div class="sec-label">메모</div>
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.7;color:var(--text2);">${escHtml(memo)}</div>`;
+  }
+
+  document.getElementById('sheet-content').innerHTML = html;
+  document.getElementById('sheet-overlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+};
+
+window.closeSheet = function(e) {
+  if (e.target === document.getElementById('sheet-overlay')) forceCloseSheet();
+};
+window.forceCloseSheet = function() {
+  document.getElementById('sheet-overlay').classList.remove('active');
+  document.body.style.overflow = '';
+};
+
+window.goBack = function() {
+  showScreen(prevScreen);
+  currentCustomerId = null;
+};
+
+// ── 탭 / 화면 전환 ──
+window.showTab = function(tab) {
+  ['search','list','renewal'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('screen-'+t).classList.toggle('active', t===tab);
+  });
+  document.getElementById('screen-detail').classList.remove('active');
+};
+
+function showScreen(name) {
+  ['search','list','renewal','detail'].forEach(s => {
+    document.getElementById('screen-'+s).classList.toggle('active', s===name);
+  });
+  if (['search','list','renewal'].includes(name)) {
+    ['search','list','renewal'].forEach(t => {
+      document.getElementById('tab-'+t).classList.toggle('active', t===name);
+    });
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading-screen').style.display = 'none';
+  const el = document.getElementById('error-screen');
+  document.getElementById('error-msg').innerHTML = msg.replace(/\n/g,'<br>');
+  el.classList.add('show');
+}
+
+// ── 유틸 ──
+function fmt(n) {
+  return Number(String(n).replace(/,/g,'')).toLocaleString() + '원';
+}
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
