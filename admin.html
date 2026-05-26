@@ -240,18 +240,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
       <!-- JSON 붙여넣기 -->
       <div class="sec-label">Claude 추출 JSON</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.7;">
-        Claude에게 제안서/계약서를 주고 아래 버튼으로 프롬프트를 복사한 뒤,<br>
-        추출된 JSON을 아래에 붙여넣으세요.
+      <div style="background:var(--accent-light);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--accent);line-height:1.7;">
+        📎 PDF를 Claude에 올리면 JSON을 추출해줘요.<br>
+        추출된 JSON을 아래에 붙여넣고 저장하세요.
       </div>
-      <button onclick="copyExtractPrompt()" class="btn btn-sm" style="margin-bottom:10px;">📄 추출 프롬프트 복사</button>
-
       <div class="form-row">
         <textarea class="form-textarea" id="upload-json-input"
-          placeholder='{"계약자":"홍길동","피보험자":"홍길동","보험사":"삼성생명","상품명":"...","월보험료":"...","담보목록":[...]}'
-          style="min-height:130px;"></textarea>
+          placeholder='여기에 Claude가 추출한 JSON을 붙여넣으세요'
+          style="min-height:150px;font-size:13px;"></textarea>
       </div>
-      <button onclick="applyUploadJson()" class="btn btn-primary btn-full">✅ JSON 적용하기</button>
+      <button onclick="applyUploadJson()" class="btn btn-primary btn-full" style="font-size:14px;">✅ 적용하기</button>
       <div id="upload-json-status" style="display:none;"></div>
 
       <!-- 미리보기 + 고객 매칭 -->
