@@ -315,18 +315,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           <label class="form-label">이름</label>
           <input class="form-input" id="new-name" placeholder="홍길동"/>
         </div>
-        <div class="form-row">
-          <label class="form-label">이메일</label>
-          <input class="form-input" id="new-email" type="email" placeholder="agent@email.com"/>
-        </div>
-        <div class="form-row">
-          <label class="form-label">초기 비밀번호</label>
-          <input class="form-input" id="new-password" type="text" placeholder="8자 이상"/>
-        </div>
         <div class="form-row" style="display:flex;align-items:flex-end;">
           <button onclick="createAgent()" class="btn btn-primary btn-full">계정 생성</button>
         </div>
       </div>
+      <input type="hidden" id="new-email"/>
+      <input type="hidden" id="new-password"/>
       <div id="create-status" style="display:none;"></div>
     </div>
 
@@ -799,10 +793,11 @@ window.copyLink = function(url) {
 // ── 계정 생성 ──
 window.createAgent = async function() {
   const name = document.getElementById('new-name').value.trim();
-  const email = document.getElementById('new-email').value.trim();
-  const password = document.getElementById('new-password').value;
-  if (!name || !email || !password) { showCreateStatus('error','이름, 이메일, 비밀번호를 모두 입력해주세요.'); return; }
-  if (password.length < 8) { showCreateStatus('error','비밀번호는 8자 이상이어야 합니다.'); return; }
+  if (!name) { showCreateStatus('error','이름을 입력해주세요.'); return; }
+  // 이메일/비밀번호 자동 생성 (Firebase Auth 필요, 화면에는 표시 안 함)
+  const slug = name.replace(/\s+/g,'').toLowerCase() + '_' + Date.now();
+  const email = `${slug}@agent.insuremgr.com`;
+  const password = Math.random().toString(36).slice(2,10) + 'Aa1!';
   showCreateStatus('loading','계정 생성 중...');
   try {
     const cred = await createUserWithEmailAndPassword(subAuth, email, password);
@@ -811,8 +806,6 @@ window.createAgent = async function() {
     await subAuth.signOut();
     showCreateStatus('done', `✅ ${name}님 계정 생성 완료!`);
     document.getElementById('new-name').value='';
-    document.getElementById('new-email').value='';
-    document.getElementById('new-password').value='';
     await loadAll();
   } catch(e) {
     const msg = e.code==='auth/email-already-in-use' ? '이미 사용 중인 이메일입니다.'
