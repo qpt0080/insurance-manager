@@ -379,6 +379,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 </div><!-- /container -->
 
+
+<!-- 계약 상세 시트 -->
+<div id="admin-sheet-overlay" onclick="closeAdminSheet(event)" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:300;display:none;align-items:flex-end;">
+  <div id="admin-sheet-inner" style="background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:720px;margin:0 auto;max-height:90vh;overflow-y:auto;padding:0 20px 40px;">
+    <div style="position:sticky;top:0;background:var(--surface);padding:14px 0 10px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:16px;">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin-bottom:10px;"></div>
+      <button onclick="forceCloseAdminSheet()" style="position:absolute;right:0;top:10px;background:var(--surface2);border:none;border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;color:var(--text2);">✕</button>
+      <div id="admin-sheet-title" style="font-size:17px;font-weight:700;text-align:center;"></div>
+      <div id="admin-sheet-sub" style="font-size:12px;color:var(--text2);margin-top:2px;text-align:center;"></div>
+    </div>
+    <div id="admin-sheet-content"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script type="module">
@@ -1063,12 +1077,13 @@ window.renderContractsList = function() {
           const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
           const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
           const dateStr = ym ? `${ym[1]}.${ym[2].padStart(2,'0')}` : '';
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border:1.5px solid ${isTemp?'var(--amber)':'var(--border)'};border-radius:var(--radius-sm);margin-bottom:6px;${isTemp?'background:var(--amber-light)':''}">
+          const ctId2 = ct.id||'ci'+i;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border:1.5px solid ${isTemp?'var(--amber)':'var(--border)'};border-radius:var(--radius-sm);margin-bottom:6px;${isTemp?'background:var(--amber-light)':''}cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${isTemp?'var(--amber)':'var(--border)'}'" onclick="event.stopPropagation();openAdminContractDetail('${c._docId}','${ctId2}')">
             <div style="flex:1;min-width:0;">
               <div style="font-size:13px;font-weight:600;">${escHtml(company)} · ${escHtml(product)}</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:2px;">${escHtml(prem)}${dateStr?' · '+escHtml(dateStr):''}${isTemp?' <span style="color:var(--amber);font-weight:700">⚠ 가설계</span>':''}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px;">${escHtml(prem)}${dateStr?' · '+escHtml(dateStr):''}${isTemp?' <span style="color:var(--amber);font-weight:700">⚠ 가설계</span>':''} <span style="color:var(--text3);">· 클릭해서 상세보기</span></div>
             </div>
-            <button class="btn btn-sm btn-danger" style="flex-shrink:0;margin-left:8px;" onclick="deleteContract('${c._docId}','${ct.id||'ci'+i}','${escHtml(company+' '+product)}')">🗑 삭제</button>
+            <button class="btn btn-sm btn-danger" style="flex-shrink:0;margin-left:8px;" onclick="event.stopPropagation();deleteContract('${c._docId}','${ctId2}','${escHtml(company+' '+product)}')">🗑 삭제</button>
           </div>`;
         }).join('')
       }
@@ -1138,6 +1153,155 @@ function showToast(msg) {
   el.textContent=msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2800);
 }
+
+// ── 계약 상세 시트 (관리자용) ──
+window.openAdminContractDetail = function(custDocId, ctId) {
+  const c = customersCache.find(x => x._docId === custDocId || x.id === custDocId);
+  if (!c) return;
+  const ct = (c.contracts||[]).find(x => x.id === ctId);
+  if (!ct) return;
+
+  const rj = ct.rawJson || {};
+  const company = ct.company || rj.보험사 || '';
+  const product = ct.product || rj.상품명 || '';
+  const coverages = ct.coverages || rj.담보목록 || [];
+  const refunds = ct.refunds || rj.해약환급금 || [];
+  const claims = ct.claims || [];
+  const meta = ct.coverageMeta || [];
+  const prem = ct.premium ? Number(ct.premium).toLocaleString()+'원' : rj.월보험료 || '';
+
+  document.getElementById('admin-sheet-title').textContent = `${company} · ${product}`;
+  document.getElementById('admin-sheet-sub').textContent = `${escHtml(c.name||'')} 고객 · ${ct.payPeriod||rj.납입기간||''} · ${ct.expiryDate||rj.보험기간||''}`;
+
+  // 인포 그리드 헬퍼
+  const ic = (k,v) => v ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;"><div style="font-size:10px;color:var(--text3);margin-bottom:2px;">${k}</div><div style="font-size:13px;font-weight:500;">${escHtml(String(v))}</div></div>` : '';
+
+  let html = '';
+
+  // 기본 정보
+  html += `<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">계약 정보</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+    ${ic('보험사', company)}${ic('상품명', product)}
+    ${ic('계약자', c.name)}${ic('피보험자', rj.피보험자||c.name)}
+    ${ic('계약일', ct.startDate||rj.계약일)}${ic('보험기간', ct.expiryDate||rj.보험기간)}
+    ${ic('납입기간', ct.payPeriod||rj.납입기간)}${ic('납입방법', ct.payMethod||rj.납입방법)}
+    ${ic('월 보험료', prem)}${ic('심사유형', rj.심사유형)}
+    ${ic('해약환급금형태', rj.해약환급금형태)}${ic('상해급수', rj.상해급수)}
+  </div>`;
+
+  // 담당설계사 + 컨설턴트
+  const agentName = agentsCache.find(a=>a.uid===c.agentId)?.name || c.agentName || '미배정';
+  html += `<div style="font-size:12px;color:var(--text2);margin-bottom:16px;">
+    👤 담당 설계사: <strong>${escHtml(agentName)}</strong>
+    ${rj.컨설턴트?` &nbsp;|&nbsp; 📞 모집인: <strong>${escHtml(rj.컨설턴트)}</strong> ${rj.컨설턴트연락처?'('+escHtml(rj.컨설턴트연락처)+')':''}`:''}
+    ${rj.소속지점?`<br>🏢 ${escHtml(rj.소속지점)}`:''}
+  </div>`;
+
+  if (rj.납입면제조건) {
+    html += `<div style="background:var(--green-light);border:1px solid #86EFAC;border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--green);">✅ 납입면제: ${escHtml(rj.납입면제조건)}</div>`;
+  }
+
+  // 담보 목록
+  if (coverages.length) {
+    html += `<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🛡 담보 목록 (${coverages.length}개)</div>`;
+    html += coverages.map((cv, idx) => {
+      const name = cv.name||cv.담보명||'';
+      const amt = cv.amount||cv.보장금액||'';
+      const prem2 = cv.premium||cv.담보보험료||'';
+      const renew = cv.renew||cv.갱신여부||'';
+      const exemp = cv.exemption||cv.면책기간||'';
+      const note = cv.note||cv.기타조건||'';
+      const reduction = cv['1년내감액']||'';
+      const levels = cv.amountLevels||[];
+      const isRenewCov = renew.includes('갱신형');
+      const cvMeta = meta[idx]||{};
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);${cvMeta.claimed?'border-color:#F59E0B;background:#FFFBEB':''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div style="font-weight:700;font-size:13px;line-height:1.4;flex:1;padding-right:8px;">
+            ${cv.바로보장?'<span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:2px 6px;border-radius:10px;margin-right:4px;">바로보장</span>':''}
+            ${escHtml(name)}
+          </div>
+          <div style="font-size:14px;font-weight:700;color:var(--accent);text-align:right;flex-shrink:0;">${escHtml(amt)}</div>
+        </div>
+        ${levels.length?`<div style="margin-bottom:6px;">${levels.map(l=>`<div style="font-size:11px;color:var(--text2);">${escHtml(l.label||'')}: ${escHtml(l.amount||'')}</div>`).join('')}</div>`:''}
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:${(exemp||note||reduction||cvMeta.claimed||cvMeta.memo)?'7px':'0'};">
+          ${renew?`<span class="chip ${isRenewCov?'amber':''}">${escHtml(renew)}</span>`:''}
+          ${isRenewCov&&cv.갱신주기?`<span class="chip">${cv.갱신주기}년 갱신</span>`:''}
+          ${isRenewCov&&cv.갱신종료나이?`<span class="chip">최대${cv.갱신종료나이}세</span>`:''}
+          ${prem2?`<span class="chip">${escHtml(prem2)}</span>`:''}
+          ${cvMeta.claimed?'<span class="chip gold">🏆 보상력</span>':''}
+          ${cvMeta.memo?'<span class="chip blue">💬 메모</span>':''}
+        </div>
+        ${(exemp||note||reduction)?`<div style="font-size:11px;color:var(--text2);line-height:1.5;padding-top:6px;border-top:1px solid var(--border);">${exemp?'⏱ 면책: '+escHtml(exemp)+(note||reduction?'<br>':''):''}${reduction?'📉 감액: '+escHtml(reduction)+(note?'<br>':''):''}${note?'📌 '+escHtml(note):''}</div>`:''}
+        ${cvMeta.memo?`<div style="font-size:12px;color:var(--accent);background:var(--accent-light);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px;">💬 ${escHtml(cvMeta.memo)}</div>`:''}
+        ${cvMeta.claimed&&cvMeta.claimNote?`<div style="font-size:12px;color:#D97706;background:#FEF9C3;border-radius:var(--radius-sm);padding:6px 10px;margin-top:4px;">🏆 ${cvMeta.claimDate?escHtml(cvMeta.claimDate)+' · ':''}${escHtml(cvMeta.claimNote)}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // 해약환급금
+  if (refunds.length) {
+    html += `<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">💰 해약환급금</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="background:var(--surface2);">
+        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);">경과</th>
+        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);">나이</th>
+        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);">납입누계</th>
+        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);">환급금</th>
+        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);">환급률</th>
+      </tr></thead>
+      <tbody>${refunds.map(r => {
+        const isMile = r.경과&&(r.경과.includes('납입완료')||/^(20년|30년)($|[^0-9])/.test(r.경과));
+        return `<tr style="${isMile?'background:var(--accent-light);color:var(--accent);font-weight:700;':''}">
+          <td style="padding:7px 10px;border-bottom:1px solid var(--border);">${escHtml(r.경과||'')}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;">${escHtml(String(r.나이||''))}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;">${escHtml(r.납입누계||'-')}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;">${escHtml(r.환급금||'-')}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;">${escHtml(r.환급률||'-')}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  }
+
+  // 보상이력
+  if (claims.length) {
+    html += `<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🏥 보상이력 (${claims.length}건)</div>`;
+    html += claims.map(cl=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
+        <div>
+          <div style="font-size:11px;color:var(--text2);">${escHtml(cl.date||'')}</div>
+          <div style="font-size:13px;font-weight:500;">${escHtml(cl.memo||'')}</div>
+        </div>
+        ${cl.amount?`<div style="font-size:14px;font-weight:700;color:var(--accent);">${escHtml(cl.amount)}</div>`:''}
+      </div>`).join('');
+  }
+
+  // 메모
+  const memo = ct.memo || rj.특이사항 || '';
+  if (memo) {
+    html += `<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">📝 메모</div>
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.7;color:var(--text2);">${escHtml(memo)}</div>`;
+  }
+
+  document.getElementById('admin-sheet-content').innerHTML = html;
+  const overlay = document.getElementById('admin-sheet-overlay');
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+};
+
+window.closeAdminSheet = function(e) {
+  if (e.target === document.getElementById('admin-sheet-overlay')) forceCloseAdminSheet();
+};
+window.forceCloseAdminSheet = function() {
+  document.getElementById('admin-sheet-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+};
+
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
