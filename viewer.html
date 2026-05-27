@@ -8,64 +8,74 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#F5F4F0;--surface:#FFF;--surface2:#EEECEA;--border:#DDDBD6;
-  --text:#1A1916;--text2:#6B6860;--text3:#9B9890;
-  --accent:#2B5CE6;--accent-light:#EBF0FF;
+  --bg:#F3F2EE;--surface:#FFF;--surface2:#EEECE8;--border:#E0DDD7;
+  --text:#18171A;--text2:#68666A;--text3:#A09EA3;
+  --accent:#3B5BDB;--accent-light:#EDF2FF;--accent-dark:#2F4AC0;
   --green:#1A7F4B;--green-light:#E6F5EC;
   --amber:#B45309;--amber-light:#FEF3C7;
   --amber2:#F59E0B;
   --red:#B91C1C;--red-light:#FEE2E2;
   --purple:#6D28D9;--purple-light:#EDE9FE;
   --gold:#D97706;--gold-light:#FEF9C3;
-  --radius:10px;--radius-sm:6px;
-  --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.10);
+  --radius:12px;--radius-sm:8px;--radius-xs:6px;
+  --shadow:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.10);--shadow-lg:0 8px 24px rgba(0,0,0,.13);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
 .app{max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh;}
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px 0;position:sticky;top:0;z-index:100;}
-.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.logo{font-size:16px;font-weight:700;}.logo span{color:var(--accent);}
-.agent-badge{font-size:11px;background:var(--accent-light);color:var(--accent);padding:3px 10px;border-radius:20px;font-weight:600;}
-.tabs{display:flex;}
-.tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;}
+
+/* ── 헤더 ── */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px 0;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04);}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.logo{font-size:17px;font-weight:800;letter-spacing:-.3px;}.logo span{color:var(--accent);}
+.agent-badge{font-size:11px;background:var(--accent-light);color:var(--accent);padding:4px 11px;border-radius:20px;font-weight:700;border:1px solid rgba(59,91,219,.12);}
+
+/* ── 탭 ── */
+.tabs{display:flex;gap:2px;}
+.tab{flex:1;padding:10px 4px 11px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);border-bottom:2.5px solid transparent;cursor:pointer;transition:all .18s;letter-spacing:-.2px;}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:not(.active):hover{color:var(--text2);}
+
 .content{flex:1;padding:16px;}
 .screen{display:none;}.screen.active{display:block;}
 /* 검색 */
 .search-wrap{position:relative;margin-bottom:10px;}
-.search-wrap input{width:100%;padding:12px 16px 12px 42px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);font-size:15px;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s;}
-.search-wrap input:focus{border-color:var(--accent);}
+.search-wrap input{width:100%;padding:13px 16px 13px 44px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);font-size:15px;font-family:inherit;color:var(--text);outline:none;transition:border-color .18s,box-shadow .18s;box-shadow:var(--shadow);}
+.search-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,91,219,.1);}
 .search-wrap input::placeholder{color:var(--text3);}
-.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:17px;pointer-events:none;}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:18px;pointer-events:none;}
 .search-mode-wrap{display:flex;gap:6px;margin-bottom:10px;}
-.search-mode-btn{flex:1;padding:7px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-family:inherit;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;}
-.search-mode-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.search-mode-btn{flex:1;padding:8px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;font-family:inherit;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .18s;}
+.search-mode-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(59,91,219,.25);}
 /* 년/월 필터 */
-.period-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);}
-.period-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;}
-.period-clear{font-size:10px;color:var(--accent);cursor:pointer;font-weight:500;}
+.period-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;margin-bottom:12px;box-shadow:var(--shadow);}
+.period-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.period-clear{font-size:11px;color:var(--accent);cursor:pointer;font-weight:600;padding:2px 6px;border-radius:4px;transition:background .15s;}
+.period-clear:hover{background:var(--accent-light);}
 .filter-bar{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;margin-bottom:6px;}
 .filter-bar::-webkit-scrollbar{display:none;}
-.filter-chip{flex-shrink:0;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;}
-.filter-chip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:700;}
+.filter-chip{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .18s;font-family:inherit;white-space:nowrap;}
+.filter-chip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+.filter-chip:not(.active):hover{border-color:var(--text3);}
 .filter-chip.amber.active{border-color:var(--amber);background:var(--amber-light);color:var(--amber);}
 .dambo-search-wrap{margin-bottom:12px;position:relative;}
-.dambo-search-wrap input{width:100%;padding:9px 12px 9px 36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);outline:none;transition:border-color .15s;}
+.dambo-search-wrap input{width:100%;padding:10px 12px 10px 36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);outline:none;transition:border-color .18s;box-shadow:var(--shadow);}
 .dambo-search-wrap input:focus{border-color:var(--accent);}
 .dambo-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text3);}
 /* 통계 */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;box-shadow:var(--shadow);}
-.stat-val{font-size:22px;font-weight:700;color:var(--accent);}
-.stat-lbl{font-size:10px;color:var(--text2);margin-top:2px;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px;text-align:center;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),rgba(59,91,219,.3));border-radius:0 0 2px 2px;}
+.stat-val{font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.5px;}
+.stat-lbl{font-size:10px;color:var(--text2);margin-top:3px;font-weight:500;letter-spacing:.02em;}
 /* 고객 카드 */
-.cust-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s,border-color .15s;box-shadow:var(--shadow);}
-.cust-card:hover{border-color:var(--accent);box-shadow:var(--shadow-md);}
-.cust-name{font-size:16px;font-weight:700;}
+.cust-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .18s,border-color .18s,transform .12s;box-shadow:var(--shadow);}
+.cust-card:hover{border-color:var(--accent);box-shadow:var(--shadow-md);transform:translateY(-1px);}
+.cust-card:active{transform:translateY(0);}
+.cust-name{font-size:16px;font-weight:800;letter-spacing:-.3px;}
 .cust-phone{font-size:12px;color:var(--text2);margin-top:2px;}
-.cust-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
-.chip{font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;background:var(--surface2);color:var(--text2);}
+.cust-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;}
+.chip{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--text2);}
 .chip.blue{background:var(--accent-light);color:var(--accent);}
 .chip.green{background:var(--green-light);color:var(--green);}
 .chip.amber{background:var(--amber-light);color:var(--amber);}
@@ -73,47 +83,48 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .chip.purple{background:var(--purple-light);color:var(--purple);}
 .chip.gold{background:var(--gold-light);color:var(--gold);font-weight:700;}
 /* 갱신 */
-.renew-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;}
-.renew-name{font-weight:600;font-size:14px;}
-.renew-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.renew-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .18s;}
+.renew-item:hover{border-color:var(--accent);}
+.renew-name{font-weight:700;font-size:14px;letter-spacing:-.2px;}
+.renew-sub{font-size:12px;color:var(--text2);margin-top:3px;}
 /* 상세 */
 .detail-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.back-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;padding:4px 0;background:none;border:none;font-family:inherit;}
-.back-btn:hover{color:var(--text);}
-.detail-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
-.detail-name{font-size:20px;font-weight:700;margin-bottom:4px;}
+.back-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:20px;font-family:inherit;transition:all .15s;font-weight:600;}
+.back-btn:hover{color:var(--accent);border-color:var(--accent);}
+.detail-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px;box-shadow:var(--shadow);}
+.detail-name{font-size:22px;font-weight:800;margin-bottom:4px;letter-spacing:-.4px;}
 .detail-sub{font-size:13px;color:var(--text2);}
-.detail-premium{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
-.detail-premium-lbl{font-size:12px;color:var(--text2);}
-.detail-premium-val{font-size:20px;font-weight:700;color:var(--accent);}
-.sec-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;margin-top:18px;}
+.detail-premium{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.detail-premium-lbl{font-size:12px;color:var(--text2);font-weight:500;}
+.detail-premium-val{font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.5px;}
+.sec-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:20px;}
 .sec-label:first-child{margin-top:0;}
-.contract-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s;}
-.contract-card:hover{border-color:var(--accent);}
-.contract-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
-.contract-name{font-weight:700;font-size:14px;}
-.contract-premium{font-size:15px;font-weight:700;color:var(--accent);}
+.contract-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .18s,box-shadow .18s;}
+.contract-card:hover{border-color:var(--accent);box-shadow:var(--shadow-md);}
+.contract-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;}
+.contract-name{font-weight:700;font-size:14px;letter-spacing:-.2px;}
+.contract-premium{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-.3px;}
 .contract-meta{display:flex;flex-wrap:wrap;gap:5px;}
 /* 인포 그리드 */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
-.info-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+.info-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;}
 .info-cell.full{grid-column:1/-1;}
-.info-key{font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:500;}
-.info-val{font-size:13px;font-weight:500;}
+.info-key{font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
+.info-val{font-size:13px;font-weight:600;}
 /* 담보 카드 */
-.dambo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:8px;box-shadow:var(--shadow);transition:border-color .15s;}
+.dambo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;box-shadow:var(--shadow);transition:border-color .18s;}
 .dambo-card.has-claimed{border-color:var(--gold);background:linear-gradient(135deg,#FFFBEB 0%,#fff 60%);}
 .dambo-card.has-memo{border-left:3px solid var(--accent);}
 .dambo-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;}
 .dambo-name{font-weight:700;font-size:13px;line-height:1.4;flex:1;padding-right:8px;}
-.dambo-amt{font-size:14px;font-weight:700;color:var(--accent);text-align:right;flex-shrink:0;}
+.dambo-amt{font-size:15px;font-weight:800;color:var(--accent);text-align:right;flex-shrink:0;letter-spacing:-.3px;}
 .dambo-meta{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;}
-.dambo-note{font-size:11px;color:var(--text2);line-height:1.5;padding-top:7px;border-top:1px solid var(--border);}
-.dambo-memo-text{font-size:12px;color:var(--accent);background:var(--accent-light);border-radius:var(--radius-sm);padding:6px 10px;margin-top:7px;line-height:1.5;}
-.dambo-claim-note{font-size:12px;color:var(--gold);background:var(--gold-light);border-radius:var(--radius-sm);padding:6px 10px;margin-top:5px;line-height:1.5;}
-.dambo-actions{display:flex;gap:6px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
-.dambo-btn{flex:1;padding:6px 8px;border-radius:var(--radius-sm);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);transition:all .15s;display:flex;align-items:center;justify-content:center;gap:4px;}
-.dambo-btn:hover{border-color:var(--accent);color:var(--accent);}
+.dambo-note{font-size:11px;color:var(--text2);line-height:1.6;padding-top:7px;border-top:1px solid var(--border);}
+.dambo-memo-text{font-size:12px;color:var(--accent);background:var(--accent-light);border-radius:var(--radius-sm);padding:7px 11px;margin-top:7px;line-height:1.5;border:1px solid rgba(59,91,219,.12);}
+.dambo-claim-note{font-size:12px;color:var(--gold);background:var(--gold-light);border-radius:var(--radius-sm);padding:7px 11px;margin-top:5px;line-height:1.5;}
+.dambo-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.dambo-btn{flex:1;padding:7px 8px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);transition:all .18s;display:flex;align-items:center;justify-content:center;gap:4px;}
+.dambo-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
 .dambo-btn.claimed{border-color:var(--gold);background:var(--gold-light);color:var(--gold);}
 .dambo-btn.has-memo{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
 .dambo-edit{display:none;margin-top:10px;padding-top:10px;border-top:1.5px dashed var(--border);}
@@ -121,69 +132,183 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .dambo-edit input{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:inherit;outline:none;background:var(--surface);margin-bottom:6px;}
 .dambo-edit input:focus,.dambo-edit textarea:focus{border-color:var(--accent);}
 /* 보상이력 */
-.claim-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;}
+.claim-item{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;}
 .claim-left{flex:1;}
-.claim-date{font-size:11px;color:var(--text2);margin-bottom:2px;}
-.claim-memo{font-size:13px;font-weight:500;}
+.claim-date{font-size:11px;color:var(--text2);margin-bottom:2px;font-weight:500;}
+.claim-memo{font-size:13px;font-weight:600;}
 .claim-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.claim-amount{font-size:14px;font-weight:700;color:var(--accent);}
-.claim-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 4px;}
+.claim-amount{font-size:14px;font-weight:800;color:var(--accent);}
+.claim-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 4px;border-radius:4px;transition:color .15s;}
 .claim-del:hover{color:var(--red);}
 .claim-add-wrap{display:flex;gap:6px;margin-top:8px;}
-.claim-add-wrap input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--bg);outline:none;}
+.claim-add-wrap input{flex:1;padding:9px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--bg);outline:none;transition:border-color .18s;}
 .claim-add-wrap input:focus{border-color:var(--accent);}
 /* 해약환급금 */
-.refund-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;}
+.refund-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow);}
 .refund-wrap table{width:100%;border-collapse:collapse;font-size:12px;}
-.refund-wrap th{padding:7px 10px;background:var(--surface2);font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);}
+.refund-wrap th{padding:8px 10px;background:var(--surface2);font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);letter-spacing:.04em;}
 .refund-wrap th:first-child{text-align:left;}
-.refund-wrap td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-size:12px;}
-.refund-wrap td:first-child{text-align:left;font-weight:600;}
+.refund-wrap td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;font-size:12px;}
+.refund-wrap td:first-child{text-align:left;font-weight:700;}
 .refund-wrap tr:last-child td{border-bottom:none;}
 .refund-wrap tr.milestone td{background:var(--accent-light);color:var(--accent);font-weight:700;}
 /* 메모 */
-.memo-box{background:var(--surface2);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.7;color:var(--text2);min-height:50px;}
-.edit-actions{display:flex;gap:6px;margin-top:6px;}
-.edit-save{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
-.edit-cancel{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;}
+.memo-box{background:var(--surface2);border-radius:var(--radius-sm);padding:13px;font-size:13px;line-height:1.8;color:var(--text2);min-height:50px;border:1px solid var(--border);}
+.edit-actions{display:flex;gap:6px;margin-top:7px;}
+.edit-save{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+.edit-save:hover{background:var(--accent-dark);}
+.edit-cancel{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 14px;font-size:12px;cursor:pointer;font-family:inherit;transition:border-color .15s;}
 /* 카드 박스 */
-.card-box{background:var(--amber-light);border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.card-box{background:var(--amber-light);border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:11px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;}
 .card-box-icon{font-size:20px;}
 .card-box-company{font-size:13px;font-weight:700;color:var(--amber);}
 .card-box-detail{font-size:11px;color:var(--amber);margin-top:2px;}
 /* 시트 */
-.sheet-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end;}
+.sheet-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;backdrop-filter:blur(2px);}
 .sheet-overlay.active{display:flex;}
-.sheet{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto;padding:0 16px 40px;}
-.sheet-header{position:sticky;top:0;background:var(--surface);padding:14px 0 10px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:14px;}
-.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin-bottom:10px;}
-.sheet-close{position:absolute;right:0;top:10px;background:var(--surface2);border:none;border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
-.sheet-title{font-size:16px;font-weight:700;text-align:center;}
+.sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto;padding:0 16px 40px;}
+.sheet-header{position:sticky;top:0;background:var(--surface);padding:14px 0 12px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;}
+.sheet-close{position:absolute;right:0;top:10px;background:var(--surface2);border:none;border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:background .15s;}
+.sheet-close:hover{background:var(--border);}
+.sheet-title{font-size:16px;font-weight:800;text-align:center;letter-spacing:-.3px;}
 .sheet-sub{font-size:12px;color:var(--text2);margin-top:2px;text-align:center;}
 /* 의료 */
 .medical-box{background:var(--purple-light);border:1px solid #C4B5FD;border-radius:var(--radius);padding:14px;margin-bottom:12px;}
 .medical-item{background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:1px solid #C4B5FD;}
 .medical-item:last-child{margin-bottom:0;}
-.medical-label{font-size:11px;font-weight:700;color:var(--purple);margin-bottom:4px;}
+.medical-label{font-size:11px;font-weight:700;color:var(--purple);margin-bottom:4px;letter-spacing:.02em;}
 .medical-text{font-size:13px;line-height:1.6;}
 /* 버튼 */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;}
-.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text);transition:all .18s;}
+.btn:hover{border-color:var(--text2);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(59,91,219,.2);}
+.btn-primary:hover{background:var(--accent-dark);border-color:var(--accent-dark);}
 .btn-sm{padding:5px 10px;font-size:12px;}
 .btn-full{width:100%;justify-content:center;}
 .btn-green{background:var(--green);color:#fff;border-color:var(--green);}
+.btn-green:hover{background:#145f38;}
 /* 로딩/오류 */
 #loading-screen{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
 .spinner-lg{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 #error-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;padding:24px;text-align:center;}
 #error-screen.show{display:flex;}
-.refresh-btn{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;}
-.empty{text-align:center;padding:40px 0;color:var(--text3);}
-.empty-icon{font-size:36px;margin-bottom:10px;}
-.pb{padding-bottom:24px;}
+.refresh-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;font-weight:600;transition:all .15s;}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+.empty{text-align:center;padding:44px 0;color:var(--text3);}
+.empty-icon{font-size:36px;margin-bottom:12px;}
+.pb{padding-bottom:28px;}
 .divider{height:1px;background:var(--border);margin:14px 0;}
 .spinner-sm{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;}
+/* ── 담보 레이아웃 개선 ── */
+.dambo-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;cursor:pointer;gap:6px;}
+.dambo-top-meta{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;flex-shrink:0;max-width:45%;}
+.dambo-amt-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.dambo-expand-hint{font-size:10px;color:var(--text3);font-weight:600;flex-shrink:0;transition:color .15s;}
+.dambo-top:hover .dambo-expand-hint{color:var(--accent);}
+.dambo-detail{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:1px solid var(--border);animation:fadeIn .15s ease;}
+.dambo-detail-row{margin-bottom:7px;}
+.dambo-detail-row:last-child{margin-bottom:0;}
+.dambo-detail-row strong{display:block;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.dambo-detail-row div{font-size:12px;color:var(--text);line-height:1.6;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+/* 통합 메모 버튼 */
+.dambo-btn-wrap{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.dambo-btn-main{flex:1;padding:7px 10px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.dambo-btn-main:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.dambo-btn-main.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+.dambo-claimed-badge{font-size:11px;font-weight:700;color:var(--gold);background:var(--gold-light);border:1px solid #FCD34D;border-radius:20px;padding:3px 9px;flex-shrink:0;white-space:nowrap;}
+/* 담보 편집 패널 개선 */
+.dambo-edit-section{margin-bottom:10px;}
+.dambo-edit-title{font-size:11px;font-weight:700;letter-spacing:.04em;margin-bottom:6px;}
+.claim-checkbox-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;}
+.claim-checkbox-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);cursor:pointer;}
+.claim-checkbox-label{font-size:13px;font-weight:600;cursor:pointer;}
+.claim-fields{padding:8px 0;}
+.claim-field-input{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:inherit;outline:none;background:var(--surface);margin-bottom:6px;transition:border-color .15s;}
+.claim-field-input:focus{border-color:var(--gold);}
+.claim-field-ta{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:inherit;resize:vertical;min-height:48px;outline:none;background:var(--surface);margin-bottom:0;transition:border-color .15s;line-height:1.5;}
+.claim-field-ta:focus{border-color:var(--gold);}
+/* 해약환급금 토글 */
+.refund-toggle-btn{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);border:1px solid rgba(59,91,219,.15);border-radius:20px;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0;}
+.refund-toggle-btn:hover{background:var(--accent);color:#fff;}
+/* ── 납입방법 편집 ── */
+.pay-edit-panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;animation:fadeIn .15s ease;}
+.pay-method-opts{display:flex;gap:8px;margin-bottom:14px;}
+.pay-opt-btn{flex:1;padding:10px 6px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all .18s;background:var(--surface);color:var(--text2);font-family:inherit;}
+.pay-opt-btn:hover{border-color:var(--text2);}
+.pay-opt-btn.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);box-shadow:0 0 0 3px rgba(59,91,219,.08);}
+.pay-opt-btn.active-card{border-color:#F59E0B;background:#FEF9C3;color:#B45309;}
+.pay-card-fields{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.pay-field-row{display:flex;gap:8px;}
+.pay-field-input{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none;background:var(--surface);transition:border-color .15s;}
+.pay-field-input:focus{border-color:var(--accent);}
+.info-cell-editable{cursor:default;position:relative;}
+.info-edit-btn{position:absolute;top:8px;right:8px;background:none;border:none;font-size:13px;cursor:pointer;padding:2px 4px;border-radius:4px;color:var(--text3);transition:color .15s;}
+.info-edit-btn:hover{color:var(--accent);}
+@media (max-width:320px){
+  body{font-size:13px;}
+  .header{padding:10px 10px 0;}
+  .content{padding:10px;}
+  .stat-val{font-size:18px;}
+  .tabs .tab{font-size:11px;padding:8px 2px 9px;}
+  .stats{gap:6px;}
+  .stat-card{padding:10px 6px;}
+  .cust-name{font-size:14px;}
+  .search-mode-wrap{gap:4px;}
+  .detail-name{font-size:18px;}
+  .sheet{padding:0 12px 32px;}
+  .dambo-top-meta{max-width:42%;}
+}
+@media (max-width:380px){
+  .search-wrap input{font-size:14px;}
+  .header{padding:12px 12px 0;}
+  .content{padding:12px;}
+  .info-grid{grid-template-columns:1fr;}
+}
+/* ── 실적 탭 ── */
+.perf-select-row{display:flex;gap:8px;margin-bottom:14px;}
+.perf-sel{flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;cursor:pointer;transition:border-color .18s;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23A09EA3' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+.perf-sel:focus{border-color:var(--accent);}
+.perf-sel:disabled{opacity:.4;cursor:default;}
+.perf-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.perf-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.perf-kpi.main{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;}
+.perf-kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),rgba(59,91,219,.2));border-radius:0 0 2px 2px;}
+.perf-kpi-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.perf-kpi-val{font-size:24px;font-weight:800;color:var(--accent);letter-spacing:-.5px;line-height:1;}
+.perf-kpi-sub{font-size:11px;color:var(--text2);margin-top:4px;}
+.perf-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.perf-type-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 12px;box-shadow:var(--shadow);}
+.perf-type-box.life{border-top:3px solid var(--purple);}
+.perf-type-box.nonlife{border-top:3px solid var(--green);}
+.perf-type-label{font-size:11px;font-weight:700;margin-bottom:6px;}
+.perf-type-label.life{color:var(--purple);}
+.perf-type-label.nonlife{color:var(--green);}
+.perf-type-count{font-size:20px;font-weight:800;letter-spacing:-.4px;}
+.perf-type-prem{font-size:11px;color:var(--text2);margin-top:3px;font-weight:500;}
+.perf-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:14px 0 8px;}
+.perf-est-box{border-radius:var(--radius);padding:14px;margin-bottom:8px;}
+.perf-est-box.commission{background:var(--green-light);border:1px solid #86EFAC;}
+.perf-est-box.incentive{background:var(--gold-light);border:1px solid #FCD34D;}
+.perf-est-title{font-size:11px;font-weight:700;margin-bottom:6px;}
+.perf-est-title.commission{color:var(--green);}
+.perf-est-title.incentive{color:var(--gold);}
+.perf-est-val{font-size:20px;font-weight:800;letter-spacing:-.4px;}
+.perf-est-val.commission{color:var(--green);}
+.perf-est-val.incentive{color:var(--gold);}
+.perf-est-note{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.5;}
+.perf-company-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;box-shadow:var(--shadow);}
+.perf-co-left{flex:1;min-width:0;}
+.perf-co-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.perf-co-type{font-size:10px;color:var(--text3);margin-top:2px;}
+.perf-co-right{text-align:right;flex-shrink:0;padding-left:10px;}
+.perf-co-count{font-size:12px;font-weight:700;color:var(--text2);}
+.perf-co-prem{font-size:13px;font-weight:800;color:var(--accent);}
+.perf-bar-wrap{height:4px;background:var(--surface2);border-radius:2px;margin-top:5px;overflow:hidden;}
+.perf-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),rgba(59,91,219,.4));}
+.perf-empty{text-align:center;padding:44px 0;color:var(--text3);}
 </style>
 </head>
 <body>
@@ -202,7 +327,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="tabs">
       <div class="tab active" onclick="showTab('search')" id="tab-search">🔍 검색</div>
       <div class="tab" onclick="showTab('list')" id="tab-list">📋 전체</div>
-      <div class="tab" onclick="showTab('renewal')" id="tab-renewal">🔄 갱신</div>
+      <div class="tab" onclick="showTab('performance')" id="tab-performance">📊 실적</div>
     </div>
   </header>
 
@@ -242,10 +367,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div id="list-count" style="font-size:12px;color:var(--text3);margin-bottom:10px;"></div>
       <div id="list-results"></div>
     </div>
-    <!-- 갱신 -->
-    <div id="screen-renewal" class="screen">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">갱신형 담보 목록이에요.</div>
-      <div id="renewal-list"></div>
+    <!-- 실적 -->
+    <div id="screen-performance" class="screen">
+      <div class="perf-select-row">
+        <select class="perf-sel" id="perf-year-sel" onchange="onPerfYearChange()"></select>
+        <select class="perf-sel" id="perf-month-sel" onchange="onPerfMonthChange()"></select>
+      </div>
+      <div id="perf-content"></div>
     </div>
     <!-- 고객 상세 -->
     <div id="screen-detail" class="screen pb">
@@ -289,9 +417,11 @@ let currentSheetCustId = null;
 let currentSheetCtId = null;
 let agentInfo = null;
 let searchMode = 'name';
-// 기간 필터 상태
 let selYears = new Set();
 let selMonths = new Set();
+// 실적 탭 상태 (0 = 전체)
+let perfYear = new Date().getFullYear();
+let perfMonth = new Date().getMonth() + 1;
 
 // ── 초기화 ──
 async function init() {
@@ -308,7 +438,6 @@ async function init() {
     renderStats();
     buildPeriodChips();
     renderList();
-    renderRenewal();
   } catch(e) { showError('데이터를 불러오지 못했습니다.'); }
 }
 
@@ -322,9 +451,11 @@ async function loadCustomers() {
 window.refreshData = async function() {
   try {
     await loadCustomers();
-    renderStats(); buildPeriodChips(); renderList(); renderRenewal();
+    renderStats(); buildPeriodChips(); renderList();
     if (currentCustomerId) showDetail(currentCustomerId);
     if (currentSheetCustId && currentSheetCtId) renderSheet(currentSheetCustId, currentSheetCtId);
+    const perfEl = document.getElementById('screen-performance');
+    if (perfEl && perfEl.classList.contains('active')) renderPerformance();
   } catch(e) {}
 };
 
@@ -403,7 +534,7 @@ function renderStats() {
   document.getElementById('stats-area').innerHTML = `
     <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-lbl">내 고객</div></div>
     <div class="stat-card"><div class="stat-val">${contracts}</div><div class="stat-lbl">계약 수</div></div>
-    <div class="stat-card"><div class="stat-val" style="font-size:16px">${premium>0?Math.round(premium/10000)+'만':'0'}</div><div class="stat-lbl">월 보험료</div></div>`;
+    <div class="stat-card"><div class="stat-val" style="font-size:16px">${premium>0?Math.round(premium).toLocaleString()+'원':'0'}</div><div class="stat-lbl">월 보험료</div></div>`;
 }
 
 // ── 검색 모드 ──
@@ -480,7 +611,7 @@ function renderCustCard(c, highlight) {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div><div class="cust-name">${escHtml(c.name||'')}</div>
       <div class="cust-phone">${escHtml(c.phone||'')}${c.birth?' · '+escHtml(c.birth):''}${c.gender?' · '+escHtml(c.gender):''}</div></div>
-      ${totalPrem>0?`<div style="font-size:13px;font-weight:700;color:var(--accent)">${Math.round(totalPrem/10000)}만원</div>`:''}
+      ${totalPrem>0?`<div style="font-size:13px;font-weight:700;color:var(--accent)">${Math.round(totalPrem).toLocaleString()}원</div>`:''}
     </div>
     <div class="cust-meta">
       <span class="chip blue">${contracts.length}건</span>
@@ -493,27 +624,171 @@ function renderCustCard(c, highlight) {
   </div>`;
 }
 
-// ── 갱신 ──
-function renderRenewal() {
-  const el = document.getElementById('renewal-list');
-  const rows = [];
-  customers.forEach(c=>(c.contracts||[]).forEach(ct=>{
-    getCoverages(ct).forEach(cv=>{
-      if (!isRenew(cv)) return;
-      rows.push({custName:c.name,custId:c._docId||c.id,company:ct.company||getV(ct,'보험사'),product:ct.product||getV(ct,'상품명'),covName:cv.name||cv.담보명||'',period:cv.갱신주기||'',endAge:cv.갱신종료나이||''});
-    });
-  }));
-  if (!rows.length) { el.innerHTML='<div class="empty"><div class="empty-icon">🔄</div><p>갱신형 담보 없음</p></div>'; return; }
-  el.innerHTML = rows.map(r=>`
-    <div class="renew-item" onclick="showDetail('${r.custId}')">
-      <div class="renew-name">${escHtml(r.custName)} · ${escHtml(r.covName)}</div>
-      <div class="renew-sub">${escHtml(r.company)} ${escHtml(r.product)}${r.period?` · ${r.period}년 갱신`:''}${r.endAge?` (최대 ${r.endAge}세)`:''}</div>
-    </div>`).join('');
+// ── 실적 탭 ──
+function getPerfContracts() {
+  return customers.flatMap(c =>
+    (c.contracts||[]).map(ct => ({...ct, _custName: c.name, _custId: c._docId||c.id}))
+  ).filter(ct => {
+    if (perfYear === 0) return true;
+    const p = parsePeriod(ct);
+    if (!p || p.year !== perfYear) return false;
+    if (perfMonth === 0) return true;
+    return p.month === perfMonth;
+  });
 }
+
+function buildPerfSelects() {
+  const yearSel = document.getElementById('perf-year-sel');
+  const monthSel = document.getElementById('perf-month-sel');
+  if (!yearSel || !monthSel) return;
+
+  // 데이터 있는 년도 수집
+  const yearSet = new Set();
+  customers.forEach(c => (c.contracts||[]).forEach(ct => {
+    const p = parsePeriod(ct); if (p) yearSet.add(p.year);
+  }));
+  const years = [...yearSet].sort().reverse();
+
+  yearSel.innerHTML =
+    `<option value="0">전체 년도</option>` +
+    years.map(y => `<option value="${y}" ${perfYear===y?'selected':''}>${y}년</option>`).join('');
+
+  refreshPerfMonthSel();
+}
+
+function refreshPerfMonthSel() {
+  const monthSel = document.getElementById('perf-month-sel');
+  if (!monthSel) return;
+
+  if (perfYear === 0) {
+    monthSel.innerHTML = '<option value="0">전체 월</option>';
+    monthSel.disabled = true;
+    return;
+  }
+  monthSel.disabled = false;
+
+  // 이 년도에 실적 있는 월 수집
+  const monthSet = new Set();
+  customers.forEach(c => (c.contracts||[]).forEach(ct => {
+    const p = parsePeriod(ct);
+    if (p && p.year === perfYear && p.month) monthSet.add(p.month);
+  }));
+
+  const nm = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  monthSel.innerHTML =
+    `<option value="0">전체</option>` +
+    [1,2,3,4,5,6,7,8,9,10,11,12].map(m =>
+      `<option value="${m}" ${perfMonth===m?'selected':''}>${monthSet.has(m)?'● ':''}${nm[m-1]}</option>`
+    ).join('');
+}
+
+function renderPerformance() {
+  buildPerfSelects();
+
+  const el = document.getElementById('perf-content');
+  if (!el) return;
+
+  const cts = getPerfContracts();
+  const periodLabel = perfYear === 0 ? '전체'
+    : perfMonth === 0 ? `${perfYear}년 전체`
+    : `${perfYear}년 ${perfMonth}월`;
+
+  if (!cts.length) {
+    el.innerHTML = `<div class="perf-empty"><div style="font-size:36px;margin-bottom:12px;">📊</div>
+      <div style="font-weight:700;margin-bottom:6px;">${periodLabel} 계약이 없어요</div>
+      <div style="font-size:12px;">다른 기간을 선택해보세요</div></div>`;
+    return;
+  }
+
+  // ── 집계 ──
+  let lifeCts = [], nonlifeCts = [], lifePrem = 0, nonlifePrem = 0;
+  const companyMap = {};
+  cts.forEach(ct => {
+    const company = ct.company || ct.rawJson?.보험사 || '기타';
+    const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
+    const life = isLife(company);
+    if (life) { lifeCts.push(ct); lifePrem += prem; }
+    else { nonlifeCts.push(ct); nonlifePrem += prem; }
+    if (!companyMap[company]) companyMap[company] = {count:0, prem:0, life};
+    companyMap[company].count++; companyMap[company].prem += prem;
+  });
+
+  const totalCount = cts.length;
+  const totalPrem = lifePrem + nonlifePrem;
+  const commEst = nonlifePrem * 12 * 0.20 + lifePrem * 12 * 0.15;
+  const incentiveTier = totalCount >= 20 ? {lv:'🥇 우수시상', txt:'20건 이상 달성'}
+    : totalCount >= 10 ? {lv:'🥈 기본시상', txt:'10건 이상 달성'}
+    : totalCount >= 5  ? {lv:'🎖 소액시상', txt:'5건 이상 달성'}
+    : {lv:'−', txt:`${5-totalCount}건 추가 시 소액시상 예상`};
+  const companies = Object.entries(companyMap).sort((a,b)=>b[1].count-a[1].count);
+  const maxCoCount = companies[0]?.[1]?.count || 1;
+
+  let html = `
+  <div class="perf-kpi-grid">
+    <div class="perf-kpi main">
+      <div>
+        <div class="perf-kpi-lbl">${periodLabel} 계약</div>
+        <div class="perf-kpi-val">${totalCount}<span style="font-size:14px;font-weight:600;color:var(--text2)">건</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="perf-kpi-lbl">월 보험료 합계</div>
+        <div class="perf-kpi-val" style="font-size:20px;">${Math.round(totalPrem).toLocaleString()}<span style="font-size:12px;font-weight:600;color:var(--text2)">원</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="perf-type-grid">
+    <div class="perf-type-box nonlife">
+      <div class="perf-type-label nonlife">🛡 손해보험</div>
+      <div class="perf-type-count">${nonlifeCts.length}<span style="font-size:13px;font-weight:600;color:var(--text2)">건</span></div>
+      <div class="perf-type-prem">${Math.round(nonlifePrem).toLocaleString()}원</div>
+    </div>
+    <div class="perf-type-box life">
+      <div class="perf-type-label life">💙 생명보험</div>
+      <div class="perf-type-count">${lifeCts.length}<span style="font-size:13px;font-weight:600;color:var(--text2)">건</span></div>
+      <div class="perf-type-prem">${Math.round(lifePrem).toLocaleString()}원</div>
+    </div>
+  </div>
+  <div class="perf-section-title">💰 수수료 / 시상 (추정)</div>
+  <div class="perf-est-box commission">
+    <div class="perf-est-title commission">💰 예상 수수료 (연 초회)</div>
+    <div class="perf-est-val commission">${Math.round(commEst).toLocaleString()}원</div>
+    <div class="perf-est-note">손보 20% · 생보 15% 기준 추정치 / 실제와 다를 수 있어요</div>
+  </div>
+  <div class="perf-est-box incentive">
+    <div class="perf-est-title incentive">🏆 예상 시상</div>
+    <div class="perf-est-val incentive">${incentiveTier.lv}</div>
+    <div class="perf-est-note">${incentiveTier.txt}</div>
+  </div>
+  <div class="perf-section-title">🏢 보험사별 현황</div>` +
+  companies.map(([co, v]) => `
+    <div class="perf-company-row">
+      <div class="perf-co-left">
+        <div class="perf-co-name">${escHtml(co)}</div>
+        <div class="perf-bar-wrap"><div class="perf-bar" style="width:${Math.round(v.count/maxCoCount*100)}%;background:${v.life?'var(--purple)':'var(--green)'}"></div></div>
+        <div class="perf-co-type">${v.life?'💙 생보':'🛡 손보'}</div>
+      </div>
+      <div class="perf-co-right">
+        <div class="perf-co-count">${v.count}건</div>
+        <div class="perf-co-prem">${Math.round(v.prem).toLocaleString()}원</div>
+      </div>
+    </div>`).join('');
+
+  el.innerHTML = html;
+}
+
+window.onPerfYearChange = function() {
+  perfYear = parseInt(document.getElementById('perf-year-sel').value) || 0;
+  perfMonth = 0; // 년도 바꾸면 월은 전체로 리셋
+  renderPerformance();
+};
+window.onPerfMonthChange = function() {
+  perfMonth = parseInt(document.getElementById('perf-month-sel').value) || 0;
+  renderPerformance();
+};
 
 // ── 고객 상세 ──
 window.showDetail = function(id) {
-  const active = ['search','list','renewal'].find(t=>document.getElementById('screen-'+t).classList.contains('active'));
+  const active = ['search','list','performance'].find(t=>document.getElementById('screen-'+t).classList.contains('active'));
   if (active) prevScreen = active;
   currentCustomerId = id;
   const c = getCust(id);
@@ -599,16 +874,50 @@ function renderSheet(custId, ctId) {
   let html = '';
 
   // 기본 정보
+  const ctSafeId = ctId.replace(/[^a-zA-Z0-9]/g,'_');
+  const cardCo = ct.cardCompany||rj.카드사||'';
+  const cardNo = ct.cardLast4||rj.카드끝4자리||'';
+  const cardHolder = ct.cardHolder||rj.카드명의||'';
+
   html += `<div class="sec-label" style="margin-top:0">계약 정보</div>
   <div class="info-grid">
     ${ic('보험사',company)}${ic('상품명',product)}${ic('계약일',ct.startDate||rj.계약일)}
     ${ic('보험기간',ct.expiryDate||rj.보험기간)}${ic('납입기간',ct.payPeriod||rj.납입기간)}
-    ${ic('납입방법',payMethod)}${ic('월 보험료',ct.premium?fmt(ct.premium):rj.월보험료)}
+    ${icEdit('납입방법', payMethod||'미입력', `togglePayEdit('${custId}','${ctId}','${ctSafeId}')`)}
+    ${ic('월 보험료',ct.premium?fmt(ct.premium):rj.월보험료)}
     ${ic('심사유형',rj.심사유형)}${ic('해약환급금형태',rj.해약환급금형태)}${ic('상해급수',rj.상해급수)}
+  </div>
+
+  <!-- 납입방법 편집 패널 -->
+  <div id="pay-edit-${ctSafeId}" style="display:none">
+    <div class="pay-edit-panel">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">납입방법 변경</div>
+      <div class="pay-method-opts">
+        <button class="pay-opt-btn ${!isCard?'active':''}" id="popt-월납-${ctSafeId}" onclick="onPayOptChange('${ctSafeId}','월납')">📆 월납</button>
+        <button class="pay-opt-btn ${isCard?'active-card':''}" id="popt-카드-${ctSafeId}" onclick="onPayOptChange('${ctSafeId}','카드납')">💳 카드납</button>
+        <button class="pay-opt-btn" id="popt-자동-${ctSafeId}" onclick="onPayOptChange('${ctSafeId}','자동이체')">🏦 자동이체</button>
+      </div>
+      <!-- 카드 상세 (카드납 선택 시) -->
+      <div id="pay-card-fields-${ctSafeId}" style="${isCard?'':'display:none'}">
+        <div class="pay-card-fields">
+          <div class="pay-field-row">
+            <input class="pay-field-input" id="pay-cardco-${ctSafeId}" placeholder="카드사 (예: 삼성카드)" value="${escHtml(cardCo)}"/>
+            <input class="pay-field-input" style="max-width:110px;" id="pay-cardno-${ctSafeId}" placeholder="끝 4자리" maxlength="4" value="${escHtml(cardNo)}"/>
+          </div>
+          <input class="pay-field-input" id="pay-cardholder-${ctSafeId}" placeholder="카드 명의 (예: 홍길동)" value="${escHtml(cardHolder)}"/>
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button class="edit-save" onclick="savePayMethod('${custId}','${ctId}','${ctSafeId}')">저장</button>
+        <button class="edit-cancel" onclick="document.getElementById('pay-edit-${ctSafeId}').style.display='none'">취소</button>
+      </div>
+    </div>
   </div>`;
 
-  if (isCard) {
-    html += `<div class="card-box"><div class="card-box-icon">💳</div><div class="card-box-info"><div class="card-box-company">${escHtml(rj.카드사||'신용카드')} ${rj.카드끝4자리?'****'+escHtml(rj.카드끝4자리):''}</div>${rj.카드명의?`<div class="card-box-detail">명의: ${escHtml(rj.카드명의)}</div>`:''}</div></div>`;
+  if (isCard && (cardCo||cardNo||cardHolder)) {
+    html += `<div class="card-box" id="cardbox-${ctSafeId}"><div class="card-box-icon">💳</div><div class="card-box-info"><div class="card-box-company">${escHtml(cardCo||'신용카드')} ${cardNo?'****'+escHtml(cardNo):''}</div>${cardHolder?`<div class="card-box-detail">명의: ${escHtml(cardHolder)}</div>`:''}</div></div>`;
+  } else if (isCard) {
+    html += `<div class="card-box" id="cardbox-${ctSafeId}"><div class="card-box-icon">💳</div><div class="card-box-info"><div class="card-box-company">${escHtml(rj.카드사||'신용카드')} ${rj.카드끝4자리?'****'+escHtml(rj.카드끝4자리):''}</div>${rj.카드명의?`<div class="card-box-detail">명의: ${escHtml(rj.카드명의)}</div>`:''}</div></div>`;
   }
   if (rj.납입면제조건) {
     html += `<div style="background:var(--green-light);border:1px solid #86EFAC;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--green);">✅ 납입면제: ${escHtml(rj.납입면제조건)}</div>`;
@@ -628,6 +937,8 @@ function renderSheet(custId, ctId) {
       const exemp = cv.exemption||cv.면책기간||'';
       const note = cv.note||cv.기타조건||'';
       const reduction = cv['1년내감액']||'';
+      const paymentCond = cv.paymentCondition||cv.지급사유||'';
+      const levels = cv.amountLevels||[];
       const isRenewCov = renew.includes('갱신형');
       const meta = coverageMeta[idx]||{};
       const claimed = meta.claimed||false;
@@ -635,36 +946,70 @@ function renderSheet(custId, ctId) {
       const claimNote = meta.claimNote||'';
       const claimDate = meta.claimDate||'';
       const sheetId = ctId.replace(/[^a-zA-Z0-9]/g,'_');
+
+      // 상단 우측: 갱신형/보험료 칩
+      const topRightChips = [
+        renew ? `<span class="chip ${isRenewCov?'amber':''}" style="font-size:10px">${escHtml(renew)}</span>` : '',
+        isRenewCov&&cv.갱신주기 ? `<span class="chip" style="font-size:10px">${cv.갱신주기}년갱신</span>` : '',
+        isRenewCov&&cv.갱신종료나이 ? `<span class="chip" style="font-size:10px">최대${cv.갱신종료나이}세</span>` : '',
+        prem ? `<span class="chip" style="font-size:10px">${escHtml(prem)}</span>` : '',
+      ].filter(Boolean).join('');
+
+      // 상세 내용 (클릭 시 펼치기)
+      const detailRows = [
+        paymentCond ? `<div class="dambo-detail-row"><strong>지급사유</strong><div>${escHtml(paymentCond)}</div></div>` : '',
+        levels.length ? `<div class="dambo-detail-row"><strong>보장단계</strong><div>${levels.map(l=>`${escHtml(l.label||'')}: ${escHtml(l.amount||'')}`).join(' / ')}</div></div>` : '',
+        exemp ? `<div class="dambo-detail-row"><strong>면책기간</strong><div>${escHtml(exemp)}</div></div>` : '',
+        reduction ? `<div class="dambo-detail-row"><strong>1년내감액</strong><div>${escHtml(reduction)}</div></div>` : '',
+        note ? `<div class="dambo-detail-row"><strong>기타조건</strong><div>${escHtml(note)}</div></div>` : '',
+      ].filter(Boolean).join('');
+
       return `<div class="dambo-card${claimed?' has-claimed':''}${memo?' has-memo':''}" id="dc-${sheetId}-${idx}">
-        <div class="dambo-top">
+        <!-- 상단: 담보명 + 갱신형/보험료 -->
+        <div class="dambo-top" onclick="toggleDamboDetail('${sheetId}',${idx})">
           <div class="dambo-name">${cv.바로보장?'<span class="chip blue" style="margin-right:4px;font-size:10px">바로보장</span>':''}${escHtml(name)}</div>
-          <div class="dambo-amt">${escHtml(amt)}${cv.isDaily?'<div style="font-size:10px;color:var(--text3)">/일</div>':''}</div>
+          ${topRightChips ? `<div class="dambo-top-meta">${topRightChips}</div>` : ''}
         </div>
-        <div class="dambo-meta">
-          ${renew?`<span class="chip ${isRenewCov?'amber':''}">${escHtml(renew)}</span>`:''}
-          ${isRenewCov&&cv.갱신주기?`<span class="chip">${cv.갱신주기}년 갱신</span>`:''}
-          ${isRenewCov&&cv.갱신종료나이?`<span class="chip">최대${cv.갱신종료나이}세</span>`:''}
-          ${prem?`<span class="chip">${escHtml(prem)}</span>`:''}
+        <!-- 보장금액 + 상세보기 힌트 -->
+        <div class="dambo-amt-row">
+          <div class="dambo-amt">${escHtml(amt)}${cv.isDaily?'<span style="font-size:10px;color:var(--text3);margin-left:2px">/일</span>':''}</div>
+          ${detailRows ? '<div class="dambo-expand-hint" id="dhint-'+sheetId+'-'+idx+'">▼ 상세</div>' : ''}
+        </div>
+        <!-- 상세 내용 (접기/펼치기) -->
+        ${detailRows ? `<div class="dambo-detail" id="ddet-${sheetId}-${idx}" style="display:none">${detailRows}</div>` : ''}
+        <!-- 메모/보상력 표시 칩 -->
+        ${(claimed||memo) ? `<div class="dambo-meta" style="margin-top:4px">
           ${claimed?'<span class="chip gold">🏆 보상력</span>':''}
           ${memo?'<span class="chip blue">💬 메모</span>':''}
-        </div>
-        ${(exemp||note||reduction)?`<div class="dambo-note">${exemp?'⏱ 면책: '+escHtml(exemp)+(note||reduction?'<br>':''):''}${reduction?'📉 감액: '+escHtml(reduction)+(note?'<br>':''):''}${note?'📌 '+escHtml(note):''}</div>`:''}
+        </div>` : ''}
         ${memo?`<div class="dambo-memo-text">💬 ${escHtml(memo)}</div>`:''}
         ${claimed&&claimNote?`<div class="dambo-claim-note">🏆 ${claimDate?escHtml(claimDate)+' · ':''}${escHtml(claimNote)}</div>`:''}
-        <div class="dambo-actions">
-          <button class="dambo-btn ${claimed?'claimed':''}" onclick="toggleClaimed('${custId}','${ctId}',${idx})">
-            ${claimed?'🏆 보상력 ✓':'🏆 보상력 등록'}
+        <!-- 통합 메모 버튼 -->
+        <div class="dambo-btn-wrap">
+          <button class="dambo-btn-main ${(memo||claimed)?'active':''}" onclick="toggleDamboEdit('${sheetId}',${idx})">
+            💬 메모${claimed?' · 🏆':''}
           </button>
-          <button class="dambo-btn ${memo?'has-memo':''}" onclick="toggleDamboEdit('${sheetId}',${idx})">
-            ${memo?'💬 메모 수정':'💬 메모 추가'}
-          </button>
+          ${claimed ? `<div class="dambo-claimed-badge">🏆 보상력</div>` : ''}
         </div>
+        <!-- 통합 편집 패널 -->
         <div class="dambo-edit" id="de-${sheetId}-${idx}">
-          <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;">담보 메모 (코드, 설명, 참고사항 등)</div>
-          <textarea id="dt-${sheetId}-${idx}" placeholder="담보 코드, 보장 설명, 참고사항을 입력하세요">${escHtml(memo)}</textarea>
-          ${claimed?`<div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:5px;">🏆 보상 이력 메모</div>
-          <input id="dd-${sheetId}-${idx}" placeholder="보상일 (예: 2024-03)" value="${escHtml(claimDate)}"/>
-          <textarea id="dn-${sheetId}-${idx}" style="min-height:50px;" placeholder="보상 내용, 금액 등">${escHtml(claimNote)}</textarea>`:''}
+          <!-- 보상력 섹션 -->
+          <div class="dambo-edit-section">
+            <div class="dambo-edit-title" style="color:var(--gold)">🏆 보상력</div>
+            <label class="claim-checkbox-row">
+              <input type="checkbox" id="dcb-${sheetId}-${idx}" ${claimed?'checked':''} onchange="toggleClaimFields('${sheetId}',${idx})"/>
+              <span class="claim-checkbox-label">보상력 등록</span>
+            </label>
+            <div class="claim-fields" id="dcf-${sheetId}-${idx}" style="${claimed?'':'display:none'}">
+              <input class="claim-field-input" id="dcd-${sheetId}-${idx}" placeholder="보상일 (예: 2024-03)" value="${escHtml(claimDate)}"/>
+              <textarea class="claim-field-ta" id="dcn-${sheetId}-${idx}" placeholder="보상 내용, 금액 등">${escHtml(claimNote)}</textarea>
+            </div>
+          </div>
+          <!-- 메모 섹션 -->
+          <div class="dambo-edit-section">
+            <div class="dambo-edit-title" style="color:var(--text3)">💬 담보 메모</div>
+            <textarea id="dt-${sheetId}-${idx}" placeholder="담보 코드, 보장 설명, 참고사항" style="width:100%;padding:9px 12px;border:1.5px solid var(--accent);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;resize:vertical;min-height:60px;outline:none;background:var(--surface);line-height:1.5;">${escHtml(memo)}</textarea>
+          </div>
           <div class="edit-actions">
             <button class="edit-save" onclick="saveDamboMeta('${custId}','${ctId}',${idx},'${sheetId}')">저장</button>
             <button class="edit-cancel" onclick="closeDamboEdit('${sheetId}',${idx})">취소</button>
@@ -674,16 +1019,22 @@ function renderSheet(custId, ctId) {
     }).join('');
   }
 
-  // 해약환급금
+  // 해약환급금 (접기/펼치기)
   if (refunds.length) {
-    html += `<div class="divider"></div><div class="sec-label">💰 해약환급금</div>
-    <div class="refund-wrap"><table>
-      <thead><tr><th style="text-align:left">경과</th><th>나이</th><th>납입누계</th><th>환급금</th><th>환급률</th></tr></thead>
-      <tbody>${refunds.map(r=>{
-        const isMile = r.경과&&(r.경과.includes('납입완료')||r.경과.match(/^(20년|30년)($|[^0-9])/));
-        return `<tr class="${isMile?'milestone':''}"><td>${escHtml(r.경과||'')}</td><td style="text-align:center">${escHtml(String(r.나이||''))}</td><td>${escHtml(r.납입누계||'-')}</td><td>${escHtml(r.환급금||'-')}</td><td>${escHtml(r.환급률||'-')}</td></tr>`;
-      }).join('')}</tbody>
-    </table></div>`;
+    html += `<div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="sec-label" style="margin:0">💰 해약환급금</div>
+      <button class="refund-toggle-btn" id="refund-btn-${ctId}" onclick="toggleRefunds('${ctId}')">펼치기 ▼</button>
+    </div>
+    <div id="refund-wrap-${ctId}" style="display:none">
+      <div class="refund-wrap"><table>
+        <thead><tr><th style="text-align:left">경과</th><th>나이</th><th>납입누계</th><th>환급금</th><th>환급률</th></tr></thead>
+        <tbody>${refunds.map(r=>{
+          const isMile = r.경과&&(r.경과.includes('납입완료')||r.경과.match(/^(20년|30년)($|[^0-9])/));
+          return `<tr class="${isMile?'milestone':''}"><td>${escHtml(r.경과||'')}</td><td style="text-align:center">${escHtml(String(r.나이||''))}</td><td>${escHtml(r.납입누계||'-')}</td><td>${escHtml(r.환급금||'-')}</td><td>${escHtml(r.환급률||'-')}</td></tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>`;
   }
 
   // 보상이력
@@ -764,11 +1115,39 @@ window.closeDamboEdit = function(sheetId, idx) {
   if (el) el.style.display = 'none';
 };
 
+// 담보 상세 펼치기/접기
+window.toggleDamboDetail = function(sheetId, idx) {
+  const det = document.getElementById(`ddet-${sheetId}-${idx}`);
+  const hint = document.getElementById(`dhint-${sheetId}-${idx}`);
+  if (!det) return;
+  const open = det.style.display === 'block';
+  det.style.display = open ? 'none' : 'block';
+  if (hint) hint.textContent = open ? '▼ 상세' : '▲ 접기';
+};
+
+// 보상력 체크박스 토글 시 입력칸 표시/숨김
+window.toggleClaimFields = function(sheetId, idx) {
+  const cb = document.getElementById(`dcb-${sheetId}-${idx}`);
+  const fields = document.getElementById(`dcf-${sheetId}-${idx}`);
+  if (fields) fields.style.display = cb?.checked ? 'block' : 'none';
+};
+
+// 해약환급금 접기/펼치기
+window.toggleRefunds = function(ctId) {
+  const el = document.getElementById(`refund-wrap-${ctId}`);
+  const btn = document.getElementById(`refund-btn-${ctId}`);
+  if (!el) return;
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  if (btn) btn.textContent = open ? '펼치기 ▼' : '접기 ▲';
+};
+
 window.saveDamboMeta = async function(custId, ctId, idx, sheetId) {
   const memo = (document.getElementById(`dt-${sheetId}-${idx}`)?.value||'').trim();
-  const claimDate = (document.getElementById(`dd-${sheetId}-${idx}`)?.value||'').trim();
-  const claimNote = (document.getElementById(`dn-${sheetId}-${idx}`)?.value||'').trim();
-  await saveOneCoverageMeta(custId, ctId, idx, {memo, claimDate, claimNote});
+  const claimed = document.getElementById(`dcb-${sheetId}-${idx}`)?.checked || false;
+  const claimDate = (document.getElementById(`dcd-${sheetId}-${idx}`)?.value||'').trim();
+  const claimNote = (document.getElementById(`dcn-${sheetId}-${idx}`)?.value||'').trim();
+  await saveOneCoverageMeta(custId, ctId, idx, {memo, claimed, claimDate, claimNote});
   renderSheet(custId, ctId);
 };
 
@@ -828,19 +1207,72 @@ window.saveMemo = async function(custId, ctId) {
   } catch(e) { alert('저장 실패: '+e.message); }
 };
 
-// ── 탭/화면 ──
+// ── 납입방법 변경 ──
+window.togglePayEdit = function(custId, ctId, ctSafeId) {
+  const el = document.getElementById(`pay-edit-${ctSafeId}`);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.onPayOptChange = function(ctSafeId, method) {
+  // 버튼 active 상태 갱신
+  ['월납','카드납','자동이체'].forEach(m => {
+    const btn = document.getElementById(`popt-${m==='월납'?'월납':m==='카드납'?'카드':'자동'}-${ctSafeId}`);
+    if (!btn) return;
+    btn.className = 'pay-opt-btn' + (m === method ? (m==='카드납' ? ' active-card' : ' active') : '');
+  });
+  const cardFields = document.getElementById(`pay-card-fields-${ctSafeId}`);
+  if (cardFields) cardFields.style.display = method === '카드납' ? 'block' : 'none';
+};
+
+window.savePayMethod = async function(custId, ctId, ctSafeId) {
+  // 선택된 납입방법 읽기
+  const activeBtn = document.querySelector(`#pay-edit-${ctSafeId} .pay-opt-btn.active, #pay-edit-${ctSafeId} .pay-opt-btn.active-card`);
+  const methodMap = {'📆 월납':'월납','💳 카드납':'카드납','🏦 자동이체':'자동이체'};
+  let method = '월납';
+  if (activeBtn) method = methodMap[activeBtn.textContent.trim()] || activeBtn.textContent.trim();
+
+  const isCard = method === '카드납';
+  const cardCompany = document.getElementById(`pay-cardco-${ctSafeId}`)?.value.trim() || '';
+  const cardLast4 = document.getElementById(`pay-cardno-${ctSafeId}`)?.value.trim() || '';
+  const cardHolder = document.getElementById(`pay-cardholder-${ctSafeId}`)?.value.trim() || '';
+
+  const c = getCust(custId);
+  if (!c) return;
+  const updatedContracts = (c.contracts||[]).map(ct => {
+    if (ct.id !== ctId) return ct;
+    const updated = {...ct, payMethod: method};
+    if (isCard) {
+      updated.cardCompany = cardCompany;
+      updated.cardLast4 = cardLast4;
+      updated.cardHolder = cardHolder;
+    } else {
+      delete updated.cardCompany;
+      delete updated.cardLast4;
+      delete updated.cardHolder;
+    }
+    return updated;
+  });
+  try {
+    await updateDoc(doc(db,'customers',custId), {contracts: updatedContracts});
+    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
+    if (ci>=0) customers[ci].contracts = updatedContracts;
+    renderSheet(custId, ctId);
+  } catch(e) { alert('저장 실패: '+e.message); }
+};
 window.showTab = function(tab) {
-  ['search','list','renewal'].forEach(t=>{
+  ['search','list','performance'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById('screen-'+t).classList.toggle('active',t===tab);
   });
   document.getElementById('screen-detail').classList.remove('active');
   if (tab === 'list') renderList();
+  if (tab === 'performance') renderPerformance();
 };
 function showScreen(name) {
-  ['search','list','renewal','detail'].forEach(s=>document.getElementById('screen-'+s).classList.toggle('active',s===name));
-  if (['search','list','renewal'].includes(name)) {
-    ['search','list','renewal'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===name));
+  ['search','list','performance','detail'].forEach(s=>document.getElementById('screen-'+s).classList.toggle('active',s===name));
+  if (['search','list','performance'].includes(name)) {
+    ['search','list','performance'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===name));
   }
 }
 window.goBack = function() { showScreen(prevScreen); currentCustomerId=null; };
@@ -855,6 +1287,7 @@ function isLife(s) { return /생명|라이프/.test(s||''); }
 function isRenew(cv) { return /갱신형/.test(cv.renew||cv.갱신여부||''); }
 function fmt(n) { return Number(String(n).replace(/,/g,'')).toLocaleString()+'원'; }
 function ic(k,v) { return v?`<div class="info-cell"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v))}</div></div>`:''; }
+function icEdit(k,v,editFn) { return `<div class="info-cell info-cell-editable" style="position:relative;"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v||''))}</div><button class="info-edit-btn" onclick="${editFn}" title="편집">✏️</button></div>`; }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function showError(msg) { document.getElementById('loading-screen').style.display='none'; document.getElementById('error-msg').innerHTML=msg.replace(/\n/g,'<br>'); document.getElementById('error-screen').classList.add('show'); }
 
