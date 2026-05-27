@@ -233,6 +233,107 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .card{padding:12px;}
   .stat-val{font-size:18px;}
 }
+
+/* ── 계약 관리 개선 ── */
+.cm-sort-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
+.cm-sort-btn{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;}
+.cm-sort-btn:hover{border-color:var(--text2);}
+.cm-sort-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+.cm-cust-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden;transition:border-color .18s;}
+.cm-cust-card:hover{border-color:var(--accent);}
+.cm-cust-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface);gap:10px;}
+.cm-cust-info{display:flex;align-items:center;gap:10px;min-width:0;flex:1;}
+.cm-cust-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;border:2px solid rgba(59,91,219,.12);}
+.cm-cust-name{font-size:15px;font-weight:800;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cm-cust-meta{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.cm-agent-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
+.cm-del-cust-btn{flex-shrink:0;padding:6px 10px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;border:1.5px solid var(--red);color:var(--red);background:var(--surface);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap;}
+.cm-del-cust-btn:hover{background:var(--red-light);}
+
+.cm-ct-list{padding:8px 12px 10px;}
+.cm-ct-row{display:flex;align-items:center;gap:8px;padding:10px 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);margin-bottom:6px;cursor:pointer;transition:all .15s;background:var(--bg);}
+.cm-ct-row:last-child{margin-bottom:0;}
+.cm-ct-row:hover{border-color:var(--accent);background:var(--accent-light);}
+.cm-ct-row.is-temp{border-color:var(--amber);background:var(--amber-light);}
+.cm-ct-row.is-temp:hover{border-color:var(--amber);filter:brightness(.97);}
+.cm-ct-body{flex:1;min-width:0;}
+.cm-ct-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cm-ct-sub{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.cm-ct-prem{font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap;flex-shrink:0;}
+.cm-del-ct-btn{flex-shrink:0;width:30px;height:30px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface);color:var(--text3);cursor:pointer;font-family:inherit;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.cm-del-ct-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-light);}
+@media (max-width:480px){
+  .cm-cust-name{font-size:14px;}
+  .cm-cust-header{padding:12px 13px;}
+  .cm-ct-list{padding:6px 10px 8px;}
+  .cm-ct-row{padding:9px 9px;}
+  .cm-ct-name{font-size:12px;}
+  .cm-ct-prem{font-size:12px;}
+}
+
+/* ── 담보 카드 (viewer 스타일 통일) ── */
+.sec-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:20px;}
+.sec-label:first-child{margin-top:0;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.info-cell{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;}
+.info-cell-key{font-size:10px;color:var(--text3);margin-bottom:2px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.info-cell-val{font-size:13px;font-weight:600;}
+.dambo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;box-shadow:var(--shadow);transition:border-color .18s;}
+.dambo-card.has-claimed{border-color:#F59E0B;background:linear-gradient(135deg,#FFFBEB 0%,#fff 60%);}
+.dambo-card.has-memo{border-left:3px solid var(--accent);}
+.dambo-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;cursor:pointer;gap:6px;}
+.dambo-top-meta{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;flex-shrink:0;max-width:45%;}
+.dambo-name{font-weight:700;font-size:13px;line-height:1.4;flex:1;padding-right:8px;}
+.dambo-amt-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.dambo-amt{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-.3px;}
+.dambo-expand-hint{font-size:10px;color:var(--text3);font-weight:600;flex-shrink:0;transition:color .15s;}
+.dambo-top:hover .dambo-expand-hint{color:var(--accent);}
+.dambo-detail{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:1px solid var(--border);}
+.dambo-detail-row{margin-bottom:7px;}
+.dambo-detail-row:last-child{margin-bottom:0;}
+.dambo-detail-row strong{display:block;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.dambo-detail-row div{font-size:12px;color:var(--text);line-height:1.6;}
+.dambo-meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+@media(max-width:480px){.info-grid{grid-template-columns:1fr;}.dambo-top-meta{max-width:42%;}}
+
+/* ── 해약환급금 (viewer 스타일) ── */
+.refund-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow);}
+.refund-wrap table{width:100%;border-collapse:collapse;font-size:12px;}
+.refund-wrap th{padding:8px 10px;background:var(--surface2);font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);letter-spacing:.04em;}
+.refund-wrap th:first-child{text-align:left;}
+.refund-wrap td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;font-size:12px;}
+.refund-wrap td:first-child{text-align:left;font-weight:700;}
+.refund-wrap tr:last-child td{border-bottom:none;}
+.refund-wrap tr.milestone td{background:var(--accent-light);color:var(--accent);font-weight:700;}
+.refund-toggle-btn{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);border:1px solid rgba(59,91,219,.15);border-radius:20px;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0;}
+.refund-toggle-btn:hover{background:var(--accent);color:#fff;}
+
+/* ── 설계사별 실적 카드 ── */
+.perf-agent-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
+@media(max-width:600px){.perf-agent-grid{grid-template-columns:1fr;}}
+.perf-agent-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .18s;position:relative;overflow:hidden;}
+.perf-agent-card:hover{border-color:var(--accent);}
+.perf-agent-card.has-data{border-color:rgba(59,91,219,.2);}
+.perf-agent-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px 2px 0 0;opacity:0;transition:opacity .2s;}
+.perf-agent-card.has-data::before{opacity:1;}
+.perf-card-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.perf-card-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;border:2px solid transparent;}
+.perf-card-name{font-size:14px;font-weight:800;letter-spacing:-.2px;}
+.perf-card-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.perf-card-count{font-size:22px;font-weight:900;letter-spacing:-.5px;line-height:1;margin-bottom:14px;}
+.perf-card-count span{font-size:12px;font-weight:600;color:var(--text3);margin-left:2px;}
+.perf-bar-wrap{margin-bottom:10px;}
+.perf-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.perf-bar-key{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.perf-bar-val{font-size:11px;font-weight:700;color:var(--text2);}
+.perf-bar-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.perf-bar-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.25,.46,.45,.94);}
+.perf-bar-fill.blue{background:linear-gradient(90deg,var(--accent),#6B8BFF);}
+.perf-bar-fill.green{background:linear-gradient(90deg,var(--green),#34D399);}
+.perf-card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);}
+.perf-card-prem{font-size:12px;font-weight:700;color:var(--text);}
+.perf-card-comm{font-size:11px;font-weight:700;color:var(--green);}
 </style>
 </head>
 <body>
@@ -287,7 +388,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="stats">
       <div class="stat-box">
         <div class="stat-val" id="stat-agents">-</div>
-        <div class="stat-lbl">설계사 수</div>
+        <div class="stat-lbl">팀원</div>
       </div>
       <div class="stat-box">
         <div class="stat-val" id="stat-customers">-</div>
@@ -299,7 +400,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       </div>
       <div class="stat-box">
         <div class="stat-val" id="stat-premium" style="font-size:18px;">-</div>
-        <div class="stat-lbl">월 보험료 합계</div>
+        <div class="stat-lbl">총 보험료</div>
       </div>
     </div>
 
@@ -321,6 +422,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div id="admin-perf-kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;"></div>
       <!-- 설계사별 실적 테이블 -->
       <div id="admin-perf-agents"></div>
+
     </div>
   </div>
 
@@ -455,6 +557,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <input class="form-input" id="contracts-search" placeholder="🔍 고객명 / 보험사 / 상품명 검색" oninput="renderContractsList()"/>
       </div>
       <button class="btn btn-sm" onclick="clearContractsFilter()" style="color:var(--text2);">✕ 필터 초기화</button>
+    </div>
+    <!-- 정렬 바 -->
+    <div class="cm-sort-bar">
+      <span style="font-size:11px;font-weight:700;color:var(--text3);align-self:center;margin-right:2px;">정렬</span>
+      <button class="cm-sort-btn active" id="sort-recent" onclick="setCmSort('recent')">🕐 최신순</button>
+      <button class="cm-sort-btn" id="sort-name" onclick="setCmSort('name')">가나다순</button>
+      <button class="cm-sort-btn" id="sort-agent" onclick="setCmSort('agent')">설계사순</button>
+      <button class="cm-sort-btn" id="sort-prem" onclick="setCmSort('prem')">💰 보험료순</button>
     </div>
     <div id="cm-count" style="font-size:12px;color:var(--text3);margin-bottom:10px;padding:0 4px;"></div>
     <div id="contracts-list"></div>
@@ -722,7 +832,7 @@ function renderAdminPerf() {
       <div style="font-size:10px;color:var(--text2);margin-top:3px;">${k.sub}</div>
     </div>`).join('');
 
-  // ── 설계사별 테이블 ──
+  // ── 설계사별 카드 그리드 ──
   if (!agentsCache.length) { agentsEl.innerHTML = '<div class="empty">설계사 없음</div>'; return; }
 
   const agentRows = agentsCache.map(a => {
@@ -732,26 +842,61 @@ function renderAdminPerf() {
     return {a, s};
   }).sort((x,y) => y.s.total - x.s.total);
 
-  const maxCount = agentRows[0]?.s.total || 1;
+  const maxCount = Math.max(1, agentRows[0]?.s.total || 1);
+  const maxPrem = Math.max(1, ...agentRows.map(r => r.s.totalPrem));
 
-  agentsEl.innerHTML = `
-  <div style="border-top:1px solid var(--border);margin-top:4px;">
-    ${agentRows.map(({a, s}) => `
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div style="width:34px;height:34px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;border:1.5px solid rgba(59,91,219,.15);">${a.role==='admin'?'👑':'👤'}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;">${escHtml(a.name||'이름없음')}${a.role==='admin'?'<span class="chip blue" style="margin-left:6px;font-size:10px">관리자</span>':''}</div>
-        <div style="margin-top:4px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;">
-          <div style="height:100%;width:${s.total?Math.round(s.total/maxCount*100):0}%;background:var(--accent);border-radius:2px;transition:width .3s;"></div>
+  const AVATAR_COLORS = [
+    {bg:'var(--accent-light)',color:'var(--accent)',border:'rgba(59,91,219,.2)'},
+    {bg:'var(--green-light)',color:'var(--green)',border:'rgba(26,127,75,.2)'},
+    {bg:'var(--purple-light)',color:'var(--purple)',border:'rgba(109,40,217,.2)'},
+    {bg:'var(--amber-light)',color:'var(--amber)',border:'rgba(180,83,9,.2)'},
+    {bg:'#FCE7F3',color:'#9D174D',border:'rgba(157,23,77,.2)'},
+  ];
+
+  agentsEl.innerHTML = `<div class="perf-agent-grid">
+    ${agentRows.map(({a, s}, i) => {
+      const col = AVATAR_COLORS[i % AVATAR_COLORS.length];
+      const initials = (a.name||'?').slice(0,1);
+      const countPct = s.total ? Math.round(s.total / maxCount * 100) : 0;
+      const premPct = s.totalPrem ? Math.round(s.totalPrem / maxPrem * 100) : 0;
+      const hasData = s.total > 0;
+      return `<div class="perf-agent-card${hasData?' has-data':''}">
+        <div class="perf-card-header">
+          <div class="perf-card-avatar" style="background:${col.bg};color:${col.color};border-color:${col.border};">
+            ${a.role==='admin'?'👑':escHtml(initials)}
+          </div>
+          <div>
+            <div class="perf-card-name">${escHtml(a.name||'이름없음')}${a.role==='admin'?'<span class="chip blue" style="margin-left:6px;font-size:10px;">관리자</span>':''}</div>
+            <div class="perf-card-sub">손보 ${s.nonlifeCount}건 · 생보 ${s.lifeCount}건</div>
+          </div>
         </div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">손보 ${s.nonlifeCount} · 생보 ${s.lifeCount}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;min-width:110px;">
-        <div style="font-size:16px;font-weight:800;color:var(--accent);">${s.total}건</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${s.totalPrem>0?Math.round(s.totalPrem).toLocaleString()+'원':'-'}</div>
-        ${s.commEst>0?`<div style="font-size:10px;color:var(--green);">수수료 ≈${Math.round(s.commEst/10000)}만</div>`:''}
-      </div>
-    </div>`).join('')}
+        <div class="perf-card-count" style="color:${hasData?col.color:'var(--text3)'};">
+          ${s.total}<span>건</span>
+        </div>
+        <div class="perf-bar-wrap">
+          <div class="perf-bar-label">
+            <span class="perf-bar-key">계약 건수</span>
+            <span class="perf-bar-val">${s.total}건</span>
+          </div>
+          <div class="perf-bar-track">
+            <div class="perf-bar-fill blue" style="width:${countPct}%"></div>
+          </div>
+        </div>
+        <div class="perf-bar-wrap">
+          <div class="perf-bar-label">
+            <span class="perf-bar-key">월 보험료</span>
+            <span class="perf-bar-val">${s.totalPrem>0?Math.round(s.totalPrem).toLocaleString()+'원':'-'}</span>
+          </div>
+          <div class="perf-bar-track">
+            <div class="perf-bar-fill green" style="width:${premPct}%"></div>
+          </div>
+        </div>
+        <div class="perf-card-footer">
+          <span class="perf-card-prem">${s.totalPrem>0?Math.round(s.totalPrem).toLocaleString()+'원':'-'}</span>
+          ${s.commEst>0?`<span class="perf-card-comm">수수료 ≈${Math.round(s.commEst/10000)}만원</span>`:'<span style="font-size:11px;color:var(--text3);">-</span>'}
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
@@ -771,9 +916,10 @@ function renderDashboard() {
   document.getElementById('stat-agents').textContent = agents.length;
   document.getElementById('stat-customers').textContent = totalCust;
   document.getElementById('stat-contracts').textContent = totalContracts;
-  document.getElementById('stat-premium').textContent = totalPremium > 0
-    ? totalPremium.toLocaleString() + '원'
-    : '-';
+  const premEl = document.getElementById('stat-premium');
+  premEl.textContent = fmtLargeNum(totalPremium);
+  const digits = String(Math.round(totalPremium)).length;
+  premEl.style.fontSize = digits >= 11 ? '13px' : digits >= 9 ? '15px' : digits >= 7 ? '17px' : '';
 
   // ── 미배정 고객 (에이전트 없는 고객 안전 처리) ──
   const agentUids = new Set(agentsCache.map(a => a.uid).filter(Boolean));
@@ -1103,8 +1249,15 @@ window.saveUploadContract = async function() {
       const existing = customersCache.find(c => c._docId === selectedCustomerId);
       if (!existing) { showToast('❌ 고객 데이터를 찾을 수 없어요.'); btn.disabled=false; btn.textContent='💾 저장하기'; return; }
       const updatedContracts = [...(existing.contracts||[]), newContract];
-      await updateDoc(doc(db,'customers',selectedCustomerId), {contracts: updatedContracts});
-      showToast(`✅ "${existing.name}" 고객에 계약 추가 완료!`);
+      const updatePayload = { contracts: updatedContracts };
+      // 선택한 설계사가 기존과 다르면 담당 설계사 변경
+      if (agentUid && agentUid !== existing.agentId) {
+        updatePayload.agentId = agentUid;
+        updatePayload.agentName = agent?.name || '';
+      }
+      await updateDoc(doc(db,'customers',selectedCustomerId), updatePayload);
+      const agentChanged = agentUid && agentUid !== existing.agentId;
+      showToast(`✅ "${existing.name}" 고객에 계약 추가 완료!${agentChanged ? ` (담당: ${agent?.name||''})` : ''}`);
     }
 
     // 초기화
@@ -1142,6 +1295,42 @@ window.regenToken = async function(uid) {
 window.copyLink = function(url) {
   navigator.clipboard.writeText(url)
     .then(() => showToast('📋 링크가 복사됐어요!'))
+    .catch(() => showToast('❌ 복사 실패'));
+};
+
+window.copyPerfReport = function() {
+  const periodLabel = adminPerfYear === 0 ? '전체 기간'
+    : adminPerfMonth === 0 ? `${adminPerfYear}년 전체`
+    : `${adminPerfYear}년 ${adminPerfMonth}월`;
+
+  const allContracts = getContractsForPeriod(customersCache, adminPerfYear, adminPerfMonth, adminPerfYear === 0);
+  const stats = calcPerfStats(allContracts);
+
+  const agentLines = agentsCache.map(a => {
+    const myCusts = customersCache.filter(c => c.agentId === a.uid);
+    const myCts = getContractsForPeriod(myCusts, adminPerfYear, adminPerfMonth, adminPerfYear === 0);
+    const s = calcPerfStats(myCts);
+    if (s.total === 0) return null;
+    return `  • ${a.name||'이름없음'}: ${s.total}건 / ${Math.round(s.totalPrem).toLocaleString()}원 (손보 ${s.nonlifeCount} · 생보 ${s.lifeCount})`;
+  }).filter(Boolean).join('\n');
+
+  const report = [
+    `📊 보험Manager 실적 리포트 [${periodLabel}]`,
+    ``,
+    `▶ 전체 계약: ${stats.total}건`,
+    `▶ 손해보험: ${stats.nonlifeCount}건`,
+    `▶ 생명보험: ${stats.lifeCount}건`,
+    `▶ 월 보험료 합계: ${Math.round(stats.totalPrem).toLocaleString()}원`,
+    `▶ 예상 수수료(연초회): ${Math.round(stats.commEst).toLocaleString()}원`,
+    ``,
+    `[ 설계사별 현황 ]`,
+    agentLines || '  (데이터 없음)',
+    ``,
+    `※ 수수료는 손보 20% · 생보 15% 기준 추정치입니다.`,
+  ].join('\n');
+
+  navigator.clipboard.writeText(report)
+    .then(() => showToast('📋 실적 리포트가 복사됐어요!'))
     .catch(() => showToast('❌ 복사 실패'));
 };
 
@@ -1286,6 +1475,30 @@ function matchesCmPeriod(ct) {
 }
 
 // ── 계약 관리 목록 ──
+// 정렬 상태
+let cmSortMode = 'recent';
+window.setCmSort = function(mode) {
+  cmSortMode = mode;
+  document.querySelectorAll('.cm-sort-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('sort-'+mode);
+  if (btn) btn.classList.add('active');
+  renderContractsList();
+};
+
+// 설계사별 색상 팔레트
+const AGENT_COLORS = [
+  {bg:'var(--accent-light)',color:'var(--accent)'},
+  {bg:'var(--green-light)',color:'var(--green)'},
+  {bg:'var(--purple-light)',color:'var(--purple)'},
+  {bg:'var(--amber-light)',color:'var(--amber)'},
+  {bg:'#FCE7F3',color:'#9D174D'},
+  {bg:'#ECFDF5',color:'#065F46'},
+];
+function getAgentColor(uid) {
+  const idx = agentsCache.findIndex(a => a.uid === uid);
+  return AGENT_COLORS[Math.max(0,idx) % AGENT_COLORS.length];
+}
+
 window.renderContractsList = function() {
   const el = document.getElementById('contracts-list');
   const countEl = document.getElementById('cm-count');
@@ -1293,9 +1506,7 @@ window.renderContractsList = function() {
   const q = (document.getElementById('contracts-search')?.value||'').trim().toLowerCase();
 
   let list = [...customersCache];
-  // 설계사 필터
   if (cmAgents.size > 0) list = list.filter(c => cmAgents.has(c.agentId));
-  // 검색
   if (q) list = list.filter(c =>
     (c.name||'').toLowerCase().includes(q) ||
     (c.phone||'').includes(q) ||
@@ -1305,16 +1516,34 @@ window.renderContractsList = function() {
       (ct.rawJson?.계약자||'').toLowerCase().includes(q)
     )
   );
-  // 기간 필터 (계약 단위로 적용)
   const hasPeriodFilter = cmYears.size > 0 || cmMonths.size > 0;
+
+  // 정렬
+  list.sort((a,b) => {
+    if (cmSortMode === 'name') return (a.name||'').localeCompare(b.name||'','ko');
+    if (cmSortMode === 'agent') {
+      const an = agentsCache.find(x=>x.uid===a.agentId)?.name||'';
+      const bn = agentsCache.find(x=>x.uid===b.agentId)?.name||'';
+      return an.localeCompare(bn,'ko');
+    }
+    if (cmSortMode === 'prem') {
+      const ap = (a.contracts||[]).reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+      const bp = (b.contracts||[]).reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+      return bp - ap;
+    }
+    // recent: 가장 최근 계약일 기준
+    const latestDate = c => (c.contracts||[]).reduce((latest,ct) => {
+      const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
+      return d > latest ? d : latest;
+    }, '');
+    return latestDate(b).localeCompare(latestDate(a));
+  });
 
   let totalContracts = 0;
   list.forEach(c => {
-    if (hasPeriodFilter) {
-      totalContracts += (c.contracts||[]).filter(ct => matchesCmPeriod(ct)).length;
-    } else {
-      totalContracts += (c.contracts||[]).length;
-    }
+    totalContracts += hasPeriodFilter
+      ? (c.contracts||[]).filter(ct => matchesCmPeriod(ct)).length
+      : (c.contracts||[]).length;
   });
 
   if (countEl) countEl.textContent = `${list.length}명 · 계약 ${totalContracts}건`;
@@ -1324,35 +1553,54 @@ window.renderContractsList = function() {
     let contracts = c.contracts||[];
     if (hasPeriodFilter) contracts = contracts.filter(ct => matchesCmPeriod(ct));
     if (!contracts.length && hasPeriodFilter) return '';
-    const agentName = agentsCache.find(a=>a.uid===c.agentId)?.name || c.agentName || '미배정';
-    return `
-    <div class="card" style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div>
-          <div style="font-size:15px;font-weight:700;">${escHtml(c.name||'')}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px;">${escHtml(c.phone||'')} · ${escHtml(agentName)} · 계약 ${(c.contracts||[]).length}건</div>
+    const agent = agentsCache.find(a=>a.uid===c.agentId);
+    const agentName = agent?.name || c.agentName || '미배정';
+    const agentColor = getAgentColor(c.agentId);
+    const initials = (c.name||'?').slice(0,1);
+    const totalPrem = (c.contracts||[]).reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+
+    const ctRows = contracts.map((ct,i) => {
+      const company = ct.company||ct.rawJson?.보험사||'';
+      const product = ct.product||ct.rawJson?.상품명||'';
+      const prem = ct.premium ? Math.round(Number(ct.premium)).toLocaleString()+'원' : ct.rawJson?.월보험료||'-';
+      const isTemp = (ct.rawJson?.계약자||'').includes('가설계')||(ct.rawJson?.특이사항||'').includes('가설계') || (product||'').includes('가설계');
+      const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
+      const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
+      const dateStr = ym ? `${ym[1]}.${ym[2].padStart(2,'0')}` : '';
+      const ctId2 = ct.id||'ci'+i;
+      return `<div class="cm-ct-row${isTemp?' is-temp':''}" onclick="event.stopPropagation();openAdminContractDetail('${c._docId}','${ctId2}')">
+        <div class="cm-ct-body">
+          <div class="cm-ct-name">${escHtml(company)}${company&&product?' · ':''}${escHtml(product)}${isTemp?' <span style="color:var(--amber);font-size:10px;font-weight:800;background:rgba(180,83,9,.12);padding:1px 6px;border-radius:6px;">⚠ 가설계</span>':''}</div>
+          <div class="cm-ct-sub">
+            ${dateStr?`<span>${escHtml(dateStr)}</span>`:''}
+            <span style="color:var(--text3);">탭하여 상세보기</span>
+          </div>
         </div>
-        <button class="btn btn-sm btn-danger" onclick="deleteCustomer('${c._docId}','${escHtml(c.name||'')}')">🗑 고객삭제</button>
-      </div>
-      ${contracts.length===0 ? '<div style="font-size:12px;color:var(--text3)">이 기간에 계약 없음</div>' :
-        contracts.map((ct,i) => {
-          const company = ct.company||ct.rawJson?.보험사||'';
-          const product = ct.product||ct.rawJson?.상품명||'';
-          const prem = ct.premium ? Number(ct.premium).toLocaleString()+'원' : ct.rawJson?.월보험료||'-';
-          const isTemp = (ct.rawJson?.계약자||'').includes('가설계')||(ct.rawJson?.특이사항||'').includes('가설계');
-          const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
-          const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
-          const dateStr = ym ? `${ym[1]}.${ym[2].padStart(2,'0')}` : '';
-          const ctId2 = ct.id||'ci'+i;
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border:1.5px solid ${isTemp?'var(--amber)':'var(--border)'};border-radius:var(--radius-sm);margin-bottom:6px;${isTemp?'background:var(--amber-light)':''}cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${isTemp?'var(--amber)':'var(--border)'}'" onclick="event.stopPropagation();openAdminContractDetail('${c._docId}','${ctId2}')">
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:600;">${escHtml(company)} · ${escHtml(product)}</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:2px;">${escHtml(prem)}${dateStr?' · '+escHtml(dateStr):''}${isTemp?' <span style="color:var(--amber);font-weight:700">⚠ 가설계</span>':''} <span style="color:var(--text3);">· 클릭해서 상세보기</span></div>
+        <div class="cm-ct-prem">${escHtml(prem)}</div>
+        <button class="cm-del-ct-btn" title="계약 삭제" onclick="event.stopPropagation();deleteContract('${c._docId}','${ctId2}','${escHtml(company+' '+product)}')">🗑</button>
+      </div>`;
+    }).join('');
+
+    return `<div class="cm-cust-card">
+      <div class="cm-cust-header">
+        <div class="cm-cust-info">
+          <div class="cm-cust-avatar">${escHtml(initials)}</div>
+          <div style="min-width:0;">
+            <div class="cm-cust-name">${escHtml(c.name||'')}</div>
+            <div class="cm-cust-meta">
+              ${c.phone?`<span>${escHtml(c.phone)}</span><span style="color:var(--border)">·</span>`:''}
+              <span class="cm-agent-badge" style="background:${agentColor.bg};color:${agentColor.color};">👤 ${escHtml(agentName)}</span>
+              <span style="color:var(--text3);">${contracts.length}건${totalPrem>0?' · '+Math.round(totalPrem).toLocaleString()+'원':''}</span>
             </div>
-            <button class="btn btn-sm btn-danger" style="flex-shrink:0;margin-left:8px;" onclick="event.stopPropagation();deleteContract('${c._docId}','${ctId2}','${escHtml(company+' '+product)}')">🗑 삭제</button>
-          </div>`;
-        }).join('')
-      }
+          </div>
+        </div>
+        <button class="cm-del-cust-btn" onclick="deleteCustomer('${c._docId}','${escHtml(c.name||'')}')">🗑 고객삭제</button>
+      </div>
+      <div class="cm-ct-list">
+        ${contracts.length===0
+          ? '<div style="font-size:12px;color:var(--text3);padding:6px 2px;">이 기간에 계약 없음</div>'
+          : ctRows}
+      </div>
     </div>`;
   }).filter(Boolean).join('');
 };
@@ -1439,14 +1687,14 @@ window.openAdminContractDetail = function(custDocId, ctId) {
   document.getElementById('admin-sheet-title').textContent = `${company} · ${product}`;
   document.getElementById('admin-sheet-sub').textContent = `${escHtml(c.name||'')} 고객 · ${ct.payPeriod||rj.납입기간||''} · ${ct.expiryDate||rj.보험기간||''}`;
 
-  // 인포 그리드 헬퍼
-  const ic = (k,v) => v ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;"><div style="font-size:10px;color:var(--text3);margin-bottom:2px;">${k}</div><div style="font-size:13px;font-weight:500;">${escHtml(String(v))}</div></div>` : '';
+  // 인포 셀 헬퍼
+  const ic = (k,v) => v ? `<div class="info-cell"><div class="info-cell-key">${k}</div><div class="info-cell-val">${escHtml(String(v))}</div></div>` : '';
 
   let html = '';
 
   // 기본 정보
-  html += `<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">계약 정보</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+  html += `<div class="sec-label" style="margin-top:0">계약 정보</div>
+  <div class="info-grid">
     ${ic('보험사', company)}${ic('상품명', product)}
     ${ic('계약자', c.name)}${ic('피보험자', rj.피보험자||c.name)}
     ${ic('계약일', ct.startDate||rj.계약일)}${ic('보험기간', ct.expiryDate||rj.보험기간)}
@@ -1457,7 +1705,7 @@ window.openAdminContractDetail = function(custDocId, ctId) {
 
   // 담당설계사 + 컨설턴트
   const agentName = agentsCache.find(a=>a.uid===c.agentId)?.name || c.agentName || '미배정';
-  html += `<div style="font-size:12px;color:var(--text2);margin-bottom:16px;">
+  html += `<div style="font-size:12px;color:var(--text2);margin-bottom:14px;">
     👤 담당 설계사: <strong>${escHtml(agentName)}</strong>
     ${rj.컨설턴트?` &nbsp;|&nbsp; 📞 모집인: <strong>${escHtml(rj.컨설턴트)}</strong> ${rj.컨설턴트연락처?'('+escHtml(rj.컨설턴트연락처)+')':''}`:''}
     ${rj.소속지점?`<br>🏢 ${escHtml(rj.소속지점)}`:''}
@@ -1469,8 +1717,7 @@ window.openAdminContractDetail = function(custDocId, ctId) {
 
   // 담보 목록
   if (coverages.length) {
-    html += `<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🛡 담보 목록 (${coverages.length}개)</div>`;
+    html += `<div class="divider"></div><div class="sec-label">🛡 담보 목록 (${coverages.length}개)</div>`;
     const ctSafe = ctId.replace(/[^a-zA-Z0-9]/g,'_');
     html += coverages.map((cv, idx) => {
       const name = cv.name||cv.담보명||'';
@@ -1487,65 +1734,66 @@ window.openAdminContractDetail = function(custDocId, ctId) {
       const hasDetail = !!(paymentCond||exemp||note||reduction||levels.length);
       const detId = `adi-${ctSafe}-${idx}`;
 
-      // 상세 내용 구성
-      const detailRows = [
-        paymentCond ? `<div style="margin-bottom:8px;"><div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">지급사유</div><div style="font-size:12px;color:var(--text);line-height:1.7;white-space:pre-line;">${escHtml(paymentCond)}</div></div>` : '',
-        levels.length ? `<div style="margin-bottom:8px;"><div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">보장단계</div><div style="font-size:12px;color:var(--text);">${levels.map(l=>`${escHtml(l.label||'')}: ${escHtml(l.amount||'')}`).join(' / ')}</div></div>` : '',
-        exemp ? `<div style="margin-bottom:6px;"><span style="font-size:10px;font-weight:700;color:var(--text3);">면책기간</span> <span style="font-size:12px;">⏱ ${escHtml(exemp)}</span></div>` : '',
-        reduction ? `<div style="margin-bottom:6px;"><span style="font-size:10px;font-weight:700;color:var(--text3);">1년내감액</span> <span style="font-size:12px;">📉 ${escHtml(reduction)}</span></div>` : '',
-        note ? `<div style="margin-bottom:0;"><span style="font-size:10px;font-weight:700;color:var(--text3);">기타조건</span> <span style="font-size:12px;">📌 ${escHtml(note)}</span></div>` : '',
+      const topRightChips = [
+        renew ? `<span class="chip ${isRenewCov?'amber':''}" style="font-size:10px">${escHtml(renew)}</span>` : '',
+        isRenewCov&&cv.갱신주기 ? `<span class="chip" style="font-size:10px">${cv.갱신주기}년 갱신</span>` : '',
+        isRenewCov&&cv.갱신종료나이 ? `<span class="chip" style="font-size:10px">최대${cv.갱신종료나이}세</span>` : '',
+        prem2 ? `<span class="chip" style="font-size:10px">${escHtml(prem2)}</span>` : '',
       ].filter(Boolean).join('');
 
-      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);${cvMeta.claimed?'border-color:#F59E0B;background:#FFFBEB':''}">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;${hasDetail?'cursor:pointer':''}" ${hasDetail?`onclick="toggleAdminDamboDetail('${detId}')"`:''}">
-          <div style="font-weight:700;font-size:13px;line-height:1.4;flex:1;padding-right:8px;">
-            ${cv.바로보장?'<span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:2px 6px;border-radius:10px;margin-right:4px;">바로보장</span>':''}
-            ${escHtml(name)}
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-            <div style="font-size:14px;font-weight:700;color:var(--accent);">${escHtml(amt)}</div>
-            ${hasDetail?`<span id="${detId}-hint" style="font-size:10px;color:var(--text3);font-weight:600;">▼</span>`:''}
-          </div>
+      const detailRows = [
+        paymentCond ? `<div class="dambo-detail-row"><strong>지급사유</strong><div>${escHtml(paymentCond)}</div></div>` : '',
+        levels.length ? `<div class="dambo-detail-row"><strong>보장단계</strong><div>${levels.map(l=>`${escHtml(l.label||'')}: ${escHtml(l.amount||'')}`).join(' / ')}</div></div>` : '',
+        exemp ? `<div class="dambo-detail-row"><strong>면책기간</strong><div>⏱ ${escHtml(exemp)}</div></div>` : '',
+        reduction ? `<div class="dambo-detail-row"><strong>1년내감액</strong><div>📉 ${escHtml(reduction)}</div></div>` : '',
+        note ? `<div class="dambo-detail-row"><strong>기타조건</strong><div>📌 ${escHtml(note)}</div></div>` : '',
+      ].filter(Boolean).join('');
+
+      return `<div class="dambo-card${cvMeta.claimed?' has-claimed':''}${cvMeta.memo?' has-memo':''}">
+        <div class="dambo-top" ${hasDetail?`onclick="toggleAdminDamboDetail('${detId}')"`:'style="cursor:default"'}>
+          <div class="dambo-name">${cv.바로보장?'<span class="chip blue" style="margin-right:4px;font-size:10px">바로보장</span>':''}${escHtml(name)}</div>
+          ${topRightChips ? `<div class="dambo-top-meta">${topRightChips}</div>` : ''}
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:${(cvMeta.claimed||cvMeta.memo)?'7px':'0'};">
-          ${renew?`<span class="chip ${isRenewCov?'amber':''}">${escHtml(renew)}</span>`:''}
-          ${isRenewCov&&cv.갱신주기?`<span class="chip">${cv.갱신주기}년 갱신</span>`:''}
-          ${isRenewCov&&cv.갱신종료나이?`<span class="chip">최대${cv.갱신종료나이}세</span>`:''}
-          ${prem2?`<span class="chip">${escHtml(prem2)}</span>`:''}
-          ${cvMeta.claimed?'<span class="chip gold">🏆 보상력</span>':''}
+        <div class="dambo-amt-row">
+          <div class="dambo-amt">${escHtml(amt)}${cv.isDaily?'<span style="font-size:10px;color:var(--text3);margin-left:2px">/일</span>':''}</div>
+          ${hasDetail?`<div class="dambo-expand-hint" id="${detId}-hint">▼ 상세</div>`:''}
+        </div>
+        ${detailRows ? `<div class="dambo-detail" id="${detId}" style="display:none">${detailRows}</div>` : ''}
+        ${(cvMeta.claimed||cvMeta.memo) ? `<div class="dambo-meta">
+          ${cvMeta.claimed?'<span class="chip amber">🏆 보상력</span>':''}
           ${cvMeta.memo?'<span class="chip blue">💬 메모</span>':''}
-        </div>
-        ${hasDetail?`<div id="${detId}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-top:8px;">${detailRows}</div>`:''}
+        </div>` : ''}
         ${cvMeta.memo?`<div style="font-size:12px;color:var(--accent);background:var(--accent-light);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px;">💬 ${escHtml(cvMeta.memo)}</div>`:''}
         ${cvMeta.claimed&&cvMeta.claimNote?`<div style="font-size:12px;color:#D97706;background:#FEF9C3;border-radius:var(--radius-sm);padding:6px 10px;margin-top:4px;">🏆 ${cvMeta.claimDate?escHtml(cvMeta.claimDate)+' · ':''}${escHtml(cvMeta.claimNote)}</div>`:''}
       </div>`;
     }).join('');
   }
 
-  // 해약환급금
+  // 해약환급금 (접기/펼치기)
   if (refunds.length) {
-    html += `<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">💰 해약환급금</div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;">
-      <thead><tr style="background:var(--surface2);">
-        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);">경과</th>
-        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);">나이</th>
-        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);">납입누계</th>
-        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);">환급금</th>
-        <th style="padding:7px 10px;font-size:10px;font-weight:700;color:var(--text3);text-align:right;border-bottom:1px solid var(--border);">환급률</th>
-      </tr></thead>
-      <tbody>${refunds.map(r => {
-        const isMile = r.경과&&(r.경과.includes('납입완료')||/^(20년|30년)($|[^0-9])/.test(r.경과));
-        return `<tr style="${isMile?'background:var(--accent-light);color:var(--accent);font-weight:700;':''}">
-          <td style="padding:7px 10px;border-bottom:1px solid var(--border);">${escHtml(r.경과||'')}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;">${escHtml(String(r.나이||''))}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;">${escHtml(r.납입누계||'-')}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;">${escHtml(r.환급금||'-')}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;">${escHtml(r.환급률||'-')}</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div>`;
+    const refundId = ctId.replace(/[^a-zA-Z0-9]/g,'_');
+    html += `<div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="sec-label" style="margin:0">💰 해약환급금</div>
+      <button class="refund-toggle-btn" id="arf-btn-${refundId}" onclick="toggleAdminRefunds('${refundId}')">펼치기 ▼</button>
+    </div>
+    <div id="arf-wrap-${refundId}" style="display:none">
+      <div class="refund-wrap"><table>
+        <thead><tr>
+          <th>경과</th><th>나이</th><th>납입누계</th><th>환급금</th><th>환급률</th>
+        </tr></thead>
+        <tbody>${refunds.map(r => {
+          const isMile = r.경과&&(r.경과.includes('납입완료')||r.경과.match(/^(20년|30년)($|[^0-9])/));
+          return `<tr class="${isMile?'milestone':''}">
+            <td>${escHtml(r.경과||'')}</td>
+            <td>${escHtml(String(r.나이||''))}</td>
+            <td>${escHtml(r.납입누계||'-')}</td>
+            <td>${escHtml(r.환급금||'-')}</td>
+            <td>${escHtml(r.환급률||'-')}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>`;
   }
 
   // 보상이력
@@ -1584,14 +1832,28 @@ window.forceCloseAdminSheet = function() {
   document.body.style.overflow = '';
 };
 
+window.toggleAdminRefunds = function(id) {
+  const el = document.getElementById(`arf-wrap-${id}`);
+  const btn = document.getElementById(`arf-btn-${id}`);
+  if (!el) return;
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  if (btn) btn.textContent = open ? '펼치기 ▼' : '접기 ▲';
+};
+
 window.toggleAdminDamboDetail = function(id) {
   const el = document.getElementById(id);
   const hint = document.getElementById(id + '-hint');
   if (!el) return;
   const open = el.style.display === 'block';
   el.style.display = open ? 'none' : 'block';
-  if (hint) hint.textContent = open ? '▼' : '▲';
+  if (hint) hint.textContent = open ? '▼ 상세' : '▲ 접기';
 };
+
+function fmtLargeNum(n) {
+  if (!n || n === 0) return '-';
+  return Math.round(n).toLocaleString() + '원';
+}
 
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

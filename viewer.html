@@ -363,7 +363,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <button class="filter-chip" onclick="setTypeFilter('nonrenew',this)">비갱신형</button>
         <button class="filter-chip" onclick="setTypeFilter('card',this)">💳 카드</button>
       </div>
-      <div class="dambo-search-wrap"><span class="dambo-search-icon">🛡</span><input type="search" id="dambo-filter-input" oninput="renderList()" placeholder="담보명 포함 필터 (예: 뇌, 암)" autocomplete="off"/></div>
+      <div class="dambo-search-wrap"><span class="dambo-search-icon">🛡</span><input type="search" id="dambo-filter-input" oninput="onDamboInput()" placeholder="담보명 포함 필터 (예: 뇌, 암)" autocomplete="off"/></div>
+      <div id="dambo-toggle-wrap" style="display:none;flex-direction:column;gap:6px;margin-bottom:10px;">
+        <div style="display:flex;gap:6px;">
+          <button class="filter-chip active" id="dambo-has-btn" onclick="setDamboMode('has')">✅ 있는 고객</button>
+          <button class="filter-chip" id="dambo-not-btn" onclick="setDamboMode('not')">❌ 없는 고객</button>
+        </div>
+        <div id="dambo-not-notice" style="display:none;font-size:11px;color:var(--red);background:var(--red-light);border-radius:var(--radius-sm);padding:6px 10px;line-height:1.5;">⚠️ 이 담보가 <strong>하나도 없는</strong> 고객 목록이에요</div>
+      </div>
       <div id="list-count" style="font-size:12px;color:var(--text3);margin-bottom:10px;"></div>
       <div id="list-results"></div>
     </div>
@@ -565,6 +572,31 @@ window.doSearch = function() {
 };
 
 // ── 전체 목록 ──
+let damboMode = 'has'; // 'has' | 'not'
+
+window.onDamboInput = function() {
+  const q = (document.getElementById('dambo-filter-input')?.value||'').trim();
+  const wrap = document.getElementById('dambo-toggle-wrap');
+  if (q) {
+    wrap.style.display = 'flex';
+  } else {
+    wrap.style.display = 'none';
+    damboMode = 'has';
+    document.getElementById('dambo-has-btn').classList.add('active');
+    document.getElementById('dambo-not-btn').classList.remove('active');
+    document.getElementById('dambo-not-notice').style.display = 'none';
+  }
+  renderList();
+};
+
+window.setDamboMode = function(mode) {
+  damboMode = mode;
+  document.getElementById('dambo-has-btn').classList.toggle('active', mode==='has');
+  document.getElementById('dambo-not-btn').classList.toggle('active', mode==='not');
+  document.getElementById('dambo-not-notice').style.display = mode==='not' ? 'block' : 'none';
+  renderList();
+};
+
 window.setTypeFilter = function(val, btn) {
   currentFilter = val;
   document.querySelectorAll('#type-filter-bar .filter-chip').forEach(el=>el.classList.remove('active'));
@@ -584,11 +616,17 @@ window.renderList = function() {
   else if (currentFilter === 'renew') list = list.filter(c=>(c.contracts||[]).some(ct=>getCoverages(ct).some(cv=>isRenew(cv))));
   else if (currentFilter === 'nonrenew') list = list.filter(c=>(c.contracts||[]).some(ct=>getCoverages(ct).some(cv=>!isRenew(cv))));
   else if (currentFilter === 'card') list = list.filter(c=>(c.contracts||[]).some(ct=>(ct.payMethod||getV(ct,'납입방법')||'').includes('카드')));
-  // 담보 검색
-  if (damboQ) list = list.filter(c=>(c.contracts||[]).some(ct=>getCoverages(ct).some(cv=>(cv.name||cv.담보명||'').includes(damboQ))));
+  // 담보 검색 (있는 / 없는 토글)
+  if (damboQ) {
+    const hasFn = c => (c.contracts||[]).some(ct=>getCoverages(ct).some(cv=>(cv.name||cv.담보명||'').includes(damboQ)));
+    list = damboMode === 'not' ? list.filter(c=>!hasFn(c)) : list.filter(hasFn);
+  }
   document.getElementById('list-count').textContent = `총 ${list.length}명`;
-  if (!list.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>해당하는 고객이 없어요</p></div>'; return; }
-  el.innerHTML = list.map(c=>renderCustCard(c, damboQ||null)).join('');
+  const emptyMsg = damboQ && damboMode==='not'
+    ? `<div class="empty"><div class="empty-icon">✅</div><p>모든 고객이 "${escHtml(damboQ)}" 담보를 가지고 있어요</p></div>`
+    : '<div class="empty"><div class="empty-icon">📋</div><p>해당하는 고객이 없어요</p></div>';
+  if (!list.length) { el.innerHTML=emptyMsg; return; }
+  el.innerHTML = list.map(c=>renderCustCard(c, damboMode==='has'?(damboQ||null):null)).join('');
 };
 
 function renderCustCard(c, highlight) {
@@ -610,7 +648,7 @@ function renderCustCard(c, highlight) {
   return `<div class="cust-card" onclick="showDetail('${c._docId||c.id}')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div><div class="cust-name">${escHtml(c.name||'')}</div>
-      <div class="cust-phone">${escHtml(c.phone||'')}${c.birth?' · '+escHtml(c.birth):''}${c.gender?' · '+escHtml(c.gender):''}</div></div>
+      <div class="cust-phone">${c.phone?`<a href="tel:${c.phone.replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">${escHtml(c.phone)}</a>`:''} ${c.birth?' · '+escHtml(c.birth):''}${c.gender?' · '+escHtml(c.gender):''}</div></div>
       ${totalPrem>0?`<div style="font-size:13px;font-weight:700;color:var(--accent)">${Math.round(totalPrem).toLocaleString()}원</div>`:''}
     </div>
     <div class="cust-meta">
@@ -798,7 +836,7 @@ window.showDetail = function(id) {
   const totalPrem = contracts.reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
   let html = `<div class="detail-header">
     <div class="detail-name">${escHtml(c.name||'')}</div>
-    <div class="detail-sub">${escHtml(c.phone||'')}${c.birth?' · '+escHtml(c.birth):''}${c.gender?' · '+escHtml(c.gender):''}</div>
+    <div class="detail-sub">${c.phone?`<a href="tel:${c.phone.replace(/[^0-9+]/g,'')}" style="color:inherit;text-decoration:none;">📞 ${escHtml(c.phone)}</a>`:''} ${c.birth?' · '+escHtml(c.birth):''}${c.gender?' · '+escHtml(c.gender):''}</div>
     ${totalPrem>0?`<div class="detail-premium"><div class="detail-premium-lbl">월 납입 보험료 합계</div><div class="detail-premium-val">${fmt(totalPrem)}</div></div>`:''}
   </div>`;
   const rj0 = contracts[0]?.rawJson||{};
