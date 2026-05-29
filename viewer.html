@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>내 고객 계약 조회</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -21,11 +21,13 @@
   --shadow:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.10);--shadow-lg:0 8px 24px rgba(0,0,0,.13);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+html,body{overflow-x:hidden;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
-.app{max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh;}
+.app{overflow-x:hidden;}
+.app{max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
 
 /* ── 헤더 ── */
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px 0;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04);}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:calc(14px + env(safe-area-inset-top)) 16px 0;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04);}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .logo{font-size:17px;font-weight:800;letter-spacing:-.3px;}.logo span{color:var(--accent);}
 .agent-badge{font-size:11px;background:var(--accent-light);color:var(--accent);padding:4px 11px;border-radius:20px;font-weight:700;border:1px solid rgba(59,91,219,.12);}
@@ -106,7 +108,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .contract-premium{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-.3px;}
 .contract-meta{display:flex;flex-wrap:wrap;gap:5px;}
 /* 인포 그리드 */
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px;}
 .info-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;}
 .info-cell.full{grid-column:1/-1;}
 .info-key{font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
@@ -166,8 +168,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 /* 시트 */
 .sheet-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;backdrop-filter:blur(2px);}
 .sheet-overlay.active{display:flex;}
-.sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto;padding:0 16px 40px;}
-.sheet-header{position:sticky;top:0;background:var(--surface);padding:14px 0 12px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto;padding:0 16px calc(40px + env(safe-area-inset-bottom));}
+.sheet-header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);padding:calc(14px + env(safe-area-inset-top,0px)) 0 12px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:14px;}
 .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;}
 .sheet-close{position:absolute;right:0;top:10px;background:var(--surface2);border:none;border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:background .15s;}
 .sheet-close:hover{background:var(--border);}
@@ -265,7 +267,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .search-wrap input{font-size:14px;}
   .header{padding:12px 12px 0;}
   .content{padding:12px;}
-  .info-grid{grid-template-columns:1fr;}
+  
 }
 /* ── 실적 탭 ── */
 .perf-select-row{display:flex;gap:8px;margin-bottom:14px;}
@@ -345,7 +347,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <button class="search-mode-btn active" id="mode-name-btn" onclick="setSearchMode('name')">👤 이름/전화</button>
         <button class="search-mode-btn" id="mode-dambo-btn" onclick="setSearchMode('dambo')">🛡 담보명</button>
       </div>
-      <div class="search-wrap"><span class="search-icon">🔍</span><input type="search" id="search-input" oninput="doSearch()" autocomplete="off" placeholder="고객 이름 또는 전화번호"/></div>
+      <div class="search-wrap"><span class="search-icon">🔍</span><input type="search" id="search-input" oninput="doSearch()" onsearch="doSearch()" onkeyup="doSearch()" autocomplete="off" placeholder="고객 이름 또는 전화번호"/></div>
       <div id="search-results"></div>
     </div>
     <!-- 전체 목록 -->
@@ -363,7 +365,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <button class="filter-chip" onclick="setTypeFilter('nonrenew',this)">비갱신형</button>
         <button class="filter-chip" onclick="setTypeFilter('card',this)">💳 카드</button>
       </div>
-      <div class="dambo-search-wrap"><span class="dambo-search-icon">🛡</span><input type="search" id="dambo-filter-input" oninput="onDamboInput()" placeholder="담보명 포함 필터 (예: 뇌, 암)" autocomplete="off"/></div>
+      <div class="dambo-search-wrap"><span class="dambo-search-icon">🛡</span><input type="search" id="dambo-filter-input" oninput="onDamboInput()" onsearch="onDamboInput()" placeholder="담보명 포함 필터 (예: 뇌, 암)" autocomplete="off"/></div>
       <div id="dambo-toggle-wrap" style="display:none;flex-direction:column;gap:6px;margin-bottom:10px;">
         <div style="display:flex;gap:6px;">
           <button class="filter-chip active" id="dambo-has-btn" onclick="setDamboMode('has')">✅ 있는 고객</button>
@@ -888,6 +890,7 @@ window.openContractSheet = function(custId, ctId) {
   currentSheetCtId = ctId;
   renderSheet(custId, ctId);
   document.getElementById('sheet-overlay').classList.add('active');
+  history.pushState({sheet: true}, '');
   document.body.style.overflow = 'hidden';
 };
 
@@ -1315,7 +1318,20 @@ function showScreen(name) {
 }
 window.goBack = function() { showScreen(prevScreen); currentCustomerId=null; };
 window.closeSheet = function(e) { if(e.target===document.getElementById('sheet-overlay')) forceCloseSheet(); };
-window.forceCloseSheet = function() { document.getElementById('sheet-overlay').classList.remove('active'); document.body.style.overflow=''; currentSheetCustId=null; currentSheetCtId=null; };
+window.forceCloseSheet = function(skipHistory) {
+  document.getElementById('sheet-overlay').classList.remove('active');
+  document.body.style.overflow='';
+  currentSheetCustId=null; currentSheetCtId=null;
+  if (!skipHistory && history.state?.sheet) history.back();
+};
+window.addEventListener('popstate', function(e) {
+  const overlay = document.getElementById('sheet-overlay');
+  if (overlay && overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+    document.body.style.overflow='';
+    currentSheetCustId=null; currentSheetCtId=null;
+  }
+});
 
 // ── 유틸 ──
 function getCust(id) { return customers.find(x=>(x._docId||x.id)===id); }
@@ -1324,7 +1340,7 @@ function getCoverages(ct) { return ct.coverages||ct.rawJson?.담보목록||[]; }
 function isLife(s) { return /생명|라이프/.test(s||''); }
 function isRenew(cv) { return /갱신형/.test(cv.renew||cv.갱신여부||''); }
 function fmt(n) { return Number(String(n).replace(/,/g,'')).toLocaleString()+'원'; }
-function ic(k,v) { return v?`<div class="info-cell"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v))}</div></div>`:''; }
+function ic(k,v) { if(!v) return ''; const long = ['상품명','특이사항','납입면제조건'].includes(k)||String(v).length>14; return `<div class="info-cell${long?' full':''}"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v))}</div></div>`; }
 function icEdit(k,v,editFn) { return `<div class="info-cell info-cell-editable" style="position:relative;"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v||''))}</div><button class="info-edit-btn" onclick="${editFn}" title="편집">✏️</button></div>`; }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function showError(msg) { document.getElementById('loading-screen').style.display='none'; document.getElementById('error-msg').innerHTML=msg.replace(/\n/g,'<br>'); document.getElementById('error-screen').classList.add('show'); }
