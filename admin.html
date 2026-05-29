@@ -1225,6 +1225,9 @@ window.saveUploadContract = async function() {
       refunds: d.해약환급금 || [],
       uploadedAt: new Date().toISOString(),
       uploadedBy: currentAdmin?.uid || '',
+      설계번호: d.설계번호 || null,
+      청약번호: d.청약번호 || null,
+      발행번호: d.발행번호 || null,
     };
 
     if (selectedCustomerId === 'NEW') {
@@ -1250,36 +1253,48 @@ window.saveUploadContract = async function() {
       const existing = customersCache.find(c => c._docId === selectedCustomerId);
       if (!existing) { showToast('❌ 고객 데이터를 찾을 수 없어요.'); btn.disabled=false; btn.textContent='💾 저장하기'; return; }
 
-      // 같은 보험사+상품명 중복 체크
+      // 중복 체크: 설계번호/청약번호 우선, 없으면 보험사+상품명
       const dupIdx = (existing.contracts||[]).findIndex(ct => {
-        const co = (ct.company||ct.rawJson?.보험사||'').trim();
-        const pr = (ct.product||ct.rawJson?.상품명||'').trim();
-        const nc = (newContract.company||'').trim();
-        const np = (newContract.product||'').trim();
-        return co && pr && co === nc && pr === np;
+        const 설기존 = ct.설계번호 || ct.rawJson?.설계번호;
+        const 청기존 = ct.청약번호 || ct.rawJson?.청약번호;
+        const 발기존 = ct.발행번호 || ct.rawJson?.발행번호;
+        const 설신규 = newContract.설계번호;
+        const 청신규 = newContract.청약번호;
+        const 발신규 = newContract.발행번호;
+        // 고유번호로 정확히 일치하면 중복
+        if (설기존 && 설신규 && 설기존 === 설신규) return true;
+        if (청기존 && 청신규 && 청기존 === 청신규) return true;
+        if (발기존 && 발신규 && 발기존 === 발신규) return true;
+        // 고유번호 없으면 보험사+상품명으로 체크
+        const 고유없음 = !설기존 && !청기존 && !발기존 && !설신규 && !청신규 && !발신규;
+        if (고유없음) {
+          const co = (ct.company||ct.rawJson?.보험사||'').trim();
+          const pr = (ct.product||ct.rawJson?.상품명||'').trim();
+          const nc = (newContract.company||'').trim();
+          const np = (newContract.product||'').trim();
+          return co && pr && co === nc && pr === np;
+        }
+        return false;
       });
 
       let updatedContracts;
       if (dupIdx !== -1) {
         // 중복 발견 → 확인창
-        const oldCt = existing.contracts[dupIdx];
+        const _ct = existing.contracts[dupIdx];
+        const _key = (_ct.설계번호||_ct.rawJson?.설계번호) ? `설계번호: ${_ct.설계번호||_ct.rawJson?.설계번호}`
+          : (_ct.청약번호||_ct.rawJson?.청약번호) ? `청약번호: ${_ct.청약번호||_ct.rawJson?.청약번호}`
+          : (_ct.발행번호||_ct.rawJson?.발행번호) ? `발행번호: ${_ct.발행번호||_ct.rawJson?.발행번호}`
+          : `${newContract.company} · ${newContract.product}`;
         const confirmed = window.confirm(
-          `"${newContract.company} · ${newContract.product}" 계약이 이미 있어요.
-
-기존 계약을 새 데이터로 대체할까요?
-
-✅ 메모·보상이력은 그대로 유지됩니다.
-
-[확인] 대체  [취소] 새로 추가`
+          `중복 계약이 발견됐어요!\n📌 ${_key}\n\n기존 계약을 새 데이터로 대체할까요?\n\n✅ 메모·보상이력은 그대로 유지됩니다.\n\n[확인] 대체  [취소] 새로 추가`
         );
         if (confirmed) {
-          // 기존 id·coverageMeta 보존, 나머지 교체
           const merged = {
             ...newContract,
-            id: oldCt.id,
-            coverageMeta: oldCt.coverageMeta || {},
-            claimHistory: oldCt.claimHistory || [],
-            contractMemo: oldCt.contractMemo || '',
+            id: _ct.id,
+            coverageMeta: _ct.coverageMeta || {},
+            claimHistory: _ct.claimHistory || [],
+            contractMemo: _ct.contractMemo || '',
           };
           updatedContracts = [...(existing.contracts||[])];
           updatedContracts[dupIdx] = merged;
