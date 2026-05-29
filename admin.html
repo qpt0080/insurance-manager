@@ -1246,19 +1246,60 @@ window.saveUploadContract = async function() {
       await setDoc(doc(db,'customers',newDocId), newCust);
       showToast(`✅ 신규 고객 "${custName}" 생성 + 계약 저장 완료!`);
     } else {
-      // 기존 고객에 계약 추가
+      // 기존 고객에 계약 추가 or 대체
       const existing = customersCache.find(c => c._docId === selectedCustomerId);
       if (!existing) { showToast('❌ 고객 데이터를 찾을 수 없어요.'); btn.disabled=false; btn.textContent='💾 저장하기'; return; }
-      const updatedContracts = [...(existing.contracts||[]), newContract];
+
+      // 같은 보험사+상품명 중복 체크
+      const dupIdx = (existing.contracts||[]).findIndex(ct => {
+        const co = (ct.company||ct.rawJson?.보험사||'').trim();
+        const pr = (ct.product||ct.rawJson?.상품명||'').trim();
+        const nc = (newContract.company||'').trim();
+        const np = (newContract.product||'').trim();
+        return co && pr && co === nc && pr === np;
+      });
+
+      let updatedContracts;
+      if (dupIdx !== -1) {
+        // 중복 발견 → 확인창
+        const oldCt = existing.contracts[dupIdx];
+        const confirmed = window.confirm(
+          `"${newContract.company} · ${newContract.product}" 계약이 이미 있어요.
+
+기존 계약을 새 데이터로 대체할까요?
+
+✅ 메모·보상이력은 그대로 유지됩니다.
+
+[확인] 대체  [취소] 새로 추가`
+        );
+        if (confirmed) {
+          // 기존 id·coverageMeta 보존, 나머지 교체
+          const merged = {
+            ...newContract,
+            id: oldCt.id,
+            coverageMeta: oldCt.coverageMeta || {},
+            claimHistory: oldCt.claimHistory || [],
+            contractMemo: oldCt.contractMemo || '',
+          };
+          updatedContracts = [...(existing.contracts||[])];
+          updatedContracts[dupIdx] = merged;
+          showToast(`✅ "${existing.name}" 계약 대체 완료! (메모·보상이력 보존)`);
+        } else {
+          // 그냥 추가
+          updatedContracts = [...(existing.contracts||[]), newContract];
+          showToast(`✅ "${existing.name}" 고객에 계약 추가 완료!`);
+        }
+      } else {
+        updatedContracts = [...(existing.contracts||[]), newContract];
+        showToast(`✅ "${existing.name}" 고객에 계약 추가 완료!`);
+      }
+
       const updatePayload = { contracts: updatedContracts };
-      // 선택한 설계사가 기존과 다르면 담당 설계사 변경
       if (agentUid && agentUid !== existing.agentId) {
         updatePayload.agentId = agentUid;
         updatePayload.agentName = agent?.name || '';
       }
       await updateDoc(doc(db,'customers',selectedCustomerId), updatePayload);
-      const agentChanged = agentUid && agentUid !== existing.agentId;
-      showToast(`✅ "${existing.name}" 고객에 계약 추가 완료!${agentChanged ? ` (담당: ${agent?.name||''})` : ''}`);
     }
 
     // 초기화
