@@ -817,7 +817,6 @@ window.onPerfMonthChange = function() {
 };
 
 // ── 고객 상세 ──
-window.showDetail = function(id) {
 window.showDetail = function(id, skipHistory) {
   const active = ['search','list','performance'].find(t=>document.getElementById('screen-'+t).classList.contains('active'));
   if (active) prevScreen = active;
@@ -1346,6 +1345,6 @@ function showError(msg) { document.getElementById('loading-screen').style.displa
 
 init();
 </script>
-<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.30-0100</div>
+<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.30-0130</div>
 </body>
 </html>
