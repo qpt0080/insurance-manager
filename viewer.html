@@ -169,11 +169,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .sheet-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;backdrop-filter:blur(2px);}
 .sheet-overlay.active{display:flex;}
 .sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto;overflow-x:hidden;padding:0 16px calc(40px + env(safe-area-inset-bottom));}
-.sheet-header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);padding:calc(14px + env(safe-area-inset-top,0px)) 0 12px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.sheet-header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);padding:calc(10px + env(safe-area-inset-top,0px)) 0 8px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:14px;}
 .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:4px;cursor:pointer;transition:background .15s;padding:10px 24px;box-sizing:content-box;background-clip:content-box;}
 .sheet-handle:hover{background:var(--text3);background-clip:content-box;}
-.sheet-title{font-size:16px;font-weight:800;text-align:center;letter-spacing:-.3px;word-break:break-word;overflow-wrap:break-word;}
-.sheet-sub{font-size:12px;color:var(--text2);margin-top:2px;text-align:center;}
 /* 의료 */
 .medical-box{background:var(--purple-light);border:1px solid #C4B5FD;border-radius:var(--radius);padding:14px;margin-bottom:12px;}
 .medical-item{background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:1px solid #C4B5FD;}
@@ -394,7 +392,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <!-- 계약 상세 시트 -->
 <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
   <div class="sheet" id="sheet-inner">
-    <div class="sheet-header"><div class="sheet-handle"></div><div class="sheet-title" id="sheet-title"></div><div class="sheet-sub" id="sheet-sub"></div></div>
+    <div class="sheet-header"><div class="sheet-handle"></div></div>
     <div id="sheet-content"></div>
   </div>
 </div>
@@ -908,9 +906,6 @@ function renderSheet(custId, ctId) {
   const isCard = payMethod.includes('카드');
   const coverageMeta = ct.coverageMeta||[];
 
-  document.getElementById('sheet-title').textContent = `${company} · ${product}`;
-  document.getElementById('sheet-sub').textContent = `${c.name||''} · ${ct.payPeriod||rj.납입기간||''} · ${ct.expiryDate||rj.보험기간||''}`.replace(/^ · | · $/g,'').replace(/ · {2,}/g,' · ');
-
   let html = '';
 
   // 기본 정보
@@ -1378,6 +1373,6 @@ function showError(msg) { document.getElementById('loading-screen').style.displa
 
 init();
 </script>
-<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.29-2330</div>
+<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.29-2345</div>
 </body>
 </html>
