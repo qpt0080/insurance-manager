@@ -166,12 +166,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .card-box-company{font-size:13px;font-weight:700;color:var(--amber);}
 .card-box-detail{font-size:11px;color:var(--amber);margin-top:2px;}
 /* 시트 */
-.sheet-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;backdrop-filter:blur(2px);}
-.sheet-overlay.active{display:flex;}
-.sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto;overflow-x:hidden;padding:0 16px calc(40px + env(safe-area-inset-bottom));}
-.sheet-header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);padding:calc(10px + env(safe-area-inset-top,0px)) 0 8px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:14px;}
-.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:4px;cursor:pointer;transition:background .15s;padding:10px 24px;box-sizing:content-box;background-clip:content-box;}
-.sheet-handle:hover{background:var(--text3);background-clip:content-box;}
+/* ── 계약 상세 화면 슬라이드인 ── */
+#screen-contract.active{animation:slideInRight .22s ease-out;}
+@keyframes slideInRight{from{transform:translateX(10px);opacity:0}to{transform:translateX(0);opacity:1}}
 /* 의료 */
 .medical-box{background:var(--purple-light);border:1px solid #C4B5FD;border-radius:var(--radius);padding:14px;margin-bottom:12px;}
 .medical-item{background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:1px solid #C4B5FD;}
@@ -257,7 +254,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .cust-name{font-size:14px;}
   .search-mode-wrap{gap:4px;}
   .detail-name{font-size:18px;}
-  .sheet{padding:0 12px 32px;}
   .dambo-top-meta{max-width:42%;}
 }
 @media (max-width:380px){
@@ -386,14 +382,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div class="detail-nav"><button class="back-btn" onclick="goBack()">← 뒤로</button></div>
       <div id="detail-content"></div>
     </div>
-  </div>
-</div>
-
-<!-- 계약 상세 시트 -->
-<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
-  <div class="sheet" id="sheet-inner">
-    <div class="sheet-header"><div class="sheet-handle"></div></div>
-    <div id="sheet-content"></div>
+    <!-- 계약 상세 (풀스크린) -->
+    <div id="screen-contract" class="screen pb">
+      <div id="contract-content"></div>
+    </div>
   </div>
 </div>
 
@@ -444,6 +436,7 @@ async function init() {
     renderStats();
     buildPeriodChips();
     renderList();
+    history.replaceState({view:'tab', tab:'search'}, '');
   } catch(e) { showError('데이터를 불러오지 못했습니다.'); }
 }
 
@@ -459,7 +452,7 @@ window.refreshData = async function() {
     await loadCustomers();
     renderStats(); buildPeriodChips(); renderList();
     if (currentCustomerId) showDetail(currentCustomerId);
-    if (currentSheetCustId && currentSheetCtId) renderSheet(currentSheetCustId, currentSheetCtId);
+    if (currentSheetCustId && currentSheetCtId) renderContractScreen(currentSheetCustId, currentSheetCtId);
     const perfEl = document.getElementById('screen-performance');
     if (perfEl && perfEl.classList.contains('active')) renderPerformance();
   } catch(e) {}
@@ -825,12 +818,14 @@ window.onPerfMonthChange = function() {
 
 // ── 고객 상세 ──
 window.showDetail = function(id) {
+window.showDetail = function(id, skipHistory) {
   const active = ['search','list','performance'].find(t=>document.getElementById('screen-'+t).classList.contains('active'));
   if (active) prevScreen = active;
   currentCustomerId = id;
   const c = getCust(id);
   if (!c) return;
   showScreen('detail');
+  if (!skipHistory) history.pushState({view:'detail', custId:id}, '');
   const contracts = c.contracts||[];
   const totalPrem = contracts.reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
   let html = `<div class="detail-header">
@@ -861,7 +856,7 @@ window.showDetail = function(id) {
     const claimedCount=meta.filter(m=>m&&m.claimed).length;
     const memoCount=meta.filter(m=>m&&m.memo).length;
     const p=parsePeriod(ct);
-    return `<div class="contract-card" onclick="openContractSheet('${c._docId||c.id}','${ct.id}')">
+    return `<div class="contract-card" onclick="openContractScreen('${c._docId||c.id}','${ct.id}')">
       <div class="contract-header">
         <div><div class="contract-name">${escHtml(company)} · ${escHtml(product)}</div></div>
         ${prem>0?`<div class="contract-premium">${fmt(prem)}</div>`:''}
@@ -881,17 +876,16 @@ window.showDetail = function(id) {
   document.getElementById('detail-content').innerHTML = html;
 };
 
-// ── 계약 상세 시트 ──
-window.openContractSheet = function(custId, ctId) {
+// ── 계약 상세 (풀스크린) ──
+window.openContractScreen = function(custId, ctId, skipHistory) {
   currentSheetCustId = custId;
   currentSheetCtId = ctId;
-  renderSheet(custId, ctId);
-  document.getElementById('sheet-overlay').classList.add('active');
-  history.pushState({sheet: true}, '');
-  document.body.style.overflow = 'hidden';
+  renderContractScreen(custId, ctId);
+  showScreen('contract');
+  if (!skipHistory) history.pushState({view:'contract', custId, ctId}, '');
 };
 
-function renderSheet(custId, ctId) {
+function renderContractScreen(custId, ctId) {
   const c = getCust(custId);
   if (!c) return;
   const ct = (c.contracts||[]).find(x=>x.id===ctId);
@@ -1114,7 +1108,7 @@ function renderSheet(custId, ctId) {
     </div>
   </div>`;
 
-  document.getElementById('sheet-content').innerHTML = html;
+  document.getElementById('contract-content').innerHTML = html;
 }
 
 // ── 담보 메타 (메모 + 보상력) ──
@@ -1141,7 +1135,7 @@ window.toggleClaimed = async function(custId, ctId, idx) {
   const ct = (c.contracts||[]).find(x=>x.id===ctId);
   const meta = getDamboCoverageMeta(ct, idx);
   await saveOneCoverageMeta(custId, ctId, idx, {claimed: !meta.claimed});
-  renderSheet(custId, ctId);
+  renderContractScreen(custId, ctId);
 };
 
 window.toggleDamboEdit = function(sheetId, idx) {
@@ -1187,7 +1181,7 @@ window.saveDamboMeta = async function(custId, ctId, idx, sheetId) {
   const claimDate = (document.getElementById(`dcd-${sheetId}-${idx}`)?.value||'').trim();
   const claimNote = (document.getElementById(`dcn-${sheetId}-${idx}`)?.value||'').trim();
   await saveOneCoverageMeta(custId, ctId, idx, {memo, claimed, claimDate, claimNote});
-  renderSheet(custId, ctId);
+  renderContractScreen(custId, ctId);
 };
 
 // ── 보상이력 ──
@@ -1205,7 +1199,7 @@ window.addClaim = async function(custId, ctId) {
     await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
-    renderSheet(custId, ctId);
+    renderContractScreen(custId, ctId);
   } catch(e) { alert('저장 실패: '+e.message); }
 };
 
@@ -1220,7 +1214,7 @@ window.deleteClaim = async function(custId, ctId, claimIdx) {
     await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
-    renderSheet(custId, ctId);
+    renderContractScreen(custId, ctId);
   } catch(e) { alert('삭제 실패: '+e.message); }
 };
 
@@ -1241,7 +1235,7 @@ window.saveMemo = async function(custId, ctId) {
     await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
-    renderSheet(custId, ctId);
+    renderContractScreen(custId, ctId);
     if (currentCustomerId) showDetail(currentCustomerId);
   } catch(e) { alert('저장 실패: '+e.message); }
 };
@@ -1296,68 +1290,47 @@ window.savePayMethod = async function(custId, ctId, ctSafeId) {
     await updateDoc(doc(db,'customers',custId), {contracts: updatedContracts});
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
-    renderSheet(custId, ctId);
+    renderContractScreen(custId, ctId);
   } catch(e) { alert('저장 실패: '+e.message); }
 };
-window.showTab = function(tab) {
+window.showTab = function(tab, skipHistory) {
   ['search','list','performance'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById('screen-'+t).classList.toggle('active',t===tab);
   });
   document.getElementById('screen-detail').classList.remove('active');
+  document.getElementById('screen-contract').classList.remove('active');
   if (tab === 'list') renderList();
   if (tab === 'performance') renderPerformance();
+  if (!skipHistory) history.replaceState({view:'tab', tab}, '');
 };
 function showScreen(name) {
-  ['search','list','performance','detail'].forEach(s=>document.getElementById('screen-'+s).classList.toggle('active',s===name));
+  ['search','list','performance','detail','contract'].forEach(s=>
+    document.getElementById('screen-'+s).classList.toggle('active',s===name)
+  );
   if (['search','list','performance'].includes(name)) {
-    ['search','list','performance'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===name));
+    ['search','list','performance'].forEach(t=>
+      document.getElementById('tab-'+t).classList.toggle('active',t===name)
+    );
   }
 }
-window.goBack = function() { showScreen(prevScreen); currentCustomerId=null; };
-window.closeSheet = function(e) { if(e.target===document.getElementById('sheet-overlay')) forceCloseSheet(); };
-window.forceCloseSheet = function(skipHistory) {
-  document.getElementById('sheet-overlay').classList.remove('active');
-  document.body.style.overflow='';
-  currentSheetCustId=null; currentSheetCtId=null;
-  if (!skipHistory && history.state?.sheet) history.back();
-};
+window.goBack = function() { history.back(); };
 window.addEventListener('popstate', function(e) {
-  const overlay = document.getElementById('sheet-overlay');
-  if (overlay && overlay.classList.contains('active')) {
-    overlay.classList.remove('active');
-    document.body.style.overflow='';
-    currentSheetCustId=null; currentSheetCtId=null;
+  const s = e.state;
+  if (!s || s.view === 'tab') {
+    const tab = s?.tab || prevScreen || 'search';
+    showScreen(tab);
+    ['search','list','performance'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===tab));
+    currentCustomerId = null; currentSheetCustId = null; currentSheetCtId = null;
+  } else if (s.view === 'detail') {
+    showDetail(s.custId, true);
+    currentSheetCustId = null; currentSheetCtId = null;
+  } else if (s.view === 'contract') {
+    currentSheetCustId = s.custId; currentSheetCtId = s.ctId;
+    renderContractScreen(s.custId, s.ctId);
+    showScreen('contract');
   }
 });
-
-// ── 스와이프 다운으로 시트 닫기 ──
-(function() {
-  const sheet = document.getElementById('sheet-inner');
-  let startY = 0, startScroll = 0;
-  sheet.addEventListener('touchstart', function(e) {
-    startY = e.touches[0].clientY;
-    startScroll = this.scrollTop;
-  }, {passive:true});
-  sheet.addEventListener('touchmove', function(e) {
-    const dy = e.touches[0].clientY - startY;
-    if (dy > 0 && startScroll === 0) {
-      this.style.transform = `translateY(${dy}px)`;
-      this.style.transition = 'none';
-    }
-  }, {passive:true});
-  sheet.addEventListener('touchend', function(e) {
-    const dy = e.changedTouches[0].clientY - startY;
-    this.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
-    if (dy > 80 && startScroll === 0) {
-      this.style.transform = 'translateY(100%)';
-      setTimeout(() => { this.style.transform=''; this.style.transition=''; forceCloseSheet(); }, 280);
-    } else {
-      this.style.transform = '';
-      setTimeout(() => { this.style.transition = ''; }, 280);
-    }
-  }, {passive:true});
-})();
 
 // ── 유틸 ──
 function getCust(id) { return customers.find(x=>(x._docId||x.id)===id); }
@@ -1373,6 +1346,6 @@ function showError(msg) { document.getElementById('loading-screen').style.displa
 
 init();
 </script>
-<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.29-2345</div>
+<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.30-0100</div>
 </body>
 </html>
