@@ -620,7 +620,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <div id="admin-sheet-overlay" onclick="closeAdminSheet(event)" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:flex-end;backdrop-filter:blur(2px);">
   <div id="admin-sheet-inner" style="background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:720px;margin:0 auto;max-height:92vh;overflow-y:auto;overflow-x:hidden;padding:0 20px 44px;">
     <div style="position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);padding:calc(14px + env(safe-area-inset-top,0px)) 0 12px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:18px;">
-      <div onclick="forceCloseAdminSheet()" style="width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--text3)'" onmouseout="this.style.background='var(--border)'"></div>
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;"></div>
       <div id="admin-sheet-title" style="font-size:17px;font-weight:800;text-align:center;letter-spacing:-.4px;word-break:break-word;overflow-wrap:break-word;"></div>
       <div id="admin-sheet-sub" style="font-size:12px;color:var(--text2);margin-top:3px;text-align:center;"></div>
     </div>
@@ -1624,12 +1624,23 @@ window.renderContractsList = function() {
       const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
       const dateStr = ym ? `${ym[1]}.${ym[2].padStart(2,'0')}` : '';
       const ctId2 = ct.id||'ci'+i;
+      const cvs = ct.coverages||ct.rawJson?.담보목록||[];
+      const hasRenewCov = cvs.some(cv => /갱신형/.test(cv.renew||cv.갱신여부||''));
+      const isCard = (ct.payMethod||ct.rawJson?.납입방법||'').includes('카드');
+      const claimedCount = (ct.coverageMeta||[]).filter(m=>m&&m.claimed).length;
+      const claimsLen = (ct.claims||[]).length;
+      const payPeriod = ct.payPeriod||ct.rawJson?.납입기간||'';
       return `<div class="cm-ct-row${isTemp?' is-temp':''}" onclick="event.stopPropagation();openAdminContractDetail('${c._docId}','${ctId2}')">
         <div class="cm-ct-body">
           <div class="cm-ct-name">${escHtml(company)}${company&&product?' · ':''}${escHtml(product)}${isTemp?' <span style="color:var(--amber);font-size:10px;font-weight:800;background:rgba(180,83,9,.12);padding:1px 6px;border-radius:6px;">⚠ 가설계</span>':''}</div>
           <div class="cm-ct-sub">
             ${dateStr?`<span>${escHtml(dateStr)}</span>`:''}
-            <span style="color:var(--text3);">탭하여 상세보기</span>
+            ${payPeriod?`<span class="chip" style="font-size:10px;padding:1px 7px;">${escHtml(payPeriod)}</span>`:''}
+            ${cvs.length?`<span class="chip blue" style="font-size:10px;padding:1px 7px;">${cvs.length}개 담보</span>`:''}
+            ${hasRenewCov?'<span class="chip amber" style="font-size:10px;padding:1px 7px;">갱신형</span>':''}
+            ${isCard?'<span class="chip" style="font-size:10px;padding:1px 7px;">💳 카드</span>':''}
+            ${claimsLen?`<span class="chip green" style="font-size:10px;padding:1px 7px;">보상이력 ${claimsLen}건</span>`:''}
+            ${claimedCount?`<span class="chip amber" style="font-size:10px;padding:1px 7px;">🏆 보상력 ${claimedCount}</span>`:''}
           </div>
         </div>
         <div class="cm-ct-prem">${escHtml(prem)}</div>
@@ -1897,6 +1908,34 @@ window.addEventListener('popstate', function() {
   }
 });
 
+// ── 스와이프 다운으로 시트 닫기 ──
+(function() {
+  const sheet = document.getElementById('admin-sheet-inner');
+  let startY = 0, startScroll = 0;
+  sheet.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY;
+    startScroll = this.scrollTop;
+  }, {passive:true});
+  sheet.addEventListener('touchmove', function(e) {
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0 && startScroll === 0) {
+      this.style.transform = `translateY(${dy}px)`;
+      this.style.transition = 'none';
+    }
+  }, {passive:true});
+  sheet.addEventListener('touchend', function(e) {
+    const dy = e.changedTouches[0].clientY - startY;
+    this.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
+    if (dy > 80 && startScroll === 0) {
+      this.style.transform = 'translateY(100%)';
+      setTimeout(() => { this.style.transform=''; this.style.transition=''; forceCloseAdminSheet(); }, 280);
+    } else {
+      this.style.transform = '';
+      setTimeout(() => { this.style.transition = ''; }, 280);
+    }
+  }, {passive:true});
+})();
+
 window.toggleAdminRefunds = function(id) {
   const el = document.getElementById(`arf-wrap-${id}`);
   const btn = document.getElementById(`arf-btn-${id}`);
@@ -1924,6 +1963,6 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.05.29-2230</div>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.05.29-2330</div>
 </body>
 </html>

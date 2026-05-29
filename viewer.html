@@ -393,8 +393,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 <!-- 계약 상세 시트 -->
 <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
-  <div class="sheet">
-    <div class="sheet-header"><div class="sheet-handle" onclick="forceCloseSheet()"></div><div class="sheet-title" id="sheet-title"></div><div class="sheet-sub" id="sheet-sub"></div></div>
+  <div class="sheet" id="sheet-inner">
+    <div class="sheet-header"><div class="sheet-handle"></div><div class="sheet-title" id="sheet-title"></div><div class="sheet-sub" id="sheet-sub"></div></div>
     <div id="sheet-content"></div>
   </div>
 </div>
@@ -909,7 +909,7 @@ function renderSheet(custId, ctId) {
   const coverageMeta = ct.coverageMeta||[];
 
   document.getElementById('sheet-title').textContent = `${company} · ${product}`;
-  document.getElementById('sheet-sub').textContent = `${ct.payPeriod||rj.납입기간||''} · ${ct.expiryDate||rj.보험기간||(rj.보험기간||'')}`;
+  document.getElementById('sheet-sub').textContent = `${c.name||''} · ${ct.payPeriod||rj.납입기간||''} · ${ct.expiryDate||rj.보험기간||''}`.replace(/^ · | · $/g,'').replace(/ · {2,}/g,' · ');
 
   let html = '';
 
@@ -921,7 +921,9 @@ function renderSheet(custId, ctId) {
 
   html += `<div class="sec-label" style="margin-top:0">계약 정보</div>
   <div class="info-grid">
-    ${ic('보험사',company)}${ic('상품명',product)}${ic('계약일',ct.startDate||rj.계약일)}
+    ${ic('보험사',company)}${ic('상품명',product)}
+    ${ic('계약자',c.name||rj.계약자)}${ic('피보험자',rj.피보험자||c.name||'')}
+    ${ic('계약일',ct.startDate||rj.계약일)}
     ${ic('보험기간',ct.expiryDate||rj.보험기간)}${ic('납입기간',ct.payPeriod||rj.납입기간)}
     ${icEdit('납입방법', payMethod||'미입력', `togglePayEdit('${custId}','${ctId}','${ctSafeId}')`)}
     ${ic('월 보험료',ct.premium?fmt(ct.premium):rj.월보험료)}
@@ -1334,6 +1336,34 @@ window.addEventListener('popstate', function(e) {
   }
 });
 
+// ── 스와이프 다운으로 시트 닫기 ──
+(function() {
+  const sheet = document.getElementById('sheet-inner');
+  let startY = 0, startScroll = 0;
+  sheet.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY;
+    startScroll = this.scrollTop;
+  }, {passive:true});
+  sheet.addEventListener('touchmove', function(e) {
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0 && startScroll === 0) {
+      this.style.transform = `translateY(${dy}px)`;
+      this.style.transition = 'none';
+    }
+  }, {passive:true});
+  sheet.addEventListener('touchend', function(e) {
+    const dy = e.changedTouches[0].clientY - startY;
+    this.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
+    if (dy > 80 && startScroll === 0) {
+      this.style.transform = 'translateY(100%)';
+      setTimeout(() => { this.style.transform=''; this.style.transition=''; forceCloseSheet(); }, 280);
+    } else {
+      this.style.transform = '';
+      setTimeout(() => { this.style.transition = ''; }, 280);
+    }
+  }, {passive:true});
+})();
+
 // ── 유틸 ──
 function getCust(id) { return customers.find(x=>(x._docId||x.id)===id); }
 function getV(ct,key) { return ct.rawJson?.[key]||''; }
@@ -1348,6 +1378,6 @@ function showError(msg) { document.getElementById('loading-screen').style.displa
 
 init();
 </script>
-<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.29-2230</div>
+<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.29-2330</div>
 </body>
 </html>
