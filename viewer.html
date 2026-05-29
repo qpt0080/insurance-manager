@@ -21,7 +21,7 @@
   --shadow:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.10);--shadow-lg:0 8px 24px rgba(0,0,0,.13);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{overflow-x:hidden;}
+html{overflow-x:hidden;width:100%;overscroll-behavior-x:none;}body{overflow-x:hidden;width:100%;max-width:100vw;overscroll-behavior-x:none;position:relative;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
 .app{overflow-x:hidden;}
 .app{max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
