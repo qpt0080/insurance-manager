@@ -170,12 +170,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .sheet-overlay.active{display:flex;}
 .sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto;overflow-x:hidden;padding:0 16px calc(40px + env(safe-area-inset-bottom));}
 .sheet-header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);padding:calc(14px + env(safe-area-inset-top,0px)) 0 12px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:14px;}
-.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;}
-.sheet-title-row{width:100%;display:flex;align-items:center;gap:8px;padding:0 4px;}
-.sheet-close-spacer{width:32px;flex-shrink:0;}
-.sheet-close{flex-shrink:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:32px;height:32px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.15);}
-.sheet-close:hover{background:var(--border);}
-.sheet-title{flex:1;font-size:16px;font-weight:800;text-align:center;letter-spacing:-.3px;word-break:break-word;overflow-wrap:break-word;}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:4px;cursor:pointer;transition:background .15s;padding:10px 24px;box-sizing:content-box;background-clip:content-box;}
+.sheet-handle:hover{background:var(--text3);background-clip:content-box;}
+.sheet-title{font-size:16px;font-weight:800;text-align:center;letter-spacing:-.3px;word-break:break-word;overflow-wrap:break-word;}
 .sheet-sub{font-size:12px;color:var(--text2);margin-top:2px;text-align:center;}
 /* 의료 */
 .medical-box{background:var(--purple-light);border:1px solid #C4B5FD;border-radius:var(--radius);padding:14px;margin-bottom:12px;}
@@ -397,7 +394,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <!-- 계약 상세 시트 -->
 <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
   <div class="sheet">
-    <div class="sheet-header"><div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-close-spacer"></div><div class="sheet-title" id="sheet-title"></div><button class="sheet-close" onclick="forceCloseSheet()">✕</button></div><div class="sheet-sub" id="sheet-sub"></div></div>
+    <div class="sheet-header"><div class="sheet-handle" onclick="forceCloseSheet()"></div><div class="sheet-title" id="sheet-title"></div><div class="sheet-sub" id="sheet-sub"></div></div>
     <div id="sheet-content"></div>
   </div>
 </div>
