@@ -304,7 +304,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .cm-ct-prem{font-size:12px;}
 }
 
-/* ── 수수료 관리 ── */
+/* ── 시상 등록 현황 ── */
+.award-co-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid;margin:3px;transition:all .15s;}
+.award-co-chip.registered{background:var(--green-light);border-color:var(--green);color:#065F46;}
+.award-co-chip.missing{background:var(--surface2);border-color:var(--border);color:var(--text3);}
+.award-banner{border-radius:var(--radius);padding:12px 16px;margin-bottom:4px;}
+.award-banner.ok{background:var(--green-light);border:1px solid var(--green);}
+.award-banner.warn{background:var(--amber-light);border:1px solid var(--amber);}
+.award-banner.none{background:var(--surface2);border:1px solid var(--border);}
 .comm-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;box-shadow:var(--shadow);}
 .comm-item.pending{border-left:3px solid var(--amber);}
 .comm-item.paid{border-left:3px solid var(--green);opacity:.85;}
@@ -458,6 +465,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div class="stat-lbl">총 보험료</div>
       </div>
     </div>
+    <!-- 이번달 시상 등록 현황 배너 -->
+    <div id="award-status-banner" style="margin-bottom:16px;"></div>
 
     <!-- 미배정 고객 알림 -->
     <div class="card" id="orphan-card" style="display:none;border-color:var(--amber);border-left:4px solid var(--amber);background:linear-gradient(135deg,var(--amber-light) 0%,var(--surface) 60%);">
@@ -656,7 +665,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           </div>
         </div>
         <div class="card">
-          <div class="card-title">📁 저장된 시상 정책</div>
+          <div class="card-title" style="margin-bottom:10px;">📅 시상 등록 현황</div>
+          <!-- 월 선택 -->
+          <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <select id="award-check-year" onchange="renderAwardStatusCard()" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;-webkit-appearance:none;appearance:none;"></select>
+            <select id="award-check-month" onchange="renderAwardStatusCard()" style="width:72px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;-webkit-appearance:none;appearance:none;"></select>
+          </div>
+          <div id="award-status-card"></div>
+          <div class="divider" style="margin:12px 0;"></div>
+          <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;">📁 전체 저장 목록</div>
           <div id="award-saved-list"><div class="empty">불러오는 중...</div></div>
         </div>
       </div>
@@ -933,6 +950,7 @@ async function loadAll() {
   renderAgents();
   renderLinks();
   renderAgentRadios();
+  renderAwardBanner();
 }
 
 async function loadAdminAwards() {
@@ -971,7 +989,7 @@ function buildAdminPerfSelects() {
 
   const yearSet = new Set();
   customersCache.forEach(c => (c.contracts||[]).forEach(ct => {
-    const d = ct.startDate || ct.rawJson?.계약일 || ct.uploadedAt || '';
+    const d = ct.startDate || ct.rawJson?.계약일 || '';
     const m = d.match(/(\d{4})/); if (m) yearSet.add(parseInt(m[1]));
   }));
   const years = [...yearSet].sort().reverse();
@@ -996,7 +1014,7 @@ function refreshAdminMonthSel() {
 
   const monthSet = new Set();
   customersCache.forEach(c => (c.contracts||[]).forEach(ct => {
-    const d = ct.startDate || ct.rawJson?.계약일 || ct.uploadedAt || '';
+    const d = ct.startDate || ct.rawJson?.계약일 || '';
     const m = d.match(/(\d{4})[.\-\/](\d{1,2})/);
     if (m && parseInt(m[1]) === adminPerfYear) monthSet.add(parseInt(m[2]));
   }));
@@ -1026,7 +1044,7 @@ function getContractsForPeriod(custs, year, month, all) {
     (c.contracts||[])
       .filter(ct => {
         if (all || year === 0) return true;
-        const d = ct.startDate || ct.rawJson?.계약일 || ct.uploadedAt || '';
+        const d = ct.startDate || ct.rawJson?.계약일 || '';
         const m = d.match(/(\d{4})[.\-\/](\d{1,2})/);
         if (!m) return false;
         if (parseInt(m[1]) !== year) return false;
@@ -1722,8 +1740,116 @@ window.doLogout = async function() {
 };
 
 // ══════════════════════════════════════════
-// 수수료 관리
+// 시상 등록 현황
 // ══════════════════════════════════════════
+
+// 해당 연도·월에 계약이 있는 보험사 목록
+function getActiveCompanies(year, month) {
+  const set = new Set();
+  customersCache.forEach(c => (c.contracts||[]).forEach(ct => {
+    const p = parsePeriod(ct);
+    if (!p) return;
+    if (p.year !== year || p.month !== month) return;
+    const co = ct.company || ct.rawJson?.보험사 || '';
+    if (co) set.add(co.trim());
+  }));
+  return [...set].sort();
+}
+
+// 이번달 등록된 보험사 목록
+function getRegisteredCompanies(year, month) {
+  return awardsCache
+    .filter(a => a.year === year && a.month === month)
+    .map(a => a.company);
+}
+
+// 대시보드 배너 렌더
+function renderAwardBanner() {
+  const el = document.getElementById('award-status-banner');
+  if (!el) return;
+  const now    = new Date();
+  const year   = now.getFullYear();
+  const month  = now.getMonth() + 1;
+  const active = getActiveCompanies(year, month);
+  const registered = getRegisteredCompanies(year, month);
+  const missing = active.filter(co => !registered.includes(co));
+
+  // 이번달 계약 자체가 없으면 배너 숨김
+  if (!active.length) { el.innerHTML = ''; return; }
+
+  if (missing.length === 0) {
+    el.innerHTML = `<div class="award-banner ok">
+      <div style="font-size:12px;font-weight:700;color:#065F46;margin-bottom:6px;">✅ ${year}년 ${month}월 시상 전체 등록 완료</div>
+      <div style="display:flex;flex-wrap:wrap;">
+        ${registered.map(co=>`<span class="award-co-chip registered">✅ ${escHtml(co)}</span>`).join('')}
+      </div>
+    </div>`;
+  } else {
+    el.innerHTML = `<div class="award-banner warn">
+      <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:6px;">⚠️ ${year}년 ${month}월 미등록 ${missing.length}개사</div>
+      <div style="display:flex;flex-wrap:wrap;margin-bottom:6px;">
+        ${missing.map(co=>`<span class="award-co-chip missing">⬜ ${escHtml(co)}</span>`).join('')}
+      </div>
+      ${registered.length ? `<div style="font-size:10px;color:#92400E;opacity:.7;">등록됨: ${registered.join(', ')}</div>` : ''}
+    </div>`;
+  }
+}
+
+// 업로드 탭 체크카드 렌더
+window.renderAwardStatusCard = function() {
+  const el = document.getElementById('award-status-card');
+  if (!el) return;
+
+  const year  = parseInt(document.getElementById('award-check-year')?.value)  || new Date().getFullYear();
+  const month = parseInt(document.getElementById('award-check-month')?.value) || new Date().getMonth()+1;
+
+  const active     = getActiveCompanies(year, month);
+  const registered = getRegisteredCompanies(year, month);
+  const missing    = active.filter(co => !registered.includes(co));
+
+  if (!active.length) {
+    el.innerHTML = '<div class="empty" style="padding:16px 0;">이 달에 계약이 없어요</div>';
+    return;
+  }
+
+  // 등록됨 + 미등록 순서로
+  const allCos = [
+    ...registered.map(co => ({co, ok: true})),
+    ...missing.map(co => ({co, ok: false}))
+  ];
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--text3);">거래 보험사 ${active.length}개사 기준</div>
+      <div style="font-size:11px;font-weight:700;">
+        <span style="color:var(--green);">✅ ${registered.length}</span>
+        <span style="color:var(--text3);margin:0 4px;">/</span>
+        <span style="color:var(--amber);">⬜ ${missing.length}</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;">
+      ${allCos.map(({co, ok}) =>
+        `<span class="award-co-chip ${ok?'registered':'missing'}">${ok?'✅':'⬜'} ${escHtml(co)}</span>`
+      ).join('')}
+    </div>
+    ${missing.length === 0
+      ? '<div style="font-size:11px;color:var(--green);font-weight:700;margin-top:8px;text-align:center;">🎉 이번달 시상 모두 등록됐어요!</div>'
+      : `<div style="font-size:11px;color:var(--amber);margin-top:8px;">미등록: ${missing.join(', ')}</div>`}`;
+};
+
+// 업로드 탭 연도/월 셀렉트 초기화
+function initAwardCheckSelects() {
+  const now = new Date();
+  const yearSel  = document.getElementById('award-check-year');
+  const monthSel = document.getElementById('award-check-month');
+  if (!yearSel || !monthSel) return;
+  yearSel.innerHTML  = [now.getFullYear(), now.getFullYear()-1]
+    .map(y => `<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}년</option>`).join('');
+  monthSel.innerHTML = [1,2,3,4,5,6,7,8,9,10,11,12]
+    .map(m => `<option value="${m}" ${m===now.getMonth()+1?'selected':''}>${m}월</option>`).join('');
+}
+
+// ──────────────────────────────────────────
 let commViewMode = 'scheduled';
 let commCache    = [];
 
@@ -1764,7 +1890,7 @@ window.onCommSelChange = async function() {
 };
 
 function parsePeriod(ct) {
-  const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
+  const d = ct.startDate||ct.rawJson?.계약일||'';
   const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
   if (ym) return {year:parseInt(ym[1]),month:parseInt(ym[2])};
   const y = d.match(/(\d{4})/);
@@ -2103,7 +2229,9 @@ window.saveAwardJson = async function() {
     });
     status.textContent=`✅ "${company} ${year}년 ${month}월" 저장됐어요!`; status.style.color='var(--green)';
     showToast('✅ 시상 정책이 저장됐어요!');
-    await loadAdminAwards(); // awardsCache 갱신
+    await loadAdminAwards();
+    renderAwardBanner();
+    renderAwardStatusCard();
     loadAwardList();
   } catch(e) {
     status.textContent='❌ 저장 실패: '+e.message; status.style.color='var(--red)';
@@ -2136,6 +2264,9 @@ window.deleteAward = async function(docId, name) {
   try {
     await deleteDoc(doc(db,'awards',docId));
     showToast(`✅ "${name}" 삭제됐어요.`);
+    await loadAdminAwards();
+    renderAwardBanner();
+    renderAwardStatusCard();
     loadAwardList();
   } catch(e) { showToast('❌ 삭제 실패: '+e.message); }
 };
@@ -2147,7 +2278,7 @@ window.switchTab = function(tab) {
   document.getElementById('nav-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if (tab === 'contracts') { buildContractsFilters(); renderContractsList(); }
-  if (tab === 'upload') { loadAwardList(); }
+  if (tab === 'upload') { initAwardCheckSelects(); renderAwardStatusCard(); loadAwardList(); }
   if (tab === 'commission') { initCommissionTab(); }
 };
 
@@ -2227,16 +2358,22 @@ function buildContractsFilters() {
   // 설계사 버튼
   const agentBar = document.getElementById('cm-agent-bar');
   if (agentBar) {
-    agentBar.innerHTML = agentsCache.map(a =>
+    const orphanCount = customersCache.filter(c => !c.agentId || !agentsCache.find(a => a.uid === c.agentId)).length;
+    const orphanBtn = orphanCount > 0
+      ? `<button class="agent-filter-btn ${cmAgents.has('__unassigned__')?'active':''}" onclick="toggleCmAgent('__unassigned__')" style="border-color:var(--amber);color:var(--amber);">
+          ⚠️ 미배정 (${orphanCount}명)
+         </button>`
+      : '';
+    agentBar.innerHTML = orphanBtn + (agentsCache.map(a =>
       `<button class="agent-filter-btn ${cmAgents.has(a.uid)?'active':''}" onclick="toggleCmAgent('${a.uid}')">
         <span>${a.role==='admin'?'👑':'👤'}</span>${escHtml(a.name||a.email)}
       </button>`
-    ).join('') || '<span style="font-size:12px;color:var(--text3)">설계사 없음</span>';
+    ).join('') || '<span style="font-size:12px;color:var(--text3)">설계사 없음</span>');
   }
   // 년도 세그먼트
   const yearSet = new Set();
   customersCache.forEach(c => (c.contracts||[]).forEach(ct => {
-    const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
+    const d = ct.startDate||ct.rawJson?.계약일||'';
     const m = d.match(/(\d{4})/);
     if (m) yearSet.add(parseInt(m[1]));
   }));
@@ -2279,7 +2416,7 @@ window.clearContractsFilter = function() {
 
 function matchesCmPeriod(ct) {
   if (cmYears.size === 0 && cmMonths.size === 0) return true;
-  const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
+  const d = ct.startDate||ct.rawJson?.계약일||'';
   const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
   if (!ym) return false;
   const y = parseInt(ym[1]), m = parseInt(ym[2]);
@@ -2321,7 +2458,16 @@ window.renderContractsList = function() {
   updateCmActiveBadge();
 
   let list = [...customersCache];
-  if (cmAgents.size > 0) list = list.filter(c => cmAgents.has(c.agentId));
+  if (cmAgents.size > 0) {
+    list = list.filter(c => {
+      if (cmAgents.has('__unassigned__')) {
+        // 미배정: agentId 없거나 agents 목록에 없는 경우
+        const isUnassigned = !c.agentId || !agentsCache.find(a => a.uid === c.agentId);
+        if (isUnassigned) return true;
+      }
+      return cmAgents.has(c.agentId);
+    });
+  }
 
   function ctMatches(ct) {
     const company    = (ct.company||ct.rawJson?.보험사||'').toLowerCase();
@@ -2370,7 +2516,7 @@ window.renderContractsList = function() {
   // 정렬: 최신순 고정
   list.sort((a, b) => {
     const latestDate = c => (c.contracts||[]).reduce((latest, ct) => {
-      const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
+      const d = ct.startDate||ct.rawJson?.계약일||'';
       return d > latest ? d : latest;
     }, '');
     return latestDate(b).localeCompare(latestDate(a));
@@ -2405,7 +2551,7 @@ window.renderContractsList = function() {
       const product = ct.product||ct.rawJson?.상품명||'';
       const prem = ct.premium ? Math.round(Number(ct.premium)).toLocaleString()+'원' : ct.rawJson?.월보험료||'-';
       const isTemp = (ct.rawJson?.계약자||'').includes('가설계')||(ct.rawJson?.특이사항||'').includes('가설계') || (product||'').includes('가설계');
-      const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
+      const d = ct.startDate||ct.rawJson?.계약일||'';
       const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
       const dateStr = ym ? `${ym[1]}.${ym[2].padStart(2,'0')}` : '';
       const ctId2 = ct.id||'ci'+i;
