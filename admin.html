@@ -255,13 +255,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .cm-cust-menu-wrap{position:relative;flex-shrink:0;}
 .cm-cust-menu-btn{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit;}
 .cm-cust-menu-btn:hover{background:var(--surface2);border-color:var(--text3);}
-.cm-cust-dropdown{position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);min-width:140px;z-index:200;overflow:hidden;display:none;}
+.cm-cust-dropdown{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);min-width:140px;z-index:300;overflow:hidden;display:none;}
 .cm-cust-dropdown.open{display:block;}
-.cm-cust-dropdown-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s;color:var(--text);border:none;background:none;width:100%;font-family:inherit;text-align:left;}
+.cm-cust-dropdown-item{display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s;color:var(--text);border:none;background:none;width:100%;font-family:inherit;text-align:left;}
 .cm-cust-dropdown-item:hover{background:var(--surface2);}
 .cm-cust-dropdown-item.danger{color:var(--red);}
 .cm-cust-dropdown-item.danger:hover{background:var(--red-light);}
-.cm-cust-dropdown-divider{height:1px;background:var(--border);margin:3px 0;}
+.cm-cust-dropdown-divider{height:1px;background:var(--border);}
 
 /* 고객 상세 모달 */
 .cust-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
@@ -304,7 +304,26 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .cm-ct-prem{font-size:12px;}
 }
 
-/* ── 담보 카드 (viewer 스타일 통일) ── */
+/* ── 수수료 관리 ── */
+.comm-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;box-shadow:var(--shadow);}
+.comm-item.pending{border-left:3px solid var(--amber);}
+.comm-item.paid{border-left:3px solid var(--green);opacity:.85;}
+.comm-item.cancelled{border-left:3px solid var(--red);opacity:.7;}
+.comm-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.comm-item-title{font-size:13px;font-weight:700;}
+.comm-item-amount{font-size:16px;font-weight:900;letter-spacing:-.4px;}
+.comm-item-meta{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6;}
+.comm-item-actions{display:flex;gap:6px;margin-top:10px;}
+.comm-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;}
+.comm-badge.next-month{background:var(--accent-light);color:var(--accent);}
+.comm-badge.thirteenth{background:var(--amber-light);color:var(--amber);}
+.comm-badge.consecutive{background:var(--purple-light);color:var(--purple);}
+.comm-badge.paid{background:var(--green-light);color:var(--green);}
+.comm-badge.cancelled{background:var(--red-light);color:var(--red);}
+.comm-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 8px;display:flex;align-items:center;gap:6px;}
+.comm-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.comm-total-box{background:linear-gradient(135deg,var(--accent-light) 0%,var(--surface) 60%);border:1.5px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+
 .sec-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:20px;}
 .sec-label:first-child{margin-top:0;}
 .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px;}
@@ -409,8 +428,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <nav class="tab-nav">
   <div class="tab-nav-inner">
     <div class="tab-nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">📊 대시보드</div>
-    <div class="tab-nav-item" onclick="switchTab('upload')" id="nav-upload">📋 계약 업로드</div>
+    <div class="tab-nav-item" onclick="switchTab('upload')" id="nav-upload">📤 업로드</div>
     <div class="tab-nav-item" onclick="switchTab('contracts')" id="nav-contracts">🗂 계약 관리</div>
+    <div class="tab-nav-item" onclick="switchTab('commission')" id="nav-commission">💰 수수료</div>
     <div class="tab-nav-item" onclick="switchTab('agents')" id="nav-agents">👥 설계사 관리</div>
   </div>
 </nav>
@@ -464,11 +484,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     </div>
   </div>
 
-  <!-- ───────────── 탭 2: 계약 업로드 ───────────── -->
+  <!-- ───────────── 탭 2: 업로드 ───────────── -->
   <div id="tab-upload" class="tab-panel">
-    <div class="upload-layout">
 
-      <!-- 왼쪽: JSON 입력 -->
+    <!-- ① 계약 업로드 -->
+    <div class="upload-layout">
       <div>
         <div class="card" style="margin-bottom:0;">
           <div class="card-title">📋 계약 업로드</div>
@@ -480,7 +500,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           <button onclick="applyUploadJson()" class="btn btn-primary btn-full" style="font-size:14px;padding:13px;">✅ 적용하기</button>
           <div id="upload-json-status" style="display:none;"></div>
 
-          <!-- 미리보기 + 설계사/고객 매칭 -->
           <div id="upload-preview" style="display:none;">
             <div class="divider"></div>
             <div class="preview-box">
@@ -489,23 +508,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
               <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">담보 목록</div>
               <div class="preview-dambo-list" id="preview-dambo-list"></div>
             </div>
-
-            <!-- 담당 설계사 선택 (매칭 단계로 이동) -->
             <div style="margin-top:16px;">
               <div class="sec-label" style="margin-top:0;margin-bottom:10px;">👤 담당 설계사</div>
               <div class="agent-pick-wrap" id="agent-pick-wrap">
                 <div style="font-size:12px;color:var(--text3);">불러오는 중...</div>
               </div>
             </div>
-
-            <!-- 고객 매칭 -->
             <div class="match-section" id="match-section">
               <div class="match-title">👤 어느 고객에게 저장할까요?</div>
               <div id="match-candidates"></div>
               <button class="match-new-btn" id="match-new-btn" onclick="selectNewCustomer()">
                 ➕ 신규 고객으로 추가
               </button>
-
               <div id="new-customer-form" style="display:none;margin-top:12px;">
                 <div class="form-grid">
                   <div class="form-row">
@@ -529,7 +543,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
                   </div>
                 </div>
               </div>
-
               <div style="margin-top:14px;">
                 <button onclick="saveUploadContract()" class="btn btn-green btn-full" id="save-upload-btn" style="font-size:14px;padding:13px;">
                   💾 저장하기
@@ -540,9 +553,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         </div>
       </div>
 
-      <!-- 오른쪽: 사용 안내 -->
       <div class="upload-tip-box">
-        <div class="upload-tip-title">업로드 방법</div>
+        <div class="upload-tip-title">계약 업로드 방법</div>
         <div class="upload-tip-step">
           <div class="upload-tip-num">1</div>
           <div class="upload-tip-text">보험사 PDF를 <strong>Claude</strong>에 올려 JSON을 추출해요</div>
@@ -562,8 +574,137 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 구분선 -->
+    <div style="height:1px;background:var(--border);margin:24px 0;"></div>
+
+    <!-- ② 시상 업로드 -->
+    <div class="upload-layout">
+
+      <!-- 왼쪽: 시상 업로드 -->
+      <div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">🏆 시상 정책 업로드</div>
+
+          <!-- 파일 선택 (이미지 + PDF) -->
+          <div style="margin-bottom:14px;">
+            <div class="form-label" style="margin-bottom:6px;">시상 파일 선택</div>
+            <input type="file" id="award-img-input" accept="image/*,application/pdf"
+              style="display:none;" onchange="onAwardImgSelect(event)"/>
+            <div id="award-img-drop" onclick="document.getElementById('award-img-input').click()"
+              style="border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:border-color .18s;background:var(--bg);">
+              <div style="font-size:28px;margin-bottom:8px;">🏆</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text2);">시상 파일을 탭해서 선택하세요</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG · PNG · PDF 지원</div>
+            </div>
+            <div id="award-img-preview" style="display:none;margin-top:10px;">
+              <img id="award-img-thumb" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);display:none;"/>
+              <div id="award-pdf-badge" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600;color:var(--text2);">
+                📄 <span id="award-pdf-name"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 추출 버튼 -->
+          <button onclick="extractAwardJson()" id="award-extract-btn"
+            class="btn btn-primary btn-full" style="font-size:14px;padding:13px;margin-bottom:14px;" disabled>
+            🤖 AI로 추출하기
+          </button>
+          <div id="award-extract-status" style="display:none;font-size:12px;color:var(--text3);margin-bottom:10px;text-align:center;"></div>
+
+          <!-- 추출 결과 미리보기 -->
+          <div id="award-json-preview" style="display:none;">
+            <div class="divider"></div>
+            <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">📊 추출 결과</div>
+            <div id="award-summary-card" style="background:var(--accent-light);border:1.5px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:14px;margin-bottom:12px;"></div>
+            <div id="award-tiers-list" style="margin-bottom:14px;"></div>
+            <div style="margin-bottom:14px;">
+              <button onclick="toggleAwardRaw()" class="btn btn-sm" style="color:var(--text3);font-size:11px;">🔧 JSON 원문 보기/수정</button>
+              <div id="award-raw-json" style="display:none;margin-top:8px;">
+                <textarea id="award-json-textarea" class="form-textarea"
+                  style="min-height:160px;font-size:11px;font-family:monospace;"></textarea>
+              </div>
+            </div>
+            <button onclick="saveAwardJson()" class="btn btn-green btn-full" style="font-size:14px;padding:13px;">
+              💾 Firestore에 저장하기
+            </button>
+            <div id="award-save-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 안내 + 저장된 시상 목록 -->
+      <div>
+        <div class="upload-tip-box" style="margin-bottom:16px;">
+          <div class="upload-tip-title">시상 업로드 방법</div>
+          <div class="upload-tip-step">
+            <div class="upload-tip-num">1</div>
+            <div class="upload-tip-text">시상 이미지 또는 PDF를 선택해요</div>
+          </div>
+          <div class="upload-tip-step">
+            <div class="upload-tip-num">2</div>
+            <div class="upload-tip-text"><strong>AI로 추출하기</strong>로 자동 분석해요</div>
+          </div>
+          <div class="upload-tip-step">
+            <div class="upload-tip-num">3</div>
+            <div class="upload-tip-text">결과 확인 후 <strong>저장하기</strong>를 눌러요</div>
+          </div>
+          <div class="upload-tip-step">
+            <div class="upload-tip-num">4</div>
+            <div class="upload-tip-text">실적 탭에서 <strong>자동 계산</strong>됩니다</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📁 저장된 시상 정책</div>
+          <div id="award-saved-list"><div class="empty">불러오는 중...</div></div>
+        </div>
+      </div>
 
     </div>
+  </div><!-- /tab-upload -->
+
+  <!-- ───────────── 탭: 수수료 관리 ───────────── -->
+  <div id="tab-commission" class="tab-panel">
+
+    <!-- 설계사 선택 + 월 선택 -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">💰 수수료 · 시상 관리</div>
+      <div style="display:flex;gap:8px;margin-bottom:0;">
+        <select id="comm-agent-sel" onchange="onCommSelChange()" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22%3E%3Cpath fill=%22%23A09EA3%22 d=%22M5 6L0 0h10z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;"><option value="">설계사 선택</option></select>
+        <select id="comm-year-sel" onchange="onCommSelChange()" style="width:100px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22%3E%3Cpath fill=%22%23A09EA3%22 d=%22M5 6L0 0h10z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 12px center;padding-right:28px;"></select>
+        <select id="comm-month-sel" onchange="onCommSelChange()" style="width:80px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22%3E%3Cpath fill=%22%23A09EA3%22 d=%22M5 6L0 0h10z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 10px center;padding-right:26px;"></select>
+      </div>
+    </div>
+
+    <!-- 실적 기반 계산 + 저장 버튼 -->
+    <div id="comm-calc-area" style="display:none;">
+      <div class="card" style="margin-bottom:10px;">
+        <div id="comm-summary"></div>
+        <button onclick="saveCommission()" class="btn btn-primary btn-full" style="margin-top:14px;font-size:14px;padding:13px;">
+          💾 이 달 수수료/시상 저장하기
+        </button>
+        <div id="comm-save-status" style="display:none;font-size:12px;text-align:center;margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- 3가지 뷰 탭 -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px;">
+      <div id="comm-tab-scheduled" onclick="switchCommView('scheduled')"
+        style="padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;color:var(--accent);border-bottom:2.5px solid var(--accent);margin-bottom:-2px;">
+        ⏳ 지급 예정
+      </div>
+      <div id="comm-tab-paid" onclick="switchCommView('paid')"
+        style="padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;color:var(--text3);border-bottom:2.5px solid transparent;margin-bottom:-2px;">
+        ✅ 지급 완료
+      </div>
+      <div id="comm-tab-cancelled" onclick="switchCommView('cancelled')"
+        style="padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;color:var(--text3);border-bottom:2.5px solid transparent;margin-bottom:-2px;">
+        ❌ 취소/환수
+      </div>
+    </div>
+    <div id="comm-list-area"><div class="empty">설계사와 기간을 선택해주세요</div></div>
+
   </div>
 
   <!-- 탭 3: 계약 관리 -->
@@ -754,6 +895,7 @@ const subAuth = getAuth(subApp);
 
 let agentsCache = [];
 let customersCache = [];
+let awardsCache = []; // 시상 정책 캐시
 let currentAdmin = null;
 let selectedCustomerId = null; // 업로드 시 선택된 고객
 let parsedContractData = null; // 파싱된 JSON 데이터
@@ -786,11 +928,19 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── 전체 로드 ──
 async function loadAll() {
-  await Promise.all([loadAgents(), loadCustomers()]);
+  await Promise.all([loadAgents(), loadCustomers(), loadAdminAwards()]);
   renderDashboard();
   renderAgents();
   renderLinks();
   renderAgentRadios();
+}
+
+async function loadAdminAwards() {
+  try {
+    const snap = await getDocs(collection(db,'awards'));
+    awardsCache = [];
+    snap.forEach(d => awardsCache.push(d.data()));
+  } catch(e) { awardsCache = []; }
 }
 
 async function loadAgents() {
@@ -899,7 +1049,7 @@ function calcPerfStats(cts) {
     if (!coMap[co]) coMap[co] = {count:0, prem:0, life};
     coMap[co].count++; coMap[co].prem += prem;
   });
-  const commEst = nonlifePrem * 12 * 0.20 + lifePrem * 12 * 0.15;
+  const commEst = totalPrem * 5.22; // 기본 수수료 522% (익월 25일 지급)
   return {total, totalPrem, lifePrem, nonlifePrem, lifeCount, nonlifeCount, coMap, commEst};
 }
 
@@ -922,7 +1072,7 @@ function renderAdminPerf() {
      sub: '합계',
      accent:'var(--green)', bg:'var(--green-light)'},
     {icon:'🏆', lbl:'예상 수수료', val: stats.commEst > 0 ? Math.round(stats.commEst).toLocaleString() + '원' : '-',
-     sub: '연 초회 추정',
+     sub: '기본 522% · 익월 25일',
      accent:'var(--purple)', bg:'var(--purple-light)'},
     {icon:'👥', lbl:'참여 설계사', val: (() => { const uids = new Set(allContracts.map(c=>c._agentId).filter(Boolean)); return uids.size + '명'; })(),
      sub: '계약 건 있는 설계사',
@@ -1147,7 +1297,8 @@ function renderLinks() {
         ${token
           ? `<div class="link-url" title="${linkUrl}">${linkUrl}</div>
              <button class="btn btn-sm" onclick="copyLink('${linkUrl}')">📋 복사</button>
-             <button class="btn btn-sm btn-danger" onclick="regenToken('${a.uid}')">🔄 재발급</button>`
+             <button class="btn btn-sm btn-danger" onclick="regenToken('${a.uid}')">🔄 재발급</button>
+             <button class="btn btn-sm" onclick="revokeToken('${a.uid}','${escHtml(a.name||'')}')" style="color:var(--red);border-color:var(--red);">🚫 링크 삭제</button>`
           : `<div class="link-url" style="color:var(--text3);font-family:inherit;">링크 미발급</div>
              <button class="btn btn-sm btn-primary" onclick="genToken('${a.uid}')">🔗 링크 발급</button>`
         }
@@ -1455,6 +1606,16 @@ window.regenToken = async function(uid) {
   await genToken(uid);
 };
 
+window.revokeToken = async function(uid, name) {
+  if (!confirm(`"${name}" 링크를 삭제할까요?\n삭제하면 해당 설계사는 뷰어에 접속할 수 없어요.`)) return;
+  try {
+    await updateDoc(doc(db,'agents',uid), {viewerToken: null});
+    showToast(`✅ "${name}" 링크가 삭제됐어요.`);
+    await loadAgents();
+    renderLinks();
+  } catch(e) { showToast('❌ 삭제 실패: ' + e.message); }
+};
+
 window.copyLink = function(url) {
   navigator.clipboard.writeText(url)
     .then(() => showToast('📋 링크가 복사됐어요!'))
@@ -1489,7 +1650,7 @@ window.copyPerfReport = function() {
     `[ 설계사별 현황 ]`,
     agentLines || '  (데이터 없음)',
     ``,
-    `※ 수수료는 손보 20% · 생보 15% 기준 추정치입니다.`,
+    `※ 수수료는 기본 522% 기준 추정치이며 익월 25일 지급됩니다.`,
   ].join('\n');
 
   navigator.clipboard.writeText(report)
@@ -1560,6 +1721,425 @@ window.doLogout = async function() {
   await signOut(auth);
 };
 
+// ══════════════════════════════════════════
+// 수수료 관리
+// ══════════════════════════════════════════
+let commViewMode = 'scheduled';
+let commCache    = [];
+
+async function initCommissionTab() {
+  const sel = document.getElementById('comm-agent-sel');
+  sel.innerHTML = '<option value="">설계사 선택</option>' +
+    agentsCache.map(a=>`<option value="${a.uid}">${escHtml(a.name||a.email)}</option>`).join('');
+  const now = new Date();
+  const yearSel  = document.getElementById('comm-year-sel');
+  const monthSel = document.getElementById('comm-month-sel');
+  yearSel.innerHTML  = [now.getFullYear()+1,now.getFullYear(),now.getFullYear()-1,now.getFullYear()-2]
+    .map(y=>`<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}년</option>`).join('');
+  monthSel.innerHTML = [1,2,3,4,5,6,7,8,9,10,11,12]
+    .map(m=>`<option value="${m}" ${m===now.getMonth()+1?'selected':''}>${m}월</option>`).join('');
+  await loadAllCommissions();
+  switchCommView('scheduled');
+}
+
+async function loadAllCommissions() {
+  try {
+    const snap = await getDocs(collection(db,'commissions'));
+    commCache = [];
+    snap.forEach(d=>commCache.push({_id:d.id,...d.data()}));
+  } catch(e) { commCache=[]; }
+}
+
+window.onCommSelChange = async function() {
+  const agentId = document.getElementById('comm-agent-sel').value;
+  const year    = parseInt(document.getElementById('comm-year-sel').value);
+  const month   = parseInt(document.getElementById('comm-month-sel').value);
+  if (!agentId||!year||!month) return;
+  const cts = customersCache
+    .filter(c=>c.agentId===agentId)
+    .flatMap(c=>(c.contracts||[]).map(ct=>({...ct,_custName:c.name})))
+    .filter(ct=>{const p=parsePeriod(ct);return p&&p.year===year&&p.month===month;});
+  renderCommCalc(agentId,year,month,cts);
+  renderCommList(agentId);
+};
+
+function parsePeriod(ct) {
+  const d = ct.startDate||ct.rawJson?.계약일||ct.uploadedAt||'';
+  const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
+  if (ym) return {year:parseInt(ym[1]),month:parseInt(ym[2])};
+  const y = d.match(/(\d{4})/);
+  return y ? {year:parseInt(y[1]),month:null} : null;
+}
+
+function renderCommCalc(agentId,year,month,cts) {
+  document.getElementById('comm-calc-area').style.display='block';
+  let totalPrem=0,lifePrem=0,nonlifePrem=0;
+  cts.forEach(ct=>{
+    const p=parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0;
+    totalPrem+=p;
+    isLifeCompany(ct.company||ct.rawJson?.보험사||'')?lifePrem+=p:nonlifePrem+=p;
+  });
+  const basicComm=Math.round(totalPrem*5.22);
+  const awards=awardsCache.filter(a=>a.year===year&&a.month===month);
+  const nextMonthAwards=[],thirteenthAwards=[];
+  awards.forEach(award=>{
+    const co=award.company;
+    const prem=customersCache.filter(c=>c.agentId===agentId)
+      .flatMap(c=>c.contracts||[])
+      .filter(ct=>{const p=parsePeriod(ct);return p&&p.year===year&&p.month===month&&(ct.company||ct.rawJson?.보험사||'')===co;})
+      .reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+    if(!prem) return;
+    (award.tiers||[]).forEach(tier=>{
+      if(['consecutive','club'].includes(tier.type)||!tier.tiers?.length) return;
+      const best=[...tier.tiers].reverse().find(t=>prem>=t.threshold);
+      if(!best||!best.reward) return;
+      const item={company:co,label:tier.label,type:tier.type,reward:best.reward,goldReward:best.goldReward||null,prem};
+      tier.payTiming==='next_month'?nextMonthAwards.push(item):thirteenthAwards.push(item);
+    });
+  });
+  const nextTotal=nextMonthAwards.reduce((s,a)=>s+a.reward,0);
+  const thTotal  =thirteenthAwards.reduce((s,a)=>s+a.reward,0);
+  const pay25    =new Date(year,month,25);
+  const pay25Str =`${pay25.getFullYear()}년 ${pay25.getMonth()+1}월 25일`;
+  const payEnd   =new Date(year,month+1,0);
+  const payEndStr=`${payEnd.getFullYear()}년 ${payEnd.getMonth()+1}월 ${payEnd.getDate()}일`;
+  const th13Date =new Date(year,month+12,1);
+  const th13Str  =`${th13Date.getFullYear()}년 ${th13Date.getMonth()+1}월`;
+
+  window._pendingCommData={agentId,year,month,totalPrem,basicComm,items:[
+    {id:`${year}_${month}_basic`,type:'basic_comm',label:'기본 수수료 (522%)',
+     amount:basicComm,payType:'next_month_25',expectedPayDate:pay25Str,status:'pending',createdAt:new Date().toISOString()},
+    ...nextMonthAwards.map((a,i)=>({
+      id:`${year}_${month}_nm_${i}`,type:'award_next_month',label:`[${a.company}] ${a.label}`,
+      amount:a.reward,goldReward:a.goldReward,payType:'next_month_end',
+      expectedPayDate:payEndStr,status:'pending',createdAt:new Date().toISOString()
+    })),
+    ...thirteenthAwards.map((a,i)=>({
+      id:`${year}_${month}_13th_${i}`,type:'award_13th',label:`[${a.company}] ${a.label}`,
+      amount:a.reward,goldReward:a.goldReward,payType:'13th_payment',
+      expectedPayDate:th13Str,retention:13,status:'pending',createdAt:new Date().toISOString()
+    }))
+  ]};
+
+  document.getElementById('comm-summary').innerHTML=`
+    <div class="comm-total-box">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">${year}년 ${month}월 실적 · ${cts.length}건 · ${Math.round(totalPrem/10000)}만원</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:${thTotal>0?'8px':'0'};">
+        <div style="background:var(--surface);border-radius:var(--radius-sm);padding:12px;">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:4px;">💵 기본 수수료</div>
+          <div style="font-size:18px;font-weight:900;color:var(--accent);">${Math.round(basicComm/10000)}만원</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px;">${pay25Str}</div>
+        </div>
+        <div style="background:var(--surface);border-radius:var(--radius-sm);padding:12px;">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:4px;">🏆 익월 시상</div>
+          <div style="font-size:18px;font-weight:900;color:var(--green);">${nextTotal>0?Math.round(nextTotal/10000)+'만원':'-'}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px;">${payEndStr}</div>
+        </div>
+      </div>
+      ${thTotal>0?`
+      <div style="background:var(--surface);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+        <div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:4px;">⏳ 13회차 조건부 시상</div>
+        <div style="font-size:18px;font-weight:900;color:var(--amber);">${Math.round(thTotal/10000)}만원</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;">예상 ${th13Str} (유지 조건부)</div>
+      </div>`:''}
+      <div style="height:1px;background:rgba(59,91,219,.12);margin:10px 0 8px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);">익월 합계 예상</div>
+        <div style="font-size:20px;font-weight:900;color:var(--accent);">${Math.round((basicComm+nextTotal)/10000)}만원</div>
+      </div>
+    </div>`;
+}
+
+window.saveCommission=async function(){
+  const data=window._pendingCommData; if(!data) return;
+  const status=document.getElementById('comm-save-status');
+  status.style.display='block';status.textContent='저장 중...';status.style.color='var(--text3)';
+  try{
+    const docId=`${data.agentId}_${data.year}_${String(data.month).padStart(2,'0')}`;
+    await setDoc(doc(db,'commissions',docId),{
+      agentId:data.agentId,year:data.year,month:data.month,
+      totalPrem:data.totalPrem,basicComm:data.basicComm,
+      items:data.items,savedAt:new Date().toISOString()
+    });
+    await loadAllCommissions();
+    renderCommList(data.agentId);
+    status.textContent='✅ 저장됐어요!';status.style.color='var(--green)';
+    showToast('✅ 수수료/시상 저장됐어요!');
+  }catch(e){status.textContent='❌ 실패: '+e.message;status.style.color='var(--red)';}
+};
+
+window.switchCommView=function(mode){
+  commViewMode=mode;
+  ['scheduled','paid','cancelled'].forEach(m=>{
+    const el=document.getElementById('comm-tab-'+m); if(!el) return;
+    el.style.color=m===mode?'var(--accent)':'var(--text3)';
+    el.style.borderBottomColor=m===mode?'var(--accent)':'transparent';
+  });
+  renderCommList(document.getElementById('comm-agent-sel')?.value||'');
+};
+
+function renderCommList(agentId){
+  const el=document.getElementById('comm-list-area'); if(!el) return;
+  const docs=agentId?commCache.filter(d=>d.agentId===agentId):commCache;
+  const statusMap={scheduled:'pending',paid:'paid',cancelled:'cancelled'};
+  const allItems=[];
+  docs.forEach(d=>(d.items||[]).forEach(item=>{
+    if(item.status===statusMap[commViewMode])
+      allItems.push({...item,_docId:d._id,_agentId:d.agentId,_year:d.year,_month:d.month});
+  }));
+  if(!allItems.length){
+    el.innerHTML=`<div class="empty">${commViewMode==='scheduled'?'예정된 수수료/시상이 없어요':commViewMode==='paid'?'지급 완료 내역이 없어요':'취소/환수 내역이 없어요'}</div>`;
+    return;
+  }
+  allItems.sort((a,b)=>(a.expectedPayDate||'').localeCompare(b.expectedPayDate||''));
+  const groups={};
+  allItems.forEach(item=>{
+    const k=item.expectedPayDate||'날짜 미정';
+    if(!groups[k]) groups[k]=[];
+    groups[k].push(item);
+  });
+  const typeLabel={basic_comm:'수수료',award_next_month:'익월시상',award_13th:'13회차시상',award_consecutive:'연속시상'};
+  const typeBadgeCls={basic_comm:'next-month',award_next_month:'next-month',award_13th:'thirteenth',award_consecutive:'consecutive'};
+  el.innerHTML=Object.entries(groups).map(([date,items])=>{
+    const groupTotal=items.reduce((s,i)=>s+(i.amount||0),0);
+    const agName=agentsCache.find(a=>a.uid===items[0]._agentId)?.name||'';
+    return `
+    <div class="comm-section-title">${date}${agentId?'':' · '+escHtml(agName)} · ${Math.round(groupTotal/10000)}만원</div>
+    ${items.map(item=>`
+      <div class="comm-item ${item.status}">
+        <div class="comm-item-header">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span class="comm-badge ${typeBadgeCls[item.type]||'next-month'}">${typeLabel[item.type]||item.type}</span>
+            <span class="comm-item-title">${escHtml(item.label)}</span>
+          </div>
+          <div class="comm-item-amount" style="color:${item.status==='paid'?'var(--green)':item.status==='cancelled'?'var(--red)':'var(--accent)'};">
+            ${item.goldReward?'금 '+item.goldReward:Math.round((item.amount||0)/10000)+'만원'}
+          </div>
+        </div>
+        <div class="comm-item-meta">
+          ${item._year}년 ${item._month}월 실적
+          ${item.retention?` · ${item.retention}회차 유지 조건`:''}
+          ${item.status==='paid'?' · ✅ 지급완료':''}
+          ${item.status==='cancelled'?' · ❌ 취소/환수':''}
+        </div>
+        ${item.status==='pending'?`
+        <div class="comm-item-actions">
+          <button class="btn btn-sm" onclick="updateCommStatus('${item._docId}','${item.id}','paid')" style="color:var(--green);border-color:var(--green);">✅ 지급 확인</button>
+          <button class="btn btn-sm" onclick="updateCommStatus('${item._docId}','${item.id}','cancelled')" style="color:var(--red);border-color:var(--red);">❌ 취소/환수</button>
+        </div>`:`
+        <div class="comm-item-actions">
+          <button class="btn btn-sm" onclick="updateCommStatus('${item._docId}','${item.id}','pending')" style="color:var(--text3);">↩ 되돌리기</button>
+        </div>`}
+      </div>`).join('')}`;
+  }).join('');
+}
+
+window.updateCommStatus=async function(docId,itemId,newStatus){
+  const docData=commCache.find(d=>d._id===docId); if(!docData) return;
+  const updatedItems=(docData.items||[]).map(item=>
+    item.id===itemId?{...item,status:newStatus,updatedAt:new Date().toISOString()}:item);
+  try{
+    await updateDoc(doc(db,'commissions',docId),{items:updatedItems});
+    await loadAllCommissions();
+    renderCommList(document.getElementById('comm-agent-sel')?.value||'');
+    showToast(newStatus==='paid'?'✅ 지급 완료':newStatus==='cancelled'?'❌ 취소 처리':'↩ 되돌림');
+  }catch(e){showToast('❌ 실패: '+e.message);}
+};
+
+// ── 시상 업로드 ──
+let awardImgBase64 = null;
+let awardImgMime   = null;
+let awardExtracted = null;
+
+window.onAwardImgSelect = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  awardImgMime = file.type;
+  const isPdf = file.type === 'application/pdf';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    awardImgBase64 = ev.target.result.split(',')[1];
+    document.getElementById('award-img-preview').style.display = 'block';
+    const thumb = document.getElementById('award-img-thumb');
+    const badge = document.getElementById('award-pdf-badge');
+    if (isPdf) {
+      thumb.style.display = 'none';
+      badge.style.display = 'block';
+      document.getElementById('award-pdf-name').textContent = file.name;
+    } else {
+      thumb.src = ev.target.result;
+      thumb.style.display = 'block';
+      badge.style.display = 'none';
+    }
+    document.getElementById('award-extract-btn').disabled = false;
+    document.getElementById('award-img-drop').style.borderColor = 'var(--accent)';
+    document.getElementById('award-json-preview').style.display = 'none';
+    awardExtracted = null;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.extractAwardJson = async function() {
+  if (!awardImgBase64) return;
+  const btn    = document.getElementById('award-extract-btn');
+  const status = document.getElementById('award-extract-status');
+  btn.disabled = true; btn.textContent = '🤖 분석 중...';
+  status.style.display = 'block'; status.textContent = 'Claude가 시상 정책을 읽고 있어요...'; status.style.color = 'var(--text3)';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: `당신은 보험사 시상 정책 전문 분석 AI입니다.
+이미지에서 시상 정보를 추출해 아래 JSON 스키마로만 응답하세요. 설명·마크다운 없이 순수 JSON만 출력.
+
+스키마:
+{
+  "company": "보험사명",
+  "companyType": "손해보험|생명보험",
+  "year": 연도숫자,
+  "month": 월숫자,
+  "week": 주차숫자,
+  "issuer": "발행사명",
+  "payDay": "next_month_end",
+  "commonNotes": ["공통조건1","공통조건2"],
+  "tiers": [
+    {
+      "id": "고유ID_영문",
+      "type": "basic|weekly|weekly_extra|consecutive|club|flagship|membership",
+      "label": "시상명",
+      "payTiming": "next_month|13th_payment|quarterly",
+      "retention": null또는13,
+      "period": {"startDate":"MM-DD","endDate":"MM-DD"},
+      "tiers": [
+        {"threshold":원단위숫자, "reward":원단위숫자, "goldReward":null또는"N돈", "formula":"계산식설명"}
+      ],
+      "formula": "전체계산식",
+      "notes": "비고"
+    }
+  ],
+  "rawText": "원문텍스트요약"
+}
+
+규칙: 금액은 원 단위(10만→100000), 비율은 숫자(380%→380), 날짜는 MM-DD.`,
+        messages: [{
+          role: 'user',
+          content: [
+            awardImgMime === 'application/pdf'
+              ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: awardImgBase64 } }
+              : { type: 'image',    source: { type: 'base64', media_type: awardImgMime,        data: awardImgBase64 } },
+            { type: 'text', text: '이 시상 정책 파일을 분석해서 JSON으로 추출해주세요.' }
+          ]
+        }]
+      })
+    });
+    const data  = await resp.json();
+    const raw   = data.content?.map(i=>i.text||'').join('').trim();
+    const clean = raw.replace(/^```json\n?|^```\n?|```$/gm,'').trim();
+    awardExtracted = JSON.parse(clean);
+    renderAwardPreview(awardExtracted);
+    status.textContent = '✅ 추출 완료!'; status.style.color = 'var(--green)';
+  } catch(e) {
+    status.textContent = '❌ 추출 실패: '+e.message; status.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false; btn.textContent = '🤖 AI로 추출하기';
+  }
+};
+
+function renderAwardPreview(data) {
+  document.getElementById('award-json-preview').style.display = 'block';
+  const typeColor = {basic:'var(--accent)',weekly:'var(--green)',weekly_extra:'var(--purple)',consecutive:'var(--amber)',club:'var(--red)',flagship:'var(--green)',membership:'var(--amber)'};
+  const typeLabel = {basic:'기본시상',weekly:'주간가동',weekly_extra:'주간추가',consecutive:'연속가동',club:'클럽',flagship:'주력상품',membership:'멤버십'};
+  document.getElementById('award-summary-card').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="font-size:22px;">🏆</div>
+      <div>
+        <div style="font-size:15px;font-weight:800;">${escHtml(data.company||'')}</div>
+        <div style="font-size:12px;color:var(--text2);">${data.year}년 ${data.month}월 ${data.week?data.week+'주차':''} · 익월 말일 지급</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+      ${(data.commonNotes||[]).map(n=>`<span class="chip" style="font-size:10px;">${escHtml(n)}</span>`).join('')}
+    </div>`;
+  document.getElementById('award-tiers-list').innerHTML = (data.tiers||[]).map(t=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;border-left:3px solid ${typeColor[t.type]||'var(--border)'};">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;">${escHtml(t.label||'')}</div>
+        <div style="display:flex;gap:4px;">
+          <span class="chip blue" style="font-size:10px;">${typeLabel[t.type]||t.type}</span>
+          <span class="chip" style="font-size:10px;">${t.payTiming==='next_month'?'익월 말일':'13회차'}</span>
+        </div>
+      </div>
+      ${(t.tiers||[]).map(tier=>`
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text2);">${tier.threshold?Math.round(tier.threshold/10000)+'만원↑':''}</span>
+          <span style="font-weight:700;color:${typeColor[t.type]||'var(--text)'};">${tier.goldReward?'금 '+tier.goldReward:tier.reward?Math.round(tier.reward/10000)+'만원':''}</span>
+        </div>`).join('')}
+    </div>`).join('');
+  document.getElementById('award-json-textarea').value = JSON.stringify(data, null, 2);
+}
+
+window.toggleAwardRaw = function() {
+  const el = document.getElementById('award-raw-json');
+  el.style.display = el.style.display==='none'?'block':'none';
+};
+
+window.saveAwardJson = async function() {
+  if (!awardExtracted) return;
+  const status = document.getElementById('award-save-status');
+  status.style.display='block'; status.textContent='저장 중...'; status.style.color='var(--text3)';
+  try {
+    const raw = document.getElementById('award-json-textarea').value;
+    try { awardExtracted = JSON.parse(raw); } catch(e) {}
+    const { year, month, company } = awardExtracted;
+    const docId = `${year}_${String(month).padStart(2,'0')}_${company}`;
+    await setDoc(doc(db,'awards',docId), {
+      ...awardExtracted,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: adminInfo?.uid||'admin'
+    });
+    status.textContent=`✅ "${company} ${year}년 ${month}월" 저장됐어요!`; status.style.color='var(--green)';
+    showToast('✅ 시상 정책이 저장됐어요!');
+    await loadAdminAwards(); // awardsCache 갱신
+    loadAwardList();
+  } catch(e) {
+    status.textContent='❌ 저장 실패: '+e.message; status.style.color='var(--red)';
+  }
+};
+
+async function loadAwardList() {
+  const el = document.getElementById('award-saved-list');
+  if (!el) return;
+  try {
+    const snap = await getDocs(collection(db,'awards'));
+    if (snap.empty) { el.innerHTML='<div class="empty">저장된 시상 정책 없음</div>'; return; }
+    const list = [];
+    snap.forEach(d=>list.push({id:d.id,...d.data()}));
+    list.sort((a,b)=>b.id.localeCompare(a.id));
+    el.innerHTML = list.map(a=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;">${escHtml(a.company||'')}</div>
+          <div style="font-size:11px;color:var(--text3);">${a.year}년 ${a.month}월 ${a.week?a.week+'주차':''} · ${(a.tiers||[]).length}개 항목</div>
+        </div>
+        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);"
+          onclick="deleteAward('${a.id}','${escHtml(a.company||'')}')">🗑</button>
+      </div>`).join('');
+  } catch(e) { el.innerHTML='<div class="empty">불러오기 실패</div>'; }
+}
+
+window.deleteAward = async function(docId, name) {
+  if (!confirm(`"${name}" 시상 정책을 삭제할까요?`)) return;
+  try {
+    await deleteDoc(doc(db,'awards',docId));
+    showToast(`✅ "${name}" 삭제됐어요.`);
+    loadAwardList();
+  } catch(e) { showToast('❌ 삭제 실패: '+e.message); }
+};
+
 // ── 탭 전환 ──
 window.switchTab = function(tab) {
   document.querySelectorAll('.tab-nav-item').forEach(el => el.classList.remove('active'));
@@ -1567,6 +2147,8 @@ window.switchTab = function(tab) {
   document.getElementById('nav-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if (tab === 'contracts') { buildContractsFilters(); renderContractsList(); }
+  if (tab === 'upload') { loadAwardList(); }
+  if (tab === 'commission') { initCommissionTab(); }
 };
 
 // ── 설계사 관리 서브탭 전환 ──
@@ -1885,9 +2467,26 @@ window.renderContractsList = function() {
 // ── ⋯ 메뉴 ──
 window.toggleCustMenu = function(docId) {
   const target = document.getElementById('cust-menu-'+docId);
+  const btn = event.currentTarget || event.target.closest('.cm-cust-menu-btn');
   const isOpen = target.classList.contains('open');
   closeCustMenus();
-  if (!isOpen) target.classList.add('open');
+  if (!isOpen) {
+    const rect = btn.getBoundingClientRect();
+    const dropW = 150;
+    // 화면 아래 공간이 부족하면 위로 열기
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropH = 90; // 예상 높이
+    target.style.right = 'auto';
+    target.style.left = Math.max(8, rect.right - dropW) + 'px';
+    if (spaceBelow < dropH + 10) {
+      target.style.top = 'auto';
+      target.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    } else {
+      target.style.bottom = 'auto';
+      target.style.top = (rect.bottom + 4) + 'px';
+    }
+    target.classList.add('open');
+  }
 };
 window.closeCustMenus = function() {
   document.querySelectorAll('.cm-cust-dropdown.open').forEach(el => el.classList.remove('open'));
