@@ -2258,17 +2258,17 @@ window.onAwardFileDrop = function(e) {
           const status = document.getElementById('award-extract-status');
           status.style.display = 'block'; status.style.color = 'var(--text3)';
           status.textContent = `⏳ ${data.length}개 보험사 저장 중...`;
-          let saved = 0, failed = 0;
+          let saved = 0, failed = 0, lastErr = '';
           for (const item of data) {
-            if (!item.company || !item.year || !item.month) { failed++; continue; }
+            if (!item.company || !item.year || !item.month) { failed++; lastErr='company/year/month 누락'; continue; }
             const docId = `${item.year}_${String(item.month).padStart(2,'0')}_${item.company}`;
             try {
               await setDoc(doc(db,'awards',docId), {...item, uploadedAt:new Date().toISOString(), uploadedBy:adminInfo?.uid||'admin'});
               saved++;
-            } catch(err) { failed++; }
+            } catch(err) { failed++; lastErr = err.message; console.error('award save error:', err); }
           }
-          status.textContent = `✅ ${saved}개 저장 완료${failed?` (${failed}개 실패)`:''}!`;
-          status.style.color = failed ? 'var(--amber)' : 'var(--green)';
+          status.textContent = `${saved>0?'✅':'❌'} ${saved}개 저장 완료${failed?` (${failed}개 실패: ${lastErr})`:''}`;
+          status.style.color = failed && saved===0 ? 'var(--red)' : failed ? 'var(--amber)' : 'var(--green)';
           showToast(`✅ 시상 ${saved}개사 저장됐어요!`);
           await loadAdminAwards(); renderAwardBanner(); renderAwardStatusCard(); loadAwardList();
         } else {
@@ -3502,6 +3502,6 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.03-drag-drop</div>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.03-debug</div>
 </body>
 </html>
