@@ -860,18 +860,25 @@ async function loadCommissions() {
 // ── 시상 계산 ──
 function calcAwardEstimate(cts) {
   if (!awardsCache.length) return null;
-  if (selYears.size === 0 || selMonths.size === 0) return null; // 기간 미선택 시 계산 안 함
+  if (selYears.size === 0 || selMonths.size === 0) return null;
 
   const awardYear  = [...selYears][0];
   const awardMonth = [...selMonths][0];
 
-  // 선택한 연도·월에 등록된 시상 정책만 사용
+  // 당월 시상 정책
   const matchedAwards = awardsCache.filter(a =>
     a.year === awardYear && a.month === awardMonth
   );
   if (!matchedAwards.length) return null;
 
-  // 보험사별 월 보험료 집계
+  // 전월 계산
+  const prevYear  = awardMonth === 1 ? awardYear - 1 : awardYear;
+  const prevMonth = awardMonth === 1 ? 12 : awardMonth - 1;
+
+  // 전월 시상 정책 존재 여부 (연속가동 활성화 판단용)
+  const hasPrevAwards = awardsCache.some(a => a.year === prevYear && a.month === prevMonth);
+
+  // 당월 보험사별 보험료
   const companyPrem = {};
   cts.forEach(ct => {
     const co   = ct.company || ct.rawJson?.보험사 || '';
@@ -879,6 +886,21 @@ function calcAwardEstimate(cts) {
     if (!co) return;
     companyPrem[co] = (companyPrem[co]||0) + prem;
   });
+
+  // 전월 보험사별 보험료 (모든 고객 계약 중 전월 것)
+  const prevCompanyPrem = {};
+  customers.forEach(c => {
+    (c.contracts||[]).forEach(ct => {
+      const p = parsePeriod(ct);
+      if (!p || p.year !== prevYear || p.month !== prevMonth) return;
+      const co   = ct.company || ct.rawJson?.보험사 || '';
+      const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
+      if (!co) return;
+      prevCompanyPrem[co] = (prevCompanyPrem[co]||0) + prem;
+    });
+  });
+
+  const hasPrevData = Object.keys(prevCompanyPrem).length > 0;
 
   const results = [];
   let totalEstimate = 0;
@@ -888,37 +910,113 @@ function calcAwardEstimate(cts) {
     const prem = companyPrem[co] || 0;
     if (!prem) return;
 
+    const prevPrem = prevCompanyPrem[co] || 0;
     const awardResults = [];
 
     (award.tiers||[]).forEach(tier => {
-      // 연속가동/클럽은 전월 데이터 필요 → 참고용으로만 표시
-      if (['consecutive','club'].includes(tier.type)) return;
-      if (!tier.tiers?.length) return;
 
-      // 해당 구간에서 최대 달성 시상 찾기
-      let best = null;
-      ;[...tier.tiers].reverse().forEach(t => {
-        if (!best && prem >= t.threshold) best = t;
-      });
-      if (!best) return;
+      // ── 일반 시상 (basic / weekly / weekly_extra / flagship / membership) ──
+      if (!['consecutive','club'].includes(tier.type)) {
+        if (!tier.tiers?.length) return;
+        let best = null;
+        ;[...tier.tiers].reverse().forEach(t => {
+          if (!best && prem >= t.threshold) best = t;
+        });
+        if (!best) return;
+        awardResults.push({
+          label: tier.label, type: tier.type,
+          payTiming: tier.payTiming,
+          reward: best.reward || 0,
+          goldReward: best.goldReward || null,
+          threshold: best.threshold,
+          needPrev: false,
+        });
+        if (best.reward) totalEstimate += best.reward;
+        return;
+      }
 
-      awardResults.push({
-        label: tier.label,
-        type: tier.type,
-        payTiming: tier.payTiming,
-        reward: best.reward || 0,
-        goldReward: best.goldReward || null,
-        threshold: best.threshold,
-      });
-      if (best.reward) totalEstimate += best.reward;
+      // ── 연속가동 (consecutive) ──
+      if (tier.type === 'consecutive') {
+        if (!tier.tiers?.length) return;
+
+        // 전월 데이터 없으면 "전월 실적 필요" 항목으로 표시
+        if (!hasPrevData) {
+          awardResults.push({
+            label: tier.label, type: tier.type,
+            payTiming: tier.payTiming,
+            reward: 0, goldReward: null,
+            needPrev: true,
+            prevMonthLabel: `${prevYear}년 ${prevMonth}월`,
+          });
+          return;
+        }
+
+        // 전월+당월 모두 threshold 충족하는 최대 구간 찾기
+        let best = null;
+        ;[...tier.tiers].reverse().forEach(t => {
+          if (best) return;
+          const prevOk = t.prevThreshold ? prevPrem >= t.prevThreshold : true;
+          const currOk = t.currThreshold ? prem    >= t.currThreshold : true;
+          if (prevOk && currOk) best = t;
+        });
+        if (!best) return;
+
+        awardResults.push({
+          label: tier.label, type: tier.type,
+          payTiming: tier.payTiming,
+          reward: best.reward || 0,
+          goldReward: best.goldReward || null,
+          prevPrem, currPrem: prem,
+          needPrev: false,
+        });
+        if (best.reward) totalEstimate += best.reward;
+        return;
+      }
+
+      // ── 클럽시상 (club) ──
+      if (tier.type === 'club') {
+        if (!tier.tiers?.length) return;
+
+        // 전월 데이터 없으면 "전월 실적 필요" 표시
+        if (!hasPrevData) {
+          awardResults.push({
+            label: tier.label, type: tier.type,
+            payTiming: tier.payTiming,
+            reward: 0, goldReward: null,
+            needPrev: true,
+            prevMonthLabel: `${prevYear}년 ${prevMonth}월`,
+          });
+          return;
+        }
+
+        // 연속 월수 달성 여부 — tier.consecutiveMonths 기준
+        // 단순화: 전월 달성 + 당월 달성이면 최대 구간 적용
+        let best = null;
+        ;[...tier.tiers].reverse().forEach(t => {
+          if (best) return;
+          const prevOk = prevPrem >= t.threshold;
+          const currOk = prem    >= t.threshold;
+          if (prevOk && currOk) best = t;
+        });
+        if (!best) return;
+
+        awardResults.push({
+          label: tier.label, type: tier.type,
+          payTiming: tier.payTiming,
+          reward: best.reward || 0,
+          goldReward: best.goldReward || null,
+          needPrev: false,
+        });
+        if (best.reward) totalEstimate += best.reward;
+      }
     });
 
     if (awardResults.length) {
-      results.push({ company: co, prem, items: awardResults });
+      results.push({ company: co, prem, prevPrem, items: awardResults });
     }
   });
 
-  return { results, totalEstimate };
+  return { results, totalEstimate, hasPrevData, prevYear, prevMonth };
 }
 window.togglePerfStats = function() {
   const body = document.getElementById('perf-stats-body');
@@ -1094,23 +1192,32 @@ function renderPerformance() {
   ${(() => {
     const est = calcAwardEstimate(cts);
     if (!est || !est.results.length) return '';
-    const typeLabel = {basic:'기본시상',weekly:'주간가동',weekly_extra:'주간추가',flagship:'주력상품',membership:'멤버십'};
-    const typeColor = {basic:'var(--accent)',weekly:'var(--green)',weekly_extra:'var(--purple)',flagship:'var(--green)',membership:'var(--amber)'};
+    const typeLabel = {basic:'기본시상',weekly:'주간가동',weekly_extra:'주간추가',flagship:'주력상품',membership:'멤버십',consecutive:'연속가동',club:'클럽시상'};
+    const typeColor = {basic:'var(--accent)',weekly:'var(--green)',weekly_extra:'var(--purple)',flagship:'var(--green)',membership:'var(--amber)',consecutive:'var(--amber)',club:'var(--gold)'};
     return `
-    <div class="perf-section-title" style="margin-top:4px;">🏆 보험사별 예상 시상 <span style="font-size:10px;font-weight:500;color:var(--text3);">(익월 말일 지급, 참고용)</span></div>
+    <div class="perf-section-title" style="margin-top:4px;">🏆 보험사별 예상 시상 <span style="font-size:10px;font-weight:500;color:var(--text3);">(참고용)</span></div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow);">
       ${est.results.map(r => `
         <div style="padding:12px 14px;border-bottom:1px solid var(--border);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
             <div style="font-size:13px;font-weight:800;">${escHtml(r.company)}</div>
-            <div style="font-size:12px;color:var(--text3);">${Math.round(r.prem/10000)}만원 실적</div>
+            <div style="font-size:12px;color:var(--text3);">
+              당월 ${Math.round(r.prem/10000)}만원${r.prevPrem ? ' · 전월 '+Math.round(r.prevPrem/10000)+'만원' : ''}
+            </div>
           </div>
-          ${r.items.map(item => `
+          ${r.items.map(item => item.needPrev ? `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);opacity:.55;">
+              <div>
+                <span class="chip" style="font-size:10px;background:var(--surface2);color:var(--text2);">${typeLabel[item.type]||item.type}</span>
+                <span style="font-size:11px;color:var(--text2);margin-left:5px;">${escHtml(item.label)}</span>
+              </div>
+              <div style="font-size:11px;color:var(--text3);">📅 ${item.prevMonthLabel} 계약 필요</div>
+            </div>` : `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);">
               <div>
                 <span class="chip" style="font-size:10px;background:${typeColor[item.type]||'var(--surface2)'};color:${item.type?'#fff':'var(--text2)'};">${typeLabel[item.type]||item.type}</span>
                 <span style="font-size:11px;color:var(--text2);margin-left:5px;">${escHtml(item.label)}</span>
-                <span class="chip" style="font-size:10px;margin-left:3px;">${item.payTiming==='next_month'?'익월 말일':'13회차'}</span>
+                <span class="chip" style="font-size:10px;margin-left:3px;">${item.payTiming==='next_month'?'익월':'13회차'}</span>
               </div>
               <div style="font-size:13px;font-weight:800;color:${typeColor[item.type]||'var(--accent)'};">
                 ${item.goldReward ? '금 '+item.goldReward : Math.round(item.reward/10000)+'만원'}
@@ -1118,11 +1225,12 @@ function renderPerformance() {
             </div>`).join('')}
         </div>`).join('')}
       <div style="padding:12px 14px;background:var(--accent-light);display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:12px;font-weight:700;color:var(--accent);">💰 익월 예상 시상 합계</div>
+        <div style="font-size:12px;font-weight:700;color:var(--accent);">💰 예상 시상 합계</div>
         <div style="font-size:16px;font-weight:900;color:var(--accent);">${Math.round(est.totalEstimate/10000)}만원</div>
       </div>
     </div>
-    <div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:4px;">⚠ 연속가동·클럽시상 제외, 13회차 조건부 포함 — 실제 지급액과 다를 수 있어요</div>`;
+    ${!est.hasPrevData ? `<div style="font-size:10px;color:var(--amber);text-align:center;margin-bottom:4px;background:var(--amber-light);padding:6px 10px;border-radius:var(--radius-sm);">📅 ${est.prevYear}년 ${est.prevMonth}월 계약 등록 시 연속가동·클럽시상도 계산돼요</div>` : ''}
+    <div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:4px;">⚠ 실제 지급액과 다를 수 있어요 · 13회차 조건부 포함</div>`;
   })()}
 
 
