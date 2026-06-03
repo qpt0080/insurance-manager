@@ -440,11 +440,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         </div>
         <!-- 월 보험료 범위 -->
         <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.04em;margin-bottom:8px;">💰 월 보험료 범위</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
           <button class="v-tag-btn" id="vtag-prem0" onclick="toggleVPrem('prem0',0,50000)">~5만</button>
           <button class="v-tag-btn" id="vtag-prem1" onclick="toggleVPrem('prem1',50000,100000)">5~10만</button>
           <button class="v-tag-btn" id="vtag-prem2" onclick="toggleVPrem('prem2',100000,200000)">10~20만</button>
           <button class="v-tag-btn" id="vtag-prem3" onclick="toggleVPrem('prem3',200000,9999999)">20만↑</button>
+        </div>
+        <!-- 고지의무 필터 -->
+        <div id="notice-filter-section" style="display:none;">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.04em;margin-bottom:8px;">📋 고지의무 통과</div>
+          <div id="notice-filter-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
         </div>
       </div>
       <div id="list-count" style="font-size:12px;color:var(--text3);margin-bottom:10px;padding:0 2px;"></div>
@@ -495,7 +500,8 @@ let searchMode = 'name';
 let selYears = new Set();
 let selMonths = new Set();
 let awardsCache = [];
-let commissionsCache = []; // 수수료/시상 예정 캐시
+let commissionsCache = [];
+let noticesCache = []; // 고지의무 캐시
 
 // ── 초기화 ──
 async function init() {
@@ -509,6 +515,7 @@ async function init() {
     await loadCustomers();
     await loadAwards();
     await loadCommissions();
+    await loadNotices();
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     buildPeriodChips();
@@ -518,6 +525,7 @@ async function init() {
     selMonths.add(_now.getMonth() + 1);
     buildPeriodChips();
     renderList();
+    renderNoticeFilterChips();
     history.replaceState({view:'tab', tab:'list'}, '');
   } catch(e) { showError('데이터를 불러오지 못했습니다.'); }
 }
@@ -647,6 +655,30 @@ window.setSearchMode = function(mode) {
   renderList();
 };
 
+// ── 고지의무 필터 ──
+let selectedNoticeIds = new Set();
+
+function renderNoticeFilterChips() {
+  const section = document.getElementById('notice-filter-section');
+  const chips   = document.getElementById('notice-filter-chips');
+  if (!section || !chips) return;
+  if (!noticesCache.length) { section.style.display='none'; return; }
+  section.style.display = 'block';
+  chips.innerHTML = noticesCache.map(n =>
+    `<button class="v-tag-btn ${selectedNoticeIds.has(n._id)?'active':''}"
+      id="ntag-${n._id}" onclick="toggleNoticeFilter('${n._id}')">
+      📋 ${escHtml(n.title||n.product||'')} 통과
+    </button>`).join('');
+}
+
+window.toggleNoticeFilter = function(noticeId) {
+  if (selectedNoticeIds.has(noticeId)) selectedNoticeIds.delete(noticeId);
+  else selectedNoticeIds.add(noticeId);
+  const btn = document.getElementById('ntag-'+noticeId);
+  if (btn) btn.classList.toggle('active', selectedNoticeIds.has(noticeId));
+  renderList();
+};
+
 // ── 전체 목록 ──
 let damboMode = 'has';
 
@@ -736,7 +768,20 @@ window.renderList = function() {
   if (vTags.has('claimed')) list = list.filter(c=>(c.contracts||[]).some(ct=>(ct.claims||[]).length>0||(ct.coverageMeta||[]).some(m=>m&&m.claimed)));
   if (vTags.has('hasmemo')) list = list.filter(c=>(c.contracts||[]).some(ct=>ct.memo||(ct.coverageMeta||[]).some(m=>m&&m.memo)));
 
-  document.getElementById('list-count').textContent = `총 ${list.length}명`;
+  // 고지의무 통과 필터
+  if (selectedNoticeIds.size > 0) {
+    list = list.filter(c => {
+      const noticeResults = c.noticeResults||{};
+      return [...selectedNoticeIds].every(noticeId => {
+        const notice = noticesCache.find(n => n._id === noticeId);
+        if (!notice) return false;
+        // 모든 항목이 pass여야 통과
+        return (notice.items||[]).every(item =>
+          noticeResults[noticeId+'_'+item.id] === 'pass'
+        );
+      });
+    });
+  }
 
   const emptyMsg = (searchMode === 'dambo' && q && damboMode === 'not')
     ? `<div class="empty"><div class="empty-icon">✅</div><p>모든 고객이 "${escHtml(q)}" 담보를 가지고 있어요</p></div>`
@@ -796,7 +841,14 @@ async function loadAwards() {
   } catch(e) { awardsCache = []; }
 }
 
-// ── 수수료/시상 예정 로드 ──
+// ── 고지의무 로드 ──
+async function loadNotices() {
+  try {
+    const snap = await getDocs(collection(db,'notices'));
+    noticesCache = [];
+    snap.forEach(d => noticesCache.push({_id:d.id,...d.data()}));
+  } catch(e) { noticesCache=[]; }
+}
 async function loadCommissions() {
   try {
     const snap = await getDocs(query(collection(db,'commissions'), where('agentId','==',agentInfo.uid)));
@@ -1112,8 +1164,44 @@ function renderPerformance() {
 
   el.innerHTML = html;
 
-  // 수수료/시상 예정·완료 렌더
-  renderViewerCommissions(el);
+  // 고지의무 체크리스트
+  if (noticesCache.length) {
+    const noticeResults = c.noticeResults||{};
+    html += `<div class="sec-label" style="margin-top:20px;">📋 고지의무 체크</div>`;
+    noticesCache.forEach(notice => {
+      const result = noticeResults[notice._id]; // 'pass'|'fail'|undefined
+      const allPass = (notice.items||[]).every(item => (noticeResults[notice._id+'_'+item.id]) === 'pass');
+      const anyFail = (notice.items||[]).some(item => (noticeResults[notice._id+'_'+item.id]) === 'fail');
+      const statusColor = anyFail ? 'var(--red)' : allPass ? 'var(--green)' : 'var(--text3)';
+      const statusLabel = anyFail ? '❌ 미통과' : allPass ? '✅ 통과' : '⬜ 미확인';
+      html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="font-size:13px;font-weight:800;">${escHtml(notice.title||notice.product||'')}</div>
+            <div style="font-size:11px;color:var(--text3);">${escHtml(notice.company||'')}</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
+        </div>
+        ${(notice.items||[]).map(item => {
+          const itemKey = notice._id+'_'+item.id;
+          const itemResult = noticeResults[itemKey];
+          return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border);">
+            <button onclick="toggleNoticeItem('${c._docId||c.id}','${notice._id}','${item.id}')"
+              style="flex-shrink:0;width:26px;height:26px;border-radius:50%;border:2px solid ${itemResult==='pass'?'var(--green)':itemResult==='fail'?'var(--red)':'var(--border)'};
+              background:${itemResult==='pass'?'var(--green)':itemResult==='fail'?'var(--red)':'var(--surface)'};
+              color:${itemResult?'#fff':'var(--text3)'};font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;">
+              ${itemResult==='pass'?'✓':itemResult==='fail'?'✗':''}
+            </button>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;">${escHtml(item.label)}</div>
+              ${item.detail?`<div style="font-size:10px;color:var(--text3);">${escHtml(item.detail)}</div>`:''}
+            </div>
+            <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text3);">${item.category}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    });
+  }
 }
 
 
@@ -1288,7 +1376,22 @@ window.showDetail = function(id, skipHistory) {
   document.getElementById('detail-content').innerHTML = html;
 };
 
-// ── 고객 상세 복사 ──
+// ── 고지의무 체크 토글 ──
+window.toggleNoticeItem = async function(custId, noticeId, itemId) {
+  const c = getCust(custId); if(!c) return;
+  const noticeResults = {...(c.noticeResults||{})};
+  const key = noticeId+'_'+itemId;
+  const cur = noticeResults[key];
+  // 미확인 → 통과 → 미통과 → 미확인 순환
+  noticeResults[key] = cur==='pass' ? 'fail' : cur==='fail' ? undefined : 'pass';
+  if(noticeResults[key]===undefined) delete noticeResults[key];
+  try {
+    await updateDoc(doc(db,'customers',custId),{noticeResults});
+    c.noticeResults = noticeResults;
+    // 화면 갱신
+    showDetail(custId, true);
+  } catch(e) { showToast('❌ 저장 실패: '+e.message); }
+};
 window.copyDetailText = function(text, label) {
   navigator.clipboard.writeText(text)
     .then(() => showToast(`✅ ${label} 복사됐어요!`))

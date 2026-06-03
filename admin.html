@@ -501,10 +501,28 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div>
         <div class="card" style="margin-bottom:0;">
           <div class="card-title">📋 계약 업로드</div>
+          <!-- 계약 JSON 드롭존 -->
+          <div id="contract-drop-zone"
+            ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
+            ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
+            ondrop="onContractFileDrop(event)"
+            onclick="document.getElementById('contract-file-input').click()"
+            style="border:2px dashed var(--border);border-radius:var(--radius);padding:22px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);margin-bottom:10px;">
+            <input type="file" id="contract-file-input" accept=".json,application/json"
+              style="display:none;" onchange="onContractFileSelect(event)"/>
+            <div style="font-size:24px;margin-bottom:6px;">📂</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text2);">JSON 파일을 드래그하거나 탭해서 선택</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;">.json 파일 지원</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <span style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap;">또는 직접 입력</span>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
           <div class="form-row" style="margin-bottom:10px;">
             <textarea class="form-textarea" id="upload-json-input"
               placeholder='여기에 Claude가 추출한 JSON을 붙여넣으세요'
-              style="min-height:200px;font-size:13px;"></textarea>
+              style="min-height:140px;font-size:13px;"></textarea>
           </div>
           <button onclick="applyUploadJson()" class="btn btn-primary btn-full" style="font-size:14px;padding:13px;">✅ 적용하기</button>
           <div id="upload-json-status" style="display:none;"></div>
@@ -596,16 +614,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div class="card" style="margin-bottom:0;">
           <div class="card-title">🏆 시상 정책 업로드</div>
 
-          <!-- 파일 선택 (이미지 + PDF) -->
+          <!-- 파일 선택 (이미지 + PDF + JSON) -->
           <div style="margin-bottom:14px;">
             <div class="form-label" style="margin-bottom:6px;">시상 파일 선택</div>
-            <input type="file" id="award-img-input" accept="image/*,application/pdf"
+            <input type="file" id="award-img-input" accept="image/*,application/pdf,.json,application/json"
               style="display:none;" onchange="onAwardImgSelect(event)"/>
-            <div id="award-img-drop" onclick="document.getElementById('award-img-input').click()"
-              style="border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:border-color .18s;background:var(--bg);">
+            <div id="award-img-drop"
+              ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
+              ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
+              ondrop="onAwardFileDrop(event)"
+              onclick="document.getElementById('award-img-input').click()"
+              style="border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);">
               <div style="font-size:28px;margin-bottom:8px;">🏆</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text2);">시상 파일을 탭해서 선택하세요</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG · PNG · PDF 지원</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text2);">시상 파일을 드래그하거나 탭해서 선택</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG · PNG · PDF · JSON 지원</div>
             </div>
             <div id="award-img-preview" style="display:none;margin-top:10px;">
               <img id="award-img-thumb" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);display:none;"/>
@@ -617,10 +639,30 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
           <!-- 추출 버튼 -->
           <button onclick="extractAwardJson()" id="award-extract-btn"
-            class="btn btn-primary btn-full" style="font-size:14px;padding:13px;margin-bottom:14px;" disabled>
+            class="btn btn-primary btn-full" style="font-size:14px;padding:13px;margin-bottom:10px;" disabled>
             🤖 AI로 추출하기
           </button>
           <div id="award-extract-status" style="display:none;font-size:12px;color:var(--text3);margin-bottom:10px;text-align:center;"></div>
+
+          <!-- JSON 직접 붙여넣기 -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <span style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap;">또는</span>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
+          <button onclick="toggleAwardJsonPaste()" id="award-paste-toggle-btn"
+            class="btn btn-full" style="font-size:13px;padding:11px;margin-bottom:0;">
+            📋 JSON 직접 붙여넣기
+          </button>
+          <div id="award-paste-area" style="display:none;margin-top:10px;">
+            <textarea id="award-paste-input" class="form-textarea"
+              placeholder='Claude가 추출한 시상 JSON을 붙여넣으세요&#10;&#10;단일 객체 ({...}) 또는 배열 ([...]) 모두 지원합니다.'
+              style="min-height:140px;font-size:12px;font-family:monospace;"></textarea>
+            <button onclick="applyAwardPasteJson()" class="btn btn-primary btn-full" style="margin-top:8px;font-size:13px;padding:11px;">
+              ✅ 적용하기
+            </button>
+            <div id="award-paste-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
+          </div>
 
           <!-- 추출 결과 미리보기 -->
           <div id="award-json-preview" style="display:none;">
@@ -678,6 +720,85 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         </div>
       </div>
 
+    </div>
+    <!-- 구분선 -->
+    <div style="height:1px;background:var(--border);margin:24px 0;"></div>
+
+    <!-- ③ 고지의무 업로드 -->
+    <div class="upload-layout">
+      <div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">📋 고지의무 업로드</div>
+          <div style="margin-bottom:14px;">
+            <div class="form-label" style="margin-bottom:6px;">고지의무 파일 선택</div>
+            <input type="file" id="notice-img-input" accept="image/*,application/pdf,.json,application/json"
+              style="display:none;" onchange="onNoticeImgSelect(event)"/>
+            <div id="notice-img-drop"
+              ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
+              ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
+              ondrop="onNoticeFileDrop(event)"
+              onclick="document.getElementById('notice-img-input').click()"
+              style="border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);">
+              <div style="font-size:28px;margin-bottom:8px;">📋</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text2);">고지의무 파일을 드래그하거나 탭해서 선택</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG · PNG · PDF · JSON 지원</div>
+            </div>
+            <div id="notice-img-preview" style="display:none;margin-top:10px;">
+              <img id="notice-img-thumb" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);display:none;"/>
+              <div id="notice-pdf-badge" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600;color:var(--text2);">
+                📄 <span id="notice-pdf-name"></span>
+              </div>
+            </div>
+          </div>
+          <button onclick="extractNoticeJson()" id="notice-extract-btn"
+            class="btn btn-primary btn-full" style="font-size:14px;padding:13px;margin-bottom:14px;" disabled>
+            🤖 AI로 추출하기
+          </button>
+          <div id="notice-extract-status" style="display:none;font-size:12px;color:var(--text3);margin-bottom:10px;text-align:center;"></div>
+          <div id="notice-json-preview" style="display:none;">
+            <div class="divider"></div>
+            <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">📊 추출 결과</div>
+            <div id="notice-summary-card" style="background:var(--accent-light);border:1.5px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:14px;margin-bottom:12px;"></div>
+            <div id="notice-items-list" style="margin-bottom:14px;"></div>
+            <div style="margin-bottom:14px;">
+              <button onclick="toggleNoticeRaw()" class="btn btn-sm" style="color:var(--text3);font-size:11px;">🔧 JSON 원문 보기/수정</button>
+              <div id="notice-raw-json" style="display:none;margin-top:8px;">
+                <textarea id="notice-json-textarea" class="form-textarea"
+                  style="min-height:120px;font-size:11px;font-family:monospace;"></textarea>
+              </div>
+            </div>
+            <button onclick="saveNoticeJson()" class="btn btn-green btn-full" style="font-size:14px;padding:13px;">
+              💾 Firestore에 저장하기
+            </button>
+            <div id="notice-save-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="upload-tip-box" style="margin-bottom:16px;">
+          <div class="upload-tip-title">고지의무 업로드 방법</div>
+          <div class="upload-tip-step">
+            <div class="upload-tip-num">1</div>
+            <div class="upload-tip-text">지점장/청약설계사에게 받은 고지의무 이미지 선택</div>
+          </div>
+          <div class="upload-tip-step">
+            <div class="upload-tip-num">2</div>
+            <div class="upload-tip-text"><strong>AI로 추출하기</strong>로 조건 항목 자동 분석</div>
+          </div>
+          <div class="upload-tip-step">
+            <div class="upload-tip-num">3</div>
+            <div class="upload-tip-text">결과 확인 후 <strong>저장하기</strong></div>
+          </div>
+          <div class="upload-tip-step">
+            <div class="upload-tip-num">4</div>
+            <div class="upload-tip-text">설계사가 뷰어에서 고객별 체크 후 필터링</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📁 저장된 고지의무 목록</div>
+          <div id="notice-saved-list"><div class="empty">불러오는 중...</div></div>
+        </div>
+      </div>
     </div>
   </div><!-- /tab-upload -->
 
@@ -2072,7 +2193,292 @@ window.updateCommStatus=async function(docId,itemId,newStatus){
   }catch(e){showToast('❌ 실패: '+e.message);}
 };
 
-// ── 시상 업로드 ──
+// ══════════════════════════════════════════
+// JSON 파일 드래그&드롭 핸들러
+// ══════════════════════════════════════════
+
+// ── 공통: JSON 파일 읽기 유틸 ──
+function readJsonFile(file, onSuccess, onError) {
+  if (!file) return;
+  const isJson = file.type === 'application/json' || file.name.endsWith('.json');
+  if (!isJson) { onError('JSON 파일(.json)만 지원합니다.'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try { onSuccess(JSON.parse(ev.target.result)); }
+    catch(e) { onError('JSON 파싱 오류: ' + e.message); }
+  };
+  reader.readAsText(file);
+}
+
+// ── ① 계약: 파일 선택/드롭 ──
+window.onContractFileSelect = function(e) {
+  const file = e.target.files[0]; if (!file) return;
+  readJsonFile(file,
+    data => {
+      document.getElementById('upload-json-input').value = JSON.stringify(data, null, 2);
+      document.getElementById('contract-drop-zone').style.borderColor = 'var(--green)';
+      document.getElementById('contract-drop-zone').style.background = 'var(--green-light)';
+      document.getElementById('contract-drop-zone').querySelector('div:nth-child(2)').textContent = '✅ ' + file.name;
+      showToast('📂 파일 로드 완료! 적용하기를 눌러주세요.');
+    },
+    err => showToast('❌ ' + err)
+  );
+};
+
+window.onContractFileDrop = function(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--border)';
+  e.currentTarget.style.background = 'var(--bg)';
+  const file = e.dataTransfer.files[0]; if (!file) return;
+  readJsonFile(file,
+    data => {
+      document.getElementById('upload-json-input').value = JSON.stringify(data, null, 2);
+      e.currentTarget.style.borderColor = 'var(--green)';
+      e.currentTarget.style.background = 'var(--green-light)';
+      e.currentTarget.querySelector('div:nth-child(2)').textContent = '✅ ' + file.name;
+      showToast('📂 파일 로드 완료! 적용하기를 눌러주세요.');
+    },
+    err => showToast('❌ ' + err)
+  );
+};
+
+// ── ② 시상: JSON 파일 드롭 (이미지/PDF는 기존 onAwardImgSelect로) ──
+window.onAwardFileDrop = function(e) {
+  e.preventDefault();
+  const drop = e.currentTarget;
+  drop.style.borderColor = 'var(--border)'; drop.style.background = 'var(--bg)';
+  const file = e.dataTransfer.files[0]; if (!file) return;
+  const isJson = file.type === 'application/json' || file.name.endsWith('.json');
+  if (isJson) {
+    readJsonFile(file,
+      async data => {
+        drop.style.borderColor = 'var(--green)'; drop.style.background = 'var(--green-light)';
+        // 배열이면 일괄저장, 단일 객체면 preview
+        if (Array.isArray(data)) {
+          const status = document.getElementById('award-extract-status');
+          status.style.display = 'block'; status.style.color = 'var(--text3)';
+          status.textContent = `⏳ ${data.length}개 보험사 저장 중...`;
+          let saved = 0, failed = 0;
+          for (const item of data) {
+            if (!item.company || !item.year || !item.month) { failed++; continue; }
+            const docId = `${item.year}_${String(item.month).padStart(2,'0')}_${item.company}`;
+            try {
+              await setDoc(doc(db,'awards',docId), {...item, uploadedAt:new Date().toISOString(), uploadedBy:adminInfo?.uid||'admin'});
+              saved++;
+            } catch(err) { failed++; }
+          }
+          status.textContent = `✅ ${saved}개 저장 완료${failed?` (${failed}개 실패)`:''}!`;
+          status.style.color = failed ? 'var(--amber)' : 'var(--green)';
+          showToast(`✅ 시상 ${saved}개사 저장됐어요!`);
+          await loadAdminAwards(); renderAwardBanner(); renderAwardStatusCard(); loadAwardList();
+        } else {
+          if (!data.company || !data.year || !data.month) { showToast('❌ company·year·month 필드가 없어요.'); return; }
+          awardExtracted = data;
+          renderAwardPreview(data);
+          document.getElementById('award-extract-status').style.display = 'block';
+          document.getElementById('award-extract-status').textContent = `✅ ${file.name} 로드 완료! 아래에서 저장해주세요.`;
+          document.getElementById('award-extract-status').style.color = 'var(--green)';
+        }
+      },
+      err => showToast('❌ ' + err)
+    );
+  } else {
+    // 이미지/PDF는 기존 로직으로 위임
+    const dt = new DataTransfer(); dt.items.add(file);
+    const fakeEvt = { target: { files: dt.files } };
+    onAwardImgSelect(fakeEvt);
+  }
+};
+
+// ── ③ 고지의무: JSON 파일 드롭 ──
+window.onNoticeFileDrop = function(e) {
+  e.preventDefault();
+  const drop = e.currentTarget;
+  drop.style.borderColor = 'var(--border)'; drop.style.background = 'var(--bg)';
+  const file = e.dataTransfer.files[0]; if (!file) return;
+  const isJson = file.type === 'application/json' || file.name.endsWith('.json');
+  if (isJson) {
+    readJsonFile(file,
+      data => {
+        drop.style.borderColor = 'var(--green)'; drop.style.background = 'var(--green-light)';
+        // 배열이면 첫 번째 항목 preview, 단일이면 바로 preview
+        const item = Array.isArray(data) ? data[0] : data;
+        if (!item) { showToast('❌ 데이터가 비어있어요.'); return; }
+        noticeExtracted = item;
+        renderNoticePreview(item);
+        document.getElementById('notice-extract-status').style.display = 'block';
+        document.getElementById('notice-extract-status').textContent = `✅ ${file.name} 로드 완료! 아래에서 저장해주세요.`;
+        document.getElementById('notice-extract-status').style.color = 'var(--green)';
+        document.getElementById('notice-extract-btn').disabled = false;
+      },
+      err => showToast('❌ ' + err)
+    );
+  } else {
+    const dt = new DataTransfer(); dt.items.add(file);
+    const fakeEvt = { target: { files: dt.files } };
+    onNoticeImgSelect(fakeEvt);
+  }
+};
+let noticeImgBase64 = null;
+let noticeImgMime   = null;
+let noticeExtracted = null;
+let noticesCache    = [];
+
+async function loadNotices() {
+  try {
+    const snap = await getDocs(collection(db,'notices'));
+    noticesCache = [];
+    snap.forEach(d => noticesCache.push({_id:d.id,...d.data()}));
+  } catch(e) { noticesCache=[]; }
+}
+
+window.onNoticeImgSelect = function(e) {
+  const file = e.target.files[0]; if(!file) return;
+  noticeImgMime = file.type;
+  const isPdf = file.type === 'application/pdf';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    noticeImgBase64 = ev.target.result.split(',')[1];
+    document.getElementById('notice-img-preview').style.display='block';
+    const thumb = document.getElementById('notice-img-thumb');
+    const badge = document.getElementById('notice-pdf-badge');
+    if(isPdf){ thumb.style.display='none'; badge.style.display='block'; document.getElementById('notice-pdf-name').textContent=file.name; }
+    else { thumb.src=ev.target.result; thumb.style.display='block'; badge.style.display='none'; }
+    document.getElementById('notice-extract-btn').disabled=false;
+    document.getElementById('notice-img-drop').style.borderColor='var(--accent)';
+    document.getElementById('notice-json-preview').style.display='none';
+    noticeExtracted=null;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.extractNoticeJson = async function() {
+  if(!noticeImgBase64) return;
+  const btn=document.getElementById('notice-extract-btn');
+  const status=document.getElementById('notice-extract-status');
+  btn.disabled=true; btn.textContent='🤖 분석 중...';
+  status.style.display='block'; status.textContent='고지의무 조건을 분석하고 있어요...'; status.style.color='var(--text3)';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:2000,
+        system:`보험 고지의무(계약전 알릴의무) 이미지에서 조건 항목을 추출해 아래 JSON으로만 응답하세요. 설명·마크다운 없이 순수 JSON만 출력.
+
+{
+  "company": "보험사명",
+  "product": "상품명",
+  "title": "표시용 제목",
+  "items": [
+    {
+      "id": "item_1",
+      "label": "최근 2년내 입원 없음",
+      "category": "입원|진단|수술|투약|질병|검사|직업|장애|기타",
+      "periodYears": null또는숫자,
+      "periodMonths": null또는숫자,
+      "detail": null또는"상세설명"
+    }
+  ],
+  "notes": "비고",
+  "rawText": "원문요약"
+}
+
+모든 항목은 통과 조건 기준으로 "~없음"/"~아님" 형태로 작성.`,
+        messages:[{
+          role:'user',
+          content:[
+            noticeImgMime==='application/pdf'
+              ? {type:'document',source:{type:'base64',media_type:'application/pdf',data:noticeImgBase64}}
+              : {type:'image',source:{type:'base64',media_type:noticeImgMime,data:noticeImgBase64}},
+            {type:'text',text:'이 고지의무 이미지를 분석해서 JSON으로 추출해주세요.'}
+          ]
+        }]
+      })
+    });
+    const data=await resp.json();
+    const raw=data.content?.map(i=>i.text||'').join('').trim();
+    const clean=raw.replace(/^```json\n?|^```\n?|```$/gm,'').trim();
+    noticeExtracted=JSON.parse(clean);
+    renderNoticePreview(noticeExtracted);
+    status.textContent='✅ 추출 완료!'; status.style.color='var(--green)';
+  } catch(e) {
+    status.textContent='❌ 추출 실패: '+e.message; status.style.color='var(--red)';
+  } finally { btn.disabled=false; btn.textContent='🤖 AI로 추출하기'; }
+};
+
+function renderNoticePreview(data) {
+  document.getElementById('notice-json-preview').style.display='block';
+  const catColor={'입원':'var(--red)','진단':'var(--purple)','수술':'var(--amber)','투약':'var(--green)','질병':'var(--red)','검사':'var(--accent)','직업':'var(--text2)','장애':'var(--text2)','기타':'var(--text3)'};
+  document.getElementById('notice-summary-card').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="font-size:22px;">📋</div>
+      <div>
+        <div style="font-size:15px;font-weight:800;">${escHtml(data.title||data.product||'')}</div>
+        <div style="font-size:12px;color:var(--text2);">${escHtml(data.company||'')} · 항목 ${(data.items||[]).length}개</div>
+      </div>
+    </div>
+    ${data.notes?`<div style="font-size:11px;color:var(--text3);">${escHtml(data.notes)}</div>`:''}`;
+  document.getElementById('notice-items-list').innerHTML=(data.items||[]).map(item=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${catColor[item.category]||'var(--surface2)'};color:#fff;flex-shrink:0;">${item.category}</span>
+      <span style="font-size:13px;font-weight:600;">${escHtml(item.label)}</span>
+      ${item.detail?`<span style="font-size:10px;color:var(--text3);">(${escHtml(item.detail)})</span>`:''}
+    </div>`).join('');
+  document.getElementById('notice-json-textarea').value=JSON.stringify(data,null,2);
+}
+
+window.toggleNoticeRaw=function(){
+  const el=document.getElementById('notice-raw-json');
+  el.style.display=el.style.display==='none'?'block':'none';
+};
+
+window.saveNoticeJson=async function(){
+  if(!noticeExtracted) return;
+  const status=document.getElementById('notice-save-status');
+  status.style.display='block'; status.textContent='저장 중...'; status.style.color='var(--text3)';
+  try {
+    const raw=document.getElementById('notice-json-textarea').value;
+    try{ noticeExtracted=JSON.parse(raw); }catch(e){}
+    const docId=`notice_${Date.now()}`;
+    await setDoc(doc(db,'notices',docId),{
+      ...noticeExtracted, uploadedAt:new Date().toISOString(), uploadedBy:adminInfo?.uid||'admin'
+    });
+    noticesCache.push({_id:docId,...noticeExtracted});
+    status.textContent=`✅ "${noticeExtracted.title||noticeExtracted.product}" 저장됐어요!`; status.style.color='var(--green)';
+    showToast('✅ 고지의무가 저장됐어요!');
+    renderNoticeSavedList();
+  } catch(e){ status.textContent='❌ 실패: '+e.message; status.style.color='var(--red)'; }
+};
+
+function renderNoticeSavedList() {
+  const el=document.getElementById('notice-saved-list'); if(!el) return;
+  if(!noticesCache.length){ el.innerHTML='<div class="empty">저장된 고지의무 없음</div>'; return; }
+  el.innerHTML=[...noticesCache].reverse().map(n=>`
+    <div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;">${escHtml(n.title||n.product||'')}</div>
+          <div style="font-size:11px;color:var(--text3);">${escHtml(n.company||'')} · ${(n.items||[]).length}개 항목</div>
+        </div>
+        <button class="btn btn-sm" onclick="deleteNotice('${n._id}','${escHtml(n.title||n.product||'')}')" style="color:var(--red);border-color:var(--red);">🗑</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+        ${(n.items||[]).map(i=>`<span class="chip" style="font-size:10px;">${escHtml(i.label)}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+window.deleteNotice=async function(docId,name){
+  if(!confirm(`"${name}" 고지의무를 삭제할까요?`)) return;
+  try{
+    await deleteDoc(doc(db,'notices',docId));
+    noticesCache=noticesCache.filter(n=>n._id!==docId);
+    showToast(`✅ "${name}" 삭제됐어요.`);
+    renderNoticeSavedList();
+  }catch(e){ showToast('❌ 실패: '+e.message); }
+};
+
+// ──────────────────────────────────────────
 let awardImgBase64 = null;
 let awardImgMime   = null;
 let awardExtracted = null;
@@ -2213,6 +2619,67 @@ window.toggleAwardRaw = function() {
   el.style.display = el.style.display==='none'?'block':'none';
 };
 
+window.toggleAwardJsonPaste = function() {
+  const area = document.getElementById('award-paste-area');
+  const btn  = document.getElementById('award-paste-toggle-btn');
+  const open = area.style.display !== 'none';
+  area.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '📋 JSON 직접 붙여넣기' : '📋 JSON 입력 닫기';
+};
+
+window.applyAwardPasteJson = async function() {
+  const raw    = document.getElementById('award-paste-input').value.trim();
+  const status = document.getElementById('award-paste-status');
+  status.style.display = 'block'; status.style.color = 'var(--text3)'; status.textContent = '파싱 중...';
+  if (!raw) { status.textContent = '❌ JSON을 붙여넣어 주세요.'; status.style.color = 'var(--red)'; return; }
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    // 배열이면 순서대로 저장
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 0) { status.textContent = '❌ 빈 배열입니다.'; status.style.color = 'var(--red)'; return; }
+      status.textContent = `⏳ ${parsed.length}개 보험사 저장 중...`; status.style.color = 'var(--text3)';
+      let saved = 0, failed = 0;
+      for (const item of parsed) {
+        if (!item.company || !item.year || !item.month) { failed++; continue; }
+        const docId = `${item.year}_${String(item.month).padStart(2,'0')}_${item.company}`;
+        try {
+          await setDoc(doc(db,'awards',docId), {
+            ...item,
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: adminInfo?.uid||'admin'
+          });
+          saved++;
+        } catch(e) { failed++; }
+      }
+      status.textContent = `✅ ${saved}개 저장 완료${failed?` (${failed}개 실패)`:''}!`;
+      status.style.color = failed ? 'var(--amber)' : 'var(--green)';
+      showToast(`✅ 시상 ${saved}개사 저장됐어요!`);
+      await loadAdminAwards();
+      renderAwardBanner();
+      renderAwardStatusCard();
+      loadAwardList();
+
+    // 단일 객체면 preview 후 저장
+    } else {
+      if (!parsed.company || !parsed.year || !parsed.month) {
+        status.textContent = '❌ company·year·month 필드가 없어요.'; status.style.color = 'var(--red)'; return;
+      }
+      awardExtracted = parsed;
+      renderAwardPreview(parsed);
+      // JSON 원문 textarea도 채워둠
+      document.getElementById('award-json-textarea').value = JSON.stringify(parsed, null, 2);
+      // paste area 숨기고 preview 보여줌
+      document.getElementById('award-paste-area').style.display = 'none';
+      document.getElementById('award-paste-toggle-btn').textContent = '📋 JSON 직접 붙여넣기';
+      status.textContent = '✅ 미리보기 완료! 아래 저장 버튼을 눌러주세요.'; status.style.color = 'var(--green)';
+    }
+  } catch(e) {
+    status.textContent = '❌ JSON 파싱 오류: ' + e.message; status.style.color = 'var(--red)';
+  }
+};
+
 window.saveAwardJson = async function() {
   if (!awardExtracted) return;
   const status = document.getElementById('award-save-status');
@@ -2278,7 +2745,7 @@ window.switchTab = function(tab) {
   document.getElementById('nav-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if (tab === 'contracts') { buildContractsFilters(); renderContractsList(); }
-  if (tab === 'upload') { initAwardCheckSelects(); renderAwardStatusCard(); loadAwardList(); }
+  if (tab === 'upload') { initAwardCheckSelects(); renderAwardStatusCard(); loadAwardList(); loadNotices().then(renderNoticeSavedList); }
   if (tab === 'commission') { initCommissionTab(); }
 };
 
@@ -3035,6 +3502,6 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.05.30-0130</div>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.03-drag-drop</div>
 </body>
 </html>
