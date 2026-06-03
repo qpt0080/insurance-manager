@@ -923,12 +923,18 @@ function calcAwardEstimate(cts) {
           if (!best && prem >= t.threshold) best = t;
         });
         if (!best) return;
+        // 다음 상위 구간 찾기 (게이지용)
+        const sortedT = [...tier.tiers].sort((a,b)=>a.threshold-b.threshold);
+        const nextT = sortedT.find(t => t.threshold > prem) || null;
         awardResults.push({
           label: tier.label, type: tier.type,
           payTiming: tier.payTiming,
           reward: best.reward || 0,
           goldReward: best.goldReward || null,
           threshold: best.threshold,
+          currPrem: prem,
+          nextThreshold: nextT ? nextT.threshold : null,
+          nextReward: nextT ? nextT.reward : null,
           needPrev: false,
         });
         if (best.reward) totalEstimate += best.reward;
@@ -1018,6 +1024,41 @@ function calcAwardEstimate(cts) {
 
   return { results, totalEstimate, hasPrevData, prevYear, prevMonth };
 }
+
+// ── SVG 도넛 차트 생성 ──
+function buildDonutChart(segments, opts={}) {
+  // segments: [{label, value, color}]
+  const total = segments.reduce((s,x)=>s+x.value, 0);
+  if (total <= 0) return '';
+  const size = opts.size || 150;
+  const stroke = opts.stroke || 22;
+  const r = (size - stroke) / 2;
+  const cx = size/2, cy = size/2;
+  const circ = 2 * Math.PI * r;
+  let offset = 0;
+  const arcs = segments.map(seg => {
+    const frac = seg.value / total;
+    const len = frac * circ;
+    const dash = `${len} ${circ - len}`;
+    const arc = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+      stroke="${seg.color}" stroke-width="${stroke}"
+      stroke-dasharray="${dash}" stroke-dashoffset="${-offset}"
+      transform="rotate(-90 ${cx} ${cy})"
+      style="transition:stroke-dasharray .6s ease;"></circle>`;
+    offset += len;
+    return arc;
+  }).join('');
+  const centerTop = opts.centerTop || '';
+  const centerBottom = opts.centerBottom || '';
+  return `
+  <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="flex-shrink:0;">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${stroke}" opacity="0.25"></circle>
+    ${arcs}
+    ${centerTop ? `<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="20" font-weight="800" fill="var(--text)">${centerTop}</text>` : ''}
+    ${centerBottom ? `<text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text3)">${centerBottom}</text>` : ''}
+  </svg>`;
+}
+
 window.togglePerfStats = function() {
   const body = document.getElementById('perf-stats-body');
   const icon = document.getElementById('perf-stats-icon');
@@ -1222,7 +1263,22 @@ function renderPerformance() {
               <div style="font-size:13px;font-weight:800;color:${typeColor[item.type]||'var(--accent)'};">
                 ${item.goldReward ? '금 '+item.goldReward : Math.round(item.reward/10000)+'만원'}
               </div>
-            </div>`).join('')}
+            </div>
+            ${(!item.needPrev && item.nextThreshold) ? (() => {
+              const cur = item.currPrem || 0;
+              const pct = Math.min(100, Math.round(cur / item.nextThreshold * 100));
+              const remain = Math.max(0, item.nextThreshold - cur);
+              const col = typeColor[item.type] || 'var(--accent)';
+              return `
+              <div style="padding:2px 0 6px;">
+                <div style="height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .5s ease;"></div>
+                </div>
+                <div style="font-size:9.5px;color:var(--text3);margin-top:3px;text-align:right;">
+                  ${Math.round(remain/10000)}만원 더 하면 → ${Math.round((item.nextReward||0)/10000)}만원 시상 💪
+                </div>
+              </div>`;
+            })() : ''}`).join('')}
         </div>`).join('')}
       <div style="padding:12px 14px;background:var(--accent-light);display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:12px;font-weight:700;color:var(--accent);">💰 예상 시상 합계</div>
@@ -1233,6 +1289,35 @@ function renderPerformance() {
     <div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:4px;">⚠ 실제 지급액과 다를 수 있어요 · 13회차 조건부 포함</div>`;
   })()}
 
+
+  <div class="perf-section-title" style="margin-top:20px;">📊 보험사별 보험료 비중</div>
+  ${(() => {
+    // 보험료 기준 상위 보험사 (도넛)
+    const palette = ['var(--accent)','var(--green)','var(--purple)','var(--amber)','var(--red)','#14b8a6','#f97316','#8b5cf6'];
+    const sorted = [...companies].filter(([,v])=>v.prem>0).sort((a,b)=>b[1].prem-a[1].prem);
+    if (!sorted.length) return '<div style="font-size:12px;color:var(--text3);text-align:center;padding:14px;">보험료 데이터가 없어요</div>';
+    const top = sorted.slice(0,6);
+    const etcPrem = sorted.slice(6).reduce((s,[,v])=>s+v.prem,0);
+    const segs = top.map(([co,v],i)=>({label:co, value:v.prem, color:palette[i%palette.length]}));
+    if (etcPrem>0) segs.push({label:'기타', value:etcPrem, color:'var(--text3)'});
+    const totalP = segs.reduce((s,x)=>s+x.value,0);
+    const donut = buildDonutChart(segs, {
+      size:140, stroke:20,
+      centerTop: Math.round(totalP/10000)+'만',
+      centerBottom: '월 보험료'
+    });
+    const legend = segs.map(s=>`
+      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+        <span style="width:10px;height:10px;border-radius:3px;background:${s.color};flex-shrink:0;"></span>
+        <span style="font-size:12px;font-weight:600;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.label)}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text3);">${Math.round(s.value/totalP*100)}%</span>
+      </div>`).join('');
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;">
+      ${donut}
+      <div style="flex:1;min-width:0;">${legend}</div>
+    </div>`;
+  })()}
 
   <div class="perf-section-title" style="margin-top:20px;">🏢 보험사별 현황</div>
   <div class="perf-co-table">
@@ -2033,6 +2118,6 @@ function showError(msg) { document.getElementById('loading-screen').style.displa
 
 init();
 </script>
-<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.05.30-0130</div>
+<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.06.03-final</div>
 </body>
 </html>
