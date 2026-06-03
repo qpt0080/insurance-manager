@@ -511,7 +511,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
             <input type="file" id="contract-file-input" accept=".json,application/json"
               style="display:none;" onchange="onContractFileSelect(event)"/>
             <div style="font-size:24px;margin-bottom:6px;">📂</div>
-            <div style="font-size:13px;font-weight:600;color:var(--text2);">JSON 파일을 드래그하거나 탭해서 선택</div>
+            <div id="contract-drop-label" style="font-size:13px;font-weight:600;color:var(--text2);">JSON 파일을 드래그하거나 탭해서 선택</div>
             <div style="font-size:11px;color:var(--text3);margin-top:3px;">.json 파일 지원</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -2218,7 +2218,7 @@ window.onContractFileSelect = function(e) {
       document.getElementById('upload-json-input').value = JSON.stringify(data, null, 2);
       document.getElementById('contract-drop-zone').style.borderColor = 'var(--green)';
       document.getElementById('contract-drop-zone').style.background = 'var(--green-light)';
-      document.getElementById('contract-drop-zone').querySelector('div:nth-child(2)').textContent = '✅ ' + file.name;
+      document.getElementById('contract-drop-label').textContent = '✅ ' + file.name;
       showToast('📂 파일 로드 완료! 적용하기를 눌러주세요.');
     },
     err => showToast('❌ ' + err)
@@ -2235,7 +2235,7 @@ window.onContractFileDrop = function(e) {
       document.getElementById('upload-json-input').value = JSON.stringify(data, null, 2);
       e.currentTarget.style.borderColor = 'var(--green)';
       e.currentTarget.style.background = 'var(--green-light)';
-      e.currentTarget.querySelector('div:nth-child(2)').textContent = '✅ ' + file.name;
+      document.getElementById('contract-drop-label').textContent = '✅ ' + file.name;
       showToast('📂 파일 로드 완료! 적용하기를 눌러주세요.');
     },
     err => showToast('❌ ' + err)
@@ -3502,6 +3502,6 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.03-fix</div>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.03-final</div>
 </body>
 </html>
