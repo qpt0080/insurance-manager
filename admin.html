@@ -2263,7 +2263,7 @@ window.onAwardFileDrop = function(e) {
             if (!item.company || !item.year || !item.month) { failed++; lastErr='company/year/month 누락'; continue; }
             const docId = `${item.year}_${String(item.month).padStart(2,'0')}_${item.company}`;
             try {
-              await setDoc(doc(db,'awards',docId), {...item, uploadedAt:new Date().toISOString(), uploadedBy:adminInfo?.uid||'admin'});
+              await setDoc(doc(db,'awards',docId), {...item, uploadedAt:new Date().toISOString(), uploadedBy:currentAdmin?.uid||'admin'});
               saved++;
             } catch(err) { failed++; lastErr = err.message; console.error('award save error:', err); }
           }
@@ -2441,7 +2441,7 @@ window.saveNoticeJson=async function(){
     try{ noticeExtracted=JSON.parse(raw); }catch(e){}
     const docId=`notice_${Date.now()}`;
     await setDoc(doc(db,'notices',docId),{
-      ...noticeExtracted, uploadedAt:new Date().toISOString(), uploadedBy:adminInfo?.uid||'admin'
+      ...noticeExtracted, uploadedAt:new Date().toISOString(), uploadedBy:currentAdmin?.uid||'admin'
     });
     noticesCache.push({_id:docId,...noticeExtracted});
     status.textContent=`✅ "${noticeExtracted.title||noticeExtracted.product}" 저장됐어요!`; status.style.color='var(--green)';
@@ -2648,7 +2648,7 @@ window.applyAwardPasteJson = async function() {
           await setDoc(doc(db,'awards',docId), {
             ...item,
             uploadedAt: new Date().toISOString(),
-            uploadedBy: adminInfo?.uid||'admin'
+            uploadedBy: currentAdmin?.uid||'admin'
           });
           saved++;
         } catch(e) { failed++; }
@@ -2692,7 +2692,7 @@ window.saveAwardJson = async function() {
     await setDoc(doc(db,'awards',docId), {
       ...awardExtracted,
       uploadedAt: new Date().toISOString(),
-      uploadedBy: adminInfo?.uid||'admin'
+      uploadedBy: currentAdmin?.uid||'admin'
     });
     status.textContent=`✅ "${company} ${year}년 ${month}월" 저장됐어요!`; status.style.color='var(--green)';
     showToast('✅ 시상 정책이 저장됐어요!');
@@ -3502,6 +3502,6 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.03-debug</div>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.03-fix</div>
 </body>
 </html>
