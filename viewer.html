@@ -395,14 +395,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       </div>
     </div>
     <div class="tabs">
-      <div class="tab active" onclick="showTab('list')" id="tab-list">📋 계약</div>
+      <div class="tab active" onclick="showTab('home')" id="tab-home">🏠 홈</div>
+      <div class="tab" onclick="showTab('list')" id="tab-list">📋 계약</div>
       <div class="tab" onclick="showTab('performance')" id="tab-performance">📊 실적</div>
     </div>
   </header>
 
   <div class="content pb">
+    <!-- 홈 (요약 히어로) -->
+    <div id="screen-home" class="screen active">
+      <div id="home-content"></div>
+    </div>
     <!-- 고객 목록 (검색 통합) -->
-    <div id="screen-list" class="screen active">
+    <div id="screen-list" class="screen">
       <!-- 검색 카드 -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);">
         <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.04em;margin-bottom:8px;">🔍 검색</div>
@@ -524,9 +529,10 @@ async function init() {
     selYears.add(_now.getFullYear());
     selMonths.add(_now.getMonth() + 1);
     buildPeriodChips();
-    renderList();
+    renderHome();
     renderNoticeFilterChips();
-    history.replaceState({view:'tab', tab:'list'}, '');
+    history.replaceState({view:'tab', tab:'home'}, '');
+    setupSwipeNav();
   } catch(e) { showError('데이터를 불러오지 못했습니다.'); }
 }
 
@@ -563,6 +569,26 @@ function parsePeriod(ct) {
   if (ym) return {year: parseInt(ym[1]), month: parseInt(ym[2])};
   const y = d.match(/(\d{4})/);
   return y ? {year: parseInt(y[1]), month: null} : null;
+}
+// 계약일 일(day) 단위 파싱 — 주차 시상 매칭용
+function parseFullDate(ct) {
+  const d = getCtDate(ct);
+  if (!d) return null;
+  const m = d.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+  if (m) return {year:+m[1], month:+m[2], day:+m[3]};
+  return null;
+}
+// 계약이 주차 시상 기간(period: MM-DD ~ MM-DD)에 포함되는지
+function inWeeklyPeriod(ct, period, awardYear, awardMonth) {
+  if (!period || !period.startDate || !period.endDate) return true; // 기간 없으면 전체 허용
+  const fd = parseFullDate(ct);
+  if (!fd) return false; // 일자 모르면 주차 시상 매칭 불가 (안전하게 제외)
+  if (fd.year !== awardYear || fd.month !== awardMonth) return false;
+  const [sM,sD] = period.startDate.split('-').map(Number);
+  const [eM,eD] = period.endDate.split('-').map(Number);
+  // 같은 달 기준 day 비교 (대부분 한 달 안의 주차)
+  if (fd.month === sM && fd.month === eM) return fd.day >= sD && fd.day <= eD;
+  return false;
 }
 
 function buildPeriodChips() {
@@ -880,11 +906,14 @@ function calcAwardEstimate(cts) {
 
   // 당월 보험사별 보험료
   const companyPrem = {};
+  const companyContracts = {};  // 주차 시상 기간 필터용
   cts.forEach(ct => {
     const co   = ct.company || ct.rawJson?.보험사 || '';
     const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
     if (!co) return;
     companyPrem[co] = (companyPrem[co]||0) + prem;
+    if (!companyContracts[co]) companyContracts[co] = [];
+    companyContracts[co].push(ct);
   });
 
   // 전월 보험사별 보험료 (모든 고객 계약 중 전월 것)
@@ -917,22 +946,54 @@ function calcAwardEstimate(cts) {
 
       // ── 일반 시상 (basic / weekly / weekly_extra / flagship / membership) ──
       if (!['consecutive','club'].includes(tier.type)) {
+        // 물품 시상 (gift 필드) — 별도 처리
+        if (tier.gift) {
+          // 조건: period 기간 내 합산 prem (없으면 당월 전체)
+          let giftPrem = prem;
+          if (tier.period) {
+            giftPrem = (companyContracts[co]||[])
+              .filter(ct => inWeeklyPeriod(ct, tier.period, awardYear, awardMonth))
+              .reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+          }
+          // 달성 기준 금액 (giftThreshold 또는 tiers[0].threshold, 기본 5만)
+          const giftThreshold = tier.giftThreshold || tier.tiers?.[0]?.threshold || 50000;
+          if (giftPrem >= giftThreshold) {
+            awardResults.push({
+              label: tier.label, type: 'gift',
+              payTiming: tier.payTiming,
+              reward: 0, goldReward: null,
+              gift: tier.gift,
+              needPrev: false,
+            });
+          }
+          return;
+        }
+
         if (!tier.tiers?.length) return;
+
+        // 주차 시상이면 해당 기간 계약만 합산
+        let usePrem = prem;
+        if (tier.period && (tier.type === 'weekly' || tier.type === 'weekly_extra' || /주차/.test(tier.label||''))) {
+          usePrem = (companyContracts[co]||[])
+            .filter(ct => inWeeklyPeriod(ct, tier.period, awardYear, awardMonth))
+            .reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+        }
+
         let best = null;
         ;[...tier.tiers].reverse().forEach(t => {
-          if (!best && prem >= t.threshold) best = t;
+          if (!best && usePrem >= t.threshold) best = t;
         });
         if (!best) return;
         // 다음 상위 구간 찾기 (게이지용)
         const sortedT = [...tier.tiers].sort((a,b)=>a.threshold-b.threshold);
-        const nextT = sortedT.find(t => t.threshold > prem) || null;
+        const nextT = sortedT.find(t => t.threshold > usePrem) || null;
         awardResults.push({
           label: tier.label, type: tier.type,
           payTiming: tier.payTiming,
           reward: best.reward || 0,
           goldReward: best.goldReward || null,
           threshold: best.threshold,
-          currPrem: prem,
+          currPrem: usePrem,
           nextThreshold: nextT ? nextT.threshold : null,
           nextReward: nextT ? nextT.reward : null,
           needPrev: false,
@@ -1084,6 +1145,219 @@ function getPerfContracts() {
   });
 }
 
+function renderHome() {
+  const el = document.getElementById('home-content');
+  if (!el) return;
+
+  const agentName = (agentInfo?.name || '설계사') + ' 님';
+  const now = new Date();
+  const ym = `${now.getFullYear()}년 ${now.getMonth()+1}월`;
+
+  // 기간 필터된 계약 (이번 달 기준)
+  const cts = getPerfContracts();
+
+  // 신계약 건수 (기간 필터된 것)
+  const newCount = cts.length;
+
+  // 이번 기간 월 보험료 합계
+  let periodPrem = 0;
+  cts.forEach(ct => { periodPrem += parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0; });
+
+  // 예상 수수료 (522%)
+  const commEst = Math.round(periodPrem * 5.22);
+
+  // 시상 계산 — 익월/13회차(나중) 분리
+  const est = calcAwardEstimate(cts);
+  let awardNextMonth = 0;   // 익월 받는 시상
+  let awardLater = 0;       // 13회차 등 나중에 받는 시상
+  let awardCount = 0;       // 달성한 시상 건수
+  const gifts = [];         // 물품 시상 (달성한 것)
+  if (est) {
+    est.results.forEach(r => {
+      r.items.forEach(item => {
+        if (item.needPrev) return;
+        if (item.type === 'gift' && item.gift) {
+          gifts.push({ company: r.company, gift: item.gift });
+          awardCount++;
+          return;
+        }
+        if (!item.reward) return;
+        awardCount++;
+        if (item.payTiming === 'next_month') awardNextMonth += item.reward;
+        else awardLater += item.reward;
+      });
+    });
+  }
+  // 익월 받는 총액 = 수수료 + 익월시상
+  const nextMonthTotal = commEst + awardNextMonth;
+
+  // 가장 가까운 다음 시상 기회 — 상위 2개 (효율순)
+  const chances = [];
+  if (est) {
+    est.results.forEach(r => {
+      r.items.forEach(item => {
+        if (item.needPrev || !item.nextThreshold || !item.nextReward) return;
+        const remain = item.nextThreshold - (item.currPrem||0);
+        if (remain <= 0) return;
+        const gain = item.nextReward - (item.reward||0);
+        if (gain <= 0) return;
+        const eff = gain / remain;
+        // 시상 종류 라벨
+        let kind = '익월시상';
+        if (item.type === 'consecutive') kind = '연속시상';
+        else if (item.type === 'club') kind = '연속시상';
+        else if (item.payTiming === '13th_payment') kind = '13회차';
+        chances.push({ company: r.company, label: item.label, remain, nextReward: item.nextReward, gain, eff, kind });
+      });
+    });
+  }
+  chances.sort((a,b)=>b.eff-a.eff);
+  const topChances = chances.slice(0,2);
+
+  // 보험사별 비중 (기간 필터된 계약 기준)
+  const coMap = {};
+  cts.forEach(ct => {
+    const co = ct.company || ct.rawJson?.보험사 || '기타';
+    const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0;
+    if (!coMap[co]) coMap[co] = 0;
+    coMap[co] += prem;
+  });
+  const coSorted = Object.entries(coMap).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+
+  // 최근 계약 (업로드 순 최신 3건)
+  const recent = [];
+  customers.forEach(c => (c.contracts||[]).forEach(ct => {
+    recent.push({ cust:c, ct });
+  }));
+  recent.sort((a,b)=>{
+    const ta = a.ct.uploadedAt||'', tb = b.ct.uploadedAt||'';
+    return tb.localeCompare(ta);
+  });
+  const recent3 = recent.slice(0,3);
+
+  const palette = ['#378ADD','#1D9E75','#7F77DD','#EF9F27','#E24B4A','#14b8a6'];
+
+  let html = `
+  <div style="background:var(--bg);border-radius:18px;padding:4px 0 2px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 2px;">
+      <div>
+        <div style="font-size:12px;color:var(--text3);">${escHtml(agentName)} · ${ym}</div>
+        <div style="font-size:17px;font-weight:800;color:var(--text);">오늘의 현황</div>
+      </div>
+      <button onclick="refreshData()" style="border:none;background:var(--surface2);width:36px;height:36px;border-radius:50%;font-size:15px;cursor:pointer;">🔄</button>
+    </div>
+
+    <!-- 히어로 카드 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px 20px;margin-bottom:12px;box-shadow:var(--shadow);">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">이번 달 예상 수수료 및 시상</div>
+      <div style="font-size:28px;font-weight:900;color:var(--text);letter-spacing:-0.5px;line-height:1.1;">
+        ${nextMonthTotal.toLocaleString()}<span style="font-size:16px;font-weight:700;">원</span>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.6;">
+        수수료 ${commEst.toLocaleString()}원${awardNextMonth>0?` <span style="color:var(--green);font-weight:700;">+${awardNextMonth.toLocaleString()}원(익월시상)</span>`:''}
+      </div>
+      ${awardLater>0?`<div style="font-size:11px;color:var(--amber);margin-top:3px;">🕐 13회차 시상 ${awardLater.toLocaleString()}원 달성 (유지 시 지급)</div>`:''}
+      ${gifts.length?`<div style="font-size:11px;color:var(--purple);margin-top:3px;">🎁 물품 시상 달성: ${gifts.map(g=>escHtml(g.gift.split('(')[0].trim())).join(', ')}</div>`:''}
+      <div style="display:flex;gap:0;margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="flex:1;text-align:center;border-right:1px solid var(--border);">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">신계약</div>
+          <div style="font-size:17px;font-weight:800;color:var(--accent);">${newCount}건</div>
+        </div>
+        <div style="flex:1;text-align:center;border-right:1px solid var(--border);">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">시상 달성</div>
+          <div style="font-size:17px;font-weight:800;color:var(--green);">${awardCount}건</div>
+        </div>
+        <div style="flex:1;text-align:center;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">월 보험료</div>
+          <div style="font-size:17px;font-weight:800;color:var(--purple);">${Math.round(periodPrem/10000)}만</div>
+        </div>
+      </div>
+    </div>`;
+
+  // 다음 시상 기회 배너 (상위 2곳)
+  if (topChances.length) {
+    html += `
+    <div style="background:var(--accent);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <span style="font-size:15px;">🎯</span>
+        <span style="font-size:12px;font-weight:700;color:#fff;opacity:.9;">조금만 더 하면!</span>
+      </div>
+      ${topChances.map((ch,i)=>{
+        const remainMan = Math.round(ch.remain/10000);
+        const gainMan = Math.round(ch.gain/10000);
+        return `
+        <div style="${i>0?'margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.2);':''}">
+          <div style="font-size:14px;font-weight:800;color:#fff;line-height:1.5;">
+            ${escHtml(ch.company)} <span style="font-size:16px;">${remainMan}만원</span> 더 하면 <span style="font-size:16px;">+${gainMan}만원</span>
+          </div>
+          <div style="font-size:11px;color:#fff;opacity:.85;margin-top:2px;">
+            <span style="background:rgba(255,255,255,.22);padding:1px 7px;border-radius:8px;font-weight:700;">${ch.kind}</span>
+            ${escHtml(ch.label)}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // 보험사 비중 도넛
+  if (coSorted.length) {
+    const top = coSorted.slice(0,5);
+    const etc = coSorted.slice(5).reduce((s,[,v])=>s+v,0);
+    const segs = top.map(([co,v],i)=>({label:co,value:v,color:palette[i%palette.length]}));
+    if (etc>0) segs.push({label:'기타',value:etc,color:'#888780'});
+    const totalP = segs.reduce((s,x)=>s+x.value,0);
+    const donut = buildDonutChart(segs,{size:108,stroke:16,centerTop:Math.round(totalP/10000)+'만',centerBottom:'보험료'});
+    html += `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;">📊 보험사별 비중</div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        ${donut}
+        <div style="flex:1;min-width:0;">
+          ${segs.map(s=>`
+            <div style="display:flex;align-items:center;gap:7px;padding:3px 0;">
+              <span style="width:9px;height:9px;border-radius:2px;background:${s.color};flex-shrink:0;"></span>
+              <span style="font-size:12px;font-weight:600;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.label)}</span>
+              <span style="font-size:11px;font-weight:700;color:var(--text3);">${Math.round(s.value/totalP*100)}%</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // 최근 계약
+  if (recent3.length) {
+    html += `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px 10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);">🕐 최근 계약</div>
+        <button onclick="showTab('list')" style="border:none;background:none;font-size:11px;color:var(--accent);font-weight:700;cursor:pointer;">전체 보기 ›</button>
+      </div>
+      ${recent3.map(({cust,ct})=>{
+        const nm = cust.name||'-';
+        const initial = nm.slice(0,1);
+        const co = ct.company||ct.rawJson?.보험사||'';
+        const pr = ct.product||ct.rawJson?.상품명||'';
+        const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0;
+        const ctId = ct.id || '';
+        return `
+        <div onclick="${ctId?`renderContractScreen('${cust._docId}','${ctId}');showScreen('contract');history.pushState({view:'contract',custId:'${cust._docId}',ctId:'${ctId}'},'')`:`showDetail('${cust._docId}')`}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;">${escHtml(initial)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">${escHtml(nm)}</div>
+            <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(co)} ${escHtml(pr)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:13px;font-weight:700;color:var(--text);">${prem>0?Math.round(prem/10000)+'만원':'-'}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
 function renderPerformance() {
   const el = document.getElementById('perf-content');
   if (!el) return;
@@ -1233,8 +1507,8 @@ function renderPerformance() {
   ${(() => {
     const est = calcAwardEstimate(cts);
     if (!est || !est.results.length) return '';
-    const typeLabel = {basic:'기본시상',weekly:'주간가동',weekly_extra:'주간추가',flagship:'주력상품',membership:'멤버십',consecutive:'연속가동',club:'클럽시상'};
-    const typeColor = {basic:'var(--accent)',weekly:'var(--green)',weekly_extra:'var(--purple)',flagship:'var(--green)',membership:'var(--amber)',consecutive:'var(--amber)',club:'var(--gold)'};
+    const typeLabel = {basic:'기본시상',weekly:'주간가동',weekly_extra:'주간추가',flagship:'주력상품',membership:'멤버십',consecutive:'연속가동',club:'클럽시상',gift:'물품'};
+    const typeColor = {basic:'var(--accent)',weekly:'var(--green)',weekly_extra:'var(--purple)',flagship:'var(--green)',membership:'var(--amber)',consecutive:'var(--amber)',club:'var(--gold)',gift:'var(--purple)'};
     return `
     <div class="perf-section-title" style="margin-top:4px;">🏆 보험사별 예상 시상 <span style="font-size:10px;font-weight:500;color:var(--text3);">(참고용)</span></div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow);">
@@ -1261,10 +1535,10 @@ function renderPerformance() {
                 <span class="chip" style="font-size:10px;margin-left:3px;">${item.payTiming==='next_month'?'익월':'13회차'}</span>
               </div>
               <div style="font-size:13px;font-weight:800;color:${typeColor[item.type]||'var(--accent)'};">
-                ${item.goldReward ? '금 '+item.goldReward : Math.round(item.reward/10000)+'만원'}
+                ${item.type==='gift' ? '🎁 '+escHtml((item.gift||'').split('(')[0].trim()) : item.goldReward ? '금 '+item.goldReward : Math.round(item.reward/10000)+'만원'}
               </div>
             </div>
-            ${(!item.needPrev && item.nextThreshold) ? (() => {
+            ${(!item.needPrev && item.type!=='gift' && item.nextThreshold) ? (() => {
               const cur = item.currPrem || 0;
               const pct = Math.min(100, Math.round(cur / item.nextThreshold * 100));
               const remain = Math.max(0, item.nextThreshold - cur);
@@ -1840,6 +2114,45 @@ function renderContractScreen(custId, ctId) {
     </div>`;
   }
 
+  // 계약전 알릴의무 (고지 조건 스냅샷)
+  {
+    const nt = ct.notice;
+    const hasNotice = nt && (nt.items||[]).length;
+    html += `<div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="sec-label" style="margin:0">📋 계약전 알릴의무</div>
+      ${hasNotice
+        ? `<div style="display:flex;gap:6px;align-items:center;">
+            <span class="chip ${nt.items.filter(x=>x.passed).length===nt.items.length?'green':'amber'}" style="font-size:10px;">${nt.items.filter(x=>x.passed).length}/${nt.items.length} 통과</span>
+            <button class="refund-toggle-btn" onclick="openNoticeEditor('${custId}','${ctId}')">수정 ✏️</button>
+           </div>`
+        : `<button class="refund-toggle-btn" onclick="openNoticeEditor('${custId}','${ctId}')">+ 추가</button>`
+      }
+    </div>`;
+    if (hasNotice) {
+      html += `
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">
+        ${escHtml(nt.company||'')} ${escHtml(nt.product||'')}${nt.recordedAt ? ' · 기록 '+nt.recordedAt.slice(0,10) : ''}
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        ${nt.items.map(item => `
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);">
+            <span style="flex-shrink:0;font-size:13px;margin-top:1px;">${item.passed ? '✅' : '⚠️'}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;color:${item.passed?'var(--text2)':'var(--amber)'};">${escHtml(item.label||'')}</div>
+              ${item.detail ? `<div style="font-size:10px;color:var(--text3);margin-top:1px;">${escHtml(item.detail)}</div>` : ''}
+            </div>
+            ${item.category ? `<span class="chip" style="font-size:10px;flex-shrink:0;">${escHtml(item.category)}</span>` : ''}
+          </div>`).join('')}
+        ${nt.memo ? `<div style="padding:9px 12px;background:var(--surface2);font-size:11px;color:var(--text2);">💬 ${escHtml(nt.memo)}</div>` : ''}
+      </div>`;
+    } else {
+      html += `<div style="font-size:12px;color:var(--text3);margin-bottom:6px;">등록된 고지 조건이 없어요. "+ 추가"로 기록할 수 있어요.</div>`;
+    }
+    // 편집 패널 (숨김 상태)
+    html += `<div id="notice-editor-${ctId}" style="display:none;margin-top:10px;"></div>`;
+  }
+
   // 보상이력
   html += `<div class="divider"></div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -2066,34 +2379,90 @@ window.savePayMethod = async function(custId, ctId, ctSafeId) {
   } catch(e) { alert('저장 실패: '+e.message); }
 };
 window.showTab = function(tab, skipHistory) {
-  ['list','performance'].forEach(t => {
+  ['home','list','performance'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
     document.getElementById('screen-'+t).classList.toggle('active', t===tab);
   });
   document.getElementById('screen-detail').classList.remove('active');
   document.getElementById('screen-contract').classList.remove('active');
+  if (tab === 'home') renderHome();
   if (tab === 'list') renderList();
   if (tab === 'performance') renderPerformance();
-  if (!skipHistory) history.replaceState({view:'tab', tab}, '');
+  if (!skipHistory) {
+    const cur = history.state;
+    // 같은 탭이 이미 현재 상태면 중복 push 안 함
+    if (cur && cur.view === 'tab' && cur.tab === tab) {
+      history.replaceState({view:'tab', tab}, '');
+    } else {
+      history.pushState({view:'tab', tab}, '');
+    }
+  }
 };
 function showScreen(name) {
-  ['list','performance','detail','contract'].forEach(s =>
+  ['home','list','performance','detail','contract'].forEach(s =>
     document.getElementById('screen-'+s).classList.toggle('active', s===name)
   );
-  if (['list','performance'].includes(name)) {
-    ['list','performance'].forEach(t =>
+  if (['home','list','performance'].includes(name)) {
+    ['home','list','performance'].forEach(t =>
       document.getElementById('tab-'+t).classList.toggle('active', t===name)
     );
   }
 }
 window.goBack = function() { history.back(); };
+
+// ── 스와이프 좌우 탭 전환 ──
+function setupSwipeNav() {
+  const TABS = ['home','list','performance'];
+  const content = document.querySelector('.content');
+  if (!content) return;
+
+  let startX = 0, startY = 0, tracking = false, swipeBlocked = false;
+
+  content.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    // 탭 화면(home/list/performance)에서만 동작 — 상세/계약 화면이면 무시
+    const onTabScreen = TABS.some(t => document.getElementById('screen-'+t)?.classList.contains('active'));
+    if (!onTabScreen) { tracking = false; return; }
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    tracking = true;
+    swipeBlocked = false;
+    // 가로 스크롤 가능한 요소 위에서 시작했으면 차단 (테이블 등)
+    let el = e.target;
+    while (el && el !== content) {
+      if (el.scrollWidth > el.clientWidth + 4) { swipeBlocked = true; break; }
+      el = el.parentElement;
+    }
+  }, {passive:true});
+
+  content.addEventListener('touchend', (e) => {
+    if (!tracking || swipeBlocked) { tracking = false; return; }
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    // 가로 이동이 충분히 크고, 세로 이동의 1.8배 이상일 때만 탭 전환
+    if (Math.abs(dx) < 60) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.8) return;
+
+    // 현재 활성 탭 찾기
+    const curTab = TABS.find(t => document.getElementById('screen-'+t)?.classList.contains('active'));
+    if (!curTab) return;
+    const idx = TABS.indexOf(curTab);
+    let nextIdx = dx < 0 ? idx + 1 : idx - 1;  // 왼쪽으로 밀면 다음 탭
+    if (nextIdx < 0 || nextIdx >= TABS.length) return;  // 끝에서는 순환 안 함
+    showTab(TABS[nextIdx]);
+  }, {passive:true});
+}
 window.addEventListener('popstate', function(e) {
   const s = e.state;
   if (!s || s.view === 'tab') {
-    const tab = s?.tab || prevScreen || 'list';
+    const tab = s?.tab || prevScreen || 'home';
     showScreen(tab);
-    ['list','performance'].forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t===tab));
+    ['home','list','performance'].forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t===tab));
     currentCustomerId = null; currentSheetCustId = null; currentSheetCtId = null;
+    if (tab === 'home') renderHome();
+    else if (tab === 'list') renderList();
+    else if (tab === 'performance') renderPerformance();
   } else if (s.view === 'detail') {
     showDetail(s.custId, true);
     currentSheetCustId = null; currentSheetCtId = null;
@@ -2106,6 +2475,154 @@ window.addEventListener('popstate', function(e) {
 
 // ── 유틸 ──
 function getCust(id) { return customers.find(x=>(x._docId||x.id)===id); }
+
+// 계약 찾기 (id 없는 기존 계약은 ct_idx_N 폴백)
+function findContract(c, ctId) {
+  const list = c.contracts||[];
+  let ct = list.find(x=>x.id===ctId);
+  if (!ct && ctId && ctId.startsWith('ct_idx_')) {
+    const idx = parseInt(ctId.replace('ct_idx_',''));
+    if (!isNaN(idx) && list[idx]) ct = list[idx];
+  }
+  return ct;
+}
+// 계약 업데이트 (id 매칭 우선, 없으면 ct_idx 폴백)
+function updateContractInList(c, ctId, updater) {
+  const list = c.contracts||[];
+  // 먼저 id로 정확히 매칭 시도
+  const hasIdMatch = list.some(ct=>ct.id===ctId);
+  if (hasIdMatch) return list.map(ct=> ct.id===ctId ? updater(ct) : ct);
+  // id 매칭 없으면 ct_idx_N 인덱스로
+  if (ctId && ctId.startsWith('ct_idx_')) {
+    const idx = parseInt(ctId.replace('ct_idx_',''));
+    return list.map((ct,i)=> i===idx ? updater(ct) : ct);
+  }
+  return list;
+}
+
+// ── 기존 계약에 고지 조건 추가/수정 ──
+window.openNoticeEditor = function(custId, ctId) {
+  const panel = document.getElementById(`notice-editor-${ctId}`);
+  if (!panel) return;
+  if (panel.style.display === 'block') { panel.style.display='none'; return; }
+  panel.style.display = 'block';
+
+  const c = getCust(custId);
+  const ct = findContract(c, ctId);
+  const existing = ct?.notice || null;
+
+  const co = (ct?.company||ct?.rawJson?.보험사||'').trim();
+  const pr = (ct?.product||ct?.rawJson?.상품명||'').trim();
+
+  // 매칭 점수로 정렬
+  const scored = noticesCache.map(n => {
+    let s = 0;
+    if (co && (n.company||'').trim()===co) s+=2;
+    if (pr && n.product && (pr.includes(n.product)||n.product.includes(pr))) s+=3;
+    return {n,s};
+  }).sort((a,b)=>b.s-a.s);
+
+  if (!noticesCache.length) {
+    panel.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:10px;background:var(--surface2);border-radius:var(--radius-sm);">저장된 고지의무가 없어요. 먼저 관리자에서 고지의무를 업로드해주세요.</div>`;
+    return;
+  }
+
+  const selId = existing?.noticeId || (scored[0] && scored[0].s>=2 ? scored[0].n._id : '');
+  panel.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius);padding:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;">고지의무 선택</div>
+      <select id="nedit-sel-${ctId}" class="form-select" style="margin-bottom:10px;" onchange="renderNoticeEditItems('${custId}','${ctId}')">
+        <option value="">선택하세요</option>
+        ${scored.map(({n,s})=>`<option value="${n._id}" ${n._id===selId?'selected':''}>${s>0?'⭐ ':''}${escHtml((n.company||'')+' '+(n.product||'')+' ('+(n.items||[]).length+'개)')}</option>`).join('')}
+      </select>
+      <div id="nedit-items-${ctId}"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-green" style="flex:1;font-size:13px;padding:10px;" onclick="saveNoticeToContract('${custId}','${ctId}')">💾 저장</button>
+        ${existing ? `<button class="btn" style="flex:0 0 auto;font-size:13px;padding:10px 14px;color:var(--red);" onclick="deleteNoticeFromContract('${custId}','${ctId}')">삭제</button>` : ''}
+      </div>
+    </div>`;
+  renderNoticeEditItems(custId, ctId);
+};
+
+window.renderNoticeEditItems = function(custId, ctId) {
+  const sel = document.getElementById(`nedit-sel-${ctId}`);
+  const box = document.getElementById(`nedit-items-${ctId}`);
+  if (!sel || !box) return;
+  const notice = noticesCache.find(n=>n._id===sel.value);
+  if (!notice) { box.innerHTML=''; return; }
+
+  const c = getCust(custId);
+  const ct = findContract(c, ctId);
+  const existing = ct?.notice;
+  // 기존 통과 상태 복원 (같은 고지의무일 때만)
+  const prevPassed = {};
+  if (existing && existing.noticeId === notice._id) {
+    (existing.items||[]).forEach(it => { prevPassed[it.label] = it.passed; });
+  }
+
+  box.innerHTML = `
+    <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">✅ 통과한 항목을 체크하세요</div>
+    ${(notice.items||[]).map((item,i)=>{
+      const checked = existing ? (prevPassed[item.label] !== false) : true;
+      return `
+      <label style="display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:5px;cursor:pointer;background:var(--surface2);">
+        <input type="checkbox" class="nedit-check-${ctId}" data-idx="${i}" ${checked?'checked':''} style="margin-top:2px;width:16px;height:16px;flex-shrink:0;"/>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:var(--text2);">${escHtml(item.label||'')}</div>
+          ${item.detail?`<div style="font-size:10px;color:var(--text3);margin-top:1px;">${escHtml(item.detail)}</div>`:''}
+        </div>
+        ${item.category?`<span class="chip" style="font-size:10px;flex-shrink:0;">${escHtml(item.category)}</span>`:''}
+      </label>`;
+    }).join('')}
+    <textarea id="nedit-memo-${ctId}" class="form-textarea" placeholder="고지 관련 메모 (선택)" style="min-height:46px;font-size:12px;margin-top:4px;">${escHtml(existing?.memo||'')}</textarea>`;
+};
+
+window.saveNoticeToContract = async function(custId, ctId) {
+  const sel = document.getElementById(`nedit-sel-${ctId}`);
+  if (!sel || !sel.value) { alert('고지의무를 선택해주세요.'); return; }
+  const notice = noticesCache.find(n=>n._id===sel.value);
+  if (!notice) return;
+
+  const checks = document.querySelectorAll(`.nedit-check-${ctId}`);
+  const items = (notice.items||[]).map((item,i)=>{
+    const cb = [...checks].find(c=>+c.dataset.idx===i);
+    return { label:item.label||'', category:item.category||'', detail:item.detail||null, passed: cb?cb.checked:false };
+  });
+  const memo = document.getElementById(`nedit-memo-${ctId}`)?.value.trim() || '';
+
+  const snapshot = {
+    noticeId: notice._id,
+    company: notice.company||'',
+    product: notice.product||'',
+    title: notice.title||'',
+    items, memo,
+    recordedAt: new Date().toISOString(),
+  };
+
+  const c = getCust(custId);
+  const updatedContracts = updateContractInList(c, ctId, ct => ({...ct, notice: snapshot}));
+  try {
+    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
+    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
+    if (ci>=0) customers[ci].contracts = updatedContracts;
+    renderContractScreen(custId, ctId);
+  } catch(e) { alert('저장 실패: '+e.message); }
+};
+
+window.deleteNoticeFromContract = async function(custId, ctId) {
+  if (!confirm('이 계약의 고지 조건을 삭제할까요?')) return;
+  const c = getCust(custId);
+  const updatedContracts = updateContractInList(c, ctId, ct => {
+    const {notice, ...rest} = ct;
+    return rest;
+  });
+  try {
+    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
+    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
+    if (ci>=0) customers[ci].contracts = updatedContracts;
+    renderContractScreen(custId, ctId);
+  } catch(e) { alert('삭제 실패: '+e.message); }
+};
 function getV(ct,key) { return ct.rawJson?.[key]||''; }
 function getCoverages(ct) { return ct.coverages||ct.rawJson?.담보목록||[]; }
 function isLife(s) { return /생명|라이프/.test(s||''); }
@@ -2118,6 +2635,6 @@ function showError(msg) { document.getElementById('loading-screen').style.displa
 
 init();
 </script>
-<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.06.03-final</div>
+<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.06.03-weekly-gift</div>
 </body>
 </html>
