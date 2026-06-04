@@ -1436,6 +1436,31 @@ window.reassignCustomer = async function(docId) {
   } catch(e) { showToast('❌ 배정 실패: ' + e.message); }
 };
 
+// ── 고객 상세 모달에서 담당 변경(이관) ──
+window.reassignFromDetail = async function(docId) {
+  const sel = document.getElementById(`adm-agent-sel-${docId}`);
+  const statusEl = document.getElementById(`adm-agent-status-${docId}`);
+  const saveBtn = document.getElementById(`adm-agent-save-${docId}`);
+  if (!sel) return;
+  const agentUid = sel.value;
+  const agent = agentsCache.find(a => a.uid === agentUid);
+  if (!agent) { showToast('❌ 설계사를 선택해주세요.'); return; }
+  if (saveBtn) { saveBtn.textContent='이관 중…'; saveBtn.disabled=true; }
+  try {
+    await updateDoc(doc(db,'customers',docId), {
+      agentId: agentUid,
+      agentName: agent.name || ''
+    });
+    showToast(`✅ ${agent.name||''}님으로 이관 완료!`);
+    if (statusEl) statusEl.textContent = `현재 담당: ${agent.name||''}`;
+    if (saveBtn) { saveBtn.textContent='💾 이관'; saveBtn.disabled=false; saveBtn.style.display='none'; }
+    await loadAll();
+  } catch(e) {
+    showToast('❌ 이관 실패: ' + e.message);
+    if (saveBtn) { saveBtn.textContent='💾 이관'; saveBtn.disabled=false; }
+  }
+};
+
 // ── 설계사 관리 ──
 function renderAgents() {
   const el = document.getElementById('agent-list');
@@ -2871,21 +2896,49 @@ async function loadAwardList() {
   if (!el) return;
   try {
     const snap = await getDocs(collection(db,'awards'));
-    if (snap.empty) { el.innerHTML='<div class="empty">저장된 시상 정책 없음</div>'; return; }
+    if (snap.empty) { el.innerHTML='<div class="empty">저장된 시상 정책 없음</div>'; window._awardListCache=[]; return; }
     const list = [];
     snap.forEach(d=>list.push({id:d.id,...d.data()}));
     list.sort((a,b)=>b.id.localeCompare(a.id));
-    el.innerHTML = list.map(a=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
-        <div>
-          <div style="font-size:13px;font-weight:700;">${escHtml(a.company||'')}</div>
-          <div style="font-size:11px;color:var(--text3);">${a.year}년 ${a.month}월 ${a.week?a.week+'주차':''} · ${(a.tiers||[]).length}개 항목</div>
-        </div>
-        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);"
-          onclick="deleteAward('${a.id}','${escHtml(a.company||'')}')">🗑</button>
-      </div>`).join('');
+    window._awardListCache = list;
+    renderAwardSavedList('');
   } catch(e) { el.innerHTML='<div class="empty">불러오기 실패</div>'; }
 }
+
+window.renderAwardSavedList = function(keyword){
+  const el = document.getElementById('award-saved-list');
+  const list = window._awardListCache || [];
+  if (!list.length) { el.innerHTML='<div class="empty">저장된 시상 정책 없음</div>'; return; }
+  const kw = (keyword||'').trim().toLowerCase();
+  const filtered = kw ? list.filter(a=>(a.company||'').toLowerCase().includes(kw)) : list;
+
+  // 보험사별 그룹핑
+  const groups = {};
+  filtered.forEach(a=>{ const c=a.company||'기타'; (groups[c]=groups[c]||[]).push(a); });
+  const companies = Object.keys(groups);
+
+  const search = `<input type="text" id="award-list-search" placeholder="🔍 보험사 검색" value="${escHtml(keyword||'')}"
+    oninput="renderAwardSavedList(this.value)"
+    style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;margin-bottom:10px;outline:none;box-sizing:border-box;">`;
+
+  const total = filtered.length;
+  const body = companies.length ? companies.map(co=>{
+    const items = groups[co];
+    return `<div style="margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:5px;padding-left:2px;">${escHtml(co)} <span style="color:var(--text3);font-weight:600;">${items.length}건</span></div>
+      ${items.map(a=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:5px;">
+        <div style="font-size:12px;color:var(--text2);">${a.year}년 ${a.month}월 ${a.week?a.week+'주차':''} · ${(a.tiers||[]).length}개 항목</div>
+        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);padding:4px 9px;"
+          onclick="deleteAward('${a.id}','${escHtml(a.company||'')}')">🗑</button>
+      </div>`).join('')}
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:20px;">검색 결과 없음</div>';
+
+  el.innerHTML = search +
+    `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">전체 ${total}건 · ${companies.length}개 보험사</div>` +
+    `<div style="max-height:340px;overflow-y:auto;padding-right:4px;">${body}</div>`;
+};
 
 window.deleteAward = async function(docId, name) {
   if (!confirm(`"${name}" 시상 정책을 삭제할까요?`)) return;
@@ -3339,6 +3392,19 @@ window.openCustDetail = function(custDocId) {
         <button class="cust-detail-close" onclick="closeCustDetail()">✕</button>
       </div>
       <div class="cust-detail-body">
+
+        <!-- 담당 설계사 -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">👤 담당 설계사</div>
+          <div style="display:flex;gap:8px;">
+            <select id="adm-agent-sel-${custDocId}" onchange="document.getElementById('adm-agent-save-${custDocId}').style.display='inline-flex';" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;background:var(--surface);color:var(--text);outline:none;-webkit-appearance:none;appearance:none;">
+              ${agentsCache.filter(a=>a.role!=='admin'&&a.uid).map(a=>`<option value="${a.uid}" ${cust.agentId===a.uid?'selected':''}>${escHtml(a.name||a.email)}${a.disabled?' (비활성)':''}</option>`).join('')}
+            </select>
+            <button class="btn btn-primary btn-sm" id="adm-agent-save-${custDocId}"
+              onclick="reassignFromDetail('${custDocId}')" style="display:none;">💾 이관</button>
+          </div>
+          <div id="adm-agent-status-${custDocId}" style="font-size:11px;color:var(--text3);margin-top:5px;">현재 담당: ${escHtml(cust.agentName||'미배정')}</div>
+        </div>
 
         <!-- 고지사항 -->
         <div style="margin-bottom:16px;">
