@@ -8,36 +8,38 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#F3F2EE; --surface:#FFFFFF; --surface2:#EEECE8; --border:#E0DDD7;
-  --text:#18171A; --text2:#68666A; --text3:#A09EA3;
+  --bg:#F0F2F8; --surface:#FFFFFF; --surface2:#E8EAF2; --border:#D8DAE8;
+  --text:#16151A; --text2:#5A5870; --text3:#9896A8;
   --accent:#3B5BDB; --accent-light:#EDF2FF; --accent-dark:#2F4AC0;
   --green:#1A7F4B; --green-light:#E6F5EC;
   --amber:#B45309; --amber-light:#FEF3C7;
   --red:#B91C1C; --red-light:#FEE2E2;
   --purple:#6D28D9; --purple-light:#EDE9FE;
-  --radius:12px; --radius-sm:8px;
-  --shadow:0 1px 4px rgba(0,0,0,.06);
-  --shadow-md:0 4px 16px rgba(0,0,0,.10);
+  --radius:14px; --radius-sm:9px;
+  --shadow:0 1px 3px rgba(59,91,219,.07),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 20px rgba(59,91,219,.12),0 2px 8px rgba(0,0,0,.06);
+  /* 히어로 */
+  --hero-from:#1e3a8a; --hero-to:#4F6FE8;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{overflow-x:clip;width:100%;overscroll-behavior-x:none;}body{overflow-x:clip;width:100%;max-width:100%;overscroll-behavior-x:none;position:relative;touch-action:pan-y;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
 
 /* ── 헤더 ── */
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:50;box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04);}
+.header{background:var(--surface);border-bottom:1.5px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:50;box-shadow:0 1px 0 var(--border),0 2px 12px rgba(59,91,219,.08);}
 .header-inner{max-width:900px;width:100%;display:flex;align-items:center;justify-content:space-between;}
 .logo{font-size:16px;font-weight:800;letter-spacing:-.3px;}
 .logo span{color:var(--accent);}
-.logo-sub{font-size:11px;color:var(--text3);margin-left:8px;font-weight:500;background:var(--surface2);padding:3px 8px;border-radius:10px;}
+.logo-sub{font-size:11px;color:var(--accent);margin-left:8px;font-weight:600;background:var(--accent-light);padding:3px 9px;border-radius:10px;border:1px solid rgba(59,91,219,.2);}
 .header-right{display:flex;align-items:center;gap:10px;}
 
 /* ── 탭 네비 ── */
-.tab-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;justify-content:center;gap:0;position:sticky;top:58px;z-index:40;overflow-x:auto;}
+.tab-nav{background:var(--surface);border-bottom:1.5px solid var(--border);padding:0 24px;display:flex;justify-content:center;gap:0;position:sticky;top:58px;z-index:40;overflow-x:auto;box-shadow:0 2px 8px rgba(59,91,219,.05);}
 .tab-nav::-webkit-scrollbar{display:none;}
 .tab-nav-inner{max-width:900px;width:100%;display:flex;gap:0;}
 .tab-nav-item{padding:14px 20px;font-size:13px;font-weight:600;color:var(--text3);border-bottom:2.5px solid transparent;cursor:pointer;transition:all .18s;white-space:nowrap;display:flex;align-items:center;gap:6px;letter-spacing:-.1px;}
-.tab-nav-item.active{color:var(--accent);border-bottom-color:var(--accent);}
-.tab-nav-item:hover:not(.active){color:var(--text2);}
+.tab-nav-item.active{color:var(--accent);border-bottom-color:var(--accent);background:linear-gradient(to bottom,transparent 60%,rgba(59,91,219,.04));}
+.tab-nav-item:hover:not(.active){color:var(--text2);background:var(--surface2);}
 .tab-count{font-size:10px;background:var(--surface2);color:var(--text3);padding:2px 7px;border-radius:20px;font-weight:700;}
 .tab-count.blue{background:var(--accent-light);color:var(--accent);}
 
@@ -47,15 +49,22 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .tab-panel.active{display:block;}
 
 /* ── 카드 ── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:16px;box-shadow:var(--shadow);}
-.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:18px;display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:16px;box-shadow:var(--shadow);}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:18px;display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1.5px solid var(--border);}
 
-/* ── 통계 ── */
+/* ── 통계 히어로 배너 ── */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
-.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 10px;text-align:center;box-shadow:var(--shadow);position:relative;overflow:hidden;}
-.stat-box::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),rgba(59,91,219,.3));border-radius:0 0 2px 2px;}
-.stat-val{font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.5px;line-height:1.15;word-break:break-all;}
-.stat-lbl{font-size:10px;color:var(--text2);margin-top:4px;font-weight:500;}
+.stat-hero-wrap{grid-column:1/-1;background:linear-gradient(135deg,var(--hero-from) 0%,var(--hero-to) 100%);border-radius:var(--radius);padding:22px 22px 18px;margin-bottom:0;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(59,91,219,.28);}
+.stat-hero-wrap::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none;}
+.stat-hero-wrap::after{content:'';position:absolute;bottom:-50px;right:50px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none;}
+.stat-hero-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;}
+.stat-hero-month{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px;line-height:1.2;margin-bottom:3px;}
+.stat-hero-sub{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:18px;font-weight:400;}
+.stat-hero-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:relative;z-index:1;}
+.stat-box{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-sm);padding:12px 10px;text-align:center;backdrop-filter:blur(4px);transition:background .2s;}
+.stat-box:hover{background:rgba(255,255,255,.2);}
+.stat-val{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.15;word-break:break-all;}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,.6);margin-top:4px;font-weight:500;}
 
 /* ── 폼 ── */
 .form-row{margin-bottom:12px;}
@@ -79,10 +88,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .btn-green:hover{background:#145f38;}
 
 /* ── 설계사 목록 ── */
-.agent-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);transition:border-color .18s;}
-.agent-item:hover{border-color:var(--accent);}
+.agent-item{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:15px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);transition:border-color .18s,box-shadow .18s;}
+.agent-item:hover{border-color:var(--accent);box-shadow:var(--shadow-md);}
 .agent-item.disabled{opacity:.55;}
-.agent-avatar{width:42px;height:42px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;border:2px solid rgba(59,91,219,.15);}
+.agent-avatar{width:42px;height:42px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;border:2px solid rgba(59,91,219,.2);}
 .agent-info{flex:1;min-width:0;}
 .agent-name{font-size:14px;font-weight:800;letter-spacing:-.2px;}
 .agent-email{font-size:12px;color:var(--text2);margin-top:3px;}
@@ -199,7 +208,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 /* ── 반응형 (태블릿/모바일/Galaxy Fold) ── */
 @media (max-width:768px){
   .container{padding:16px 14px;}
-  .stats{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+  .stats{grid-template-columns:1fr;gap:0;margin-bottom:16px;}
+  .stat-hero-wrap{padding:18px 16px 16px;}
+  .stat-hero-month{font-size:17px;}
+  .stat-hero-grid{grid-template-columns:repeat(4,1fr);gap:7px;}
   .stat-val{font-size:18px;}
   .card{padding:16px;}
   .tab-nav{padding:0;top:52px;}
@@ -212,9 +224,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .tab-nav-item{padding:12px 12px;font-size:12px;}
 }
 @media (max-width:480px){
-  .stats{grid-template-columns:1fr 1fr;}
+  .stats{grid-template-columns:1fr;}
+  .stat-hero-wrap{padding:16px 14px 14px;}
+  .stat-hero-grid{grid-template-columns:repeat(2,1fr);gap:6px;}
   .stat-box{padding:11px 8px;}
-  .stat-val{font-size:16px;}
+  .stat-val{font-size:18px;}
   .stat-lbl{font-size:10px;}
   .header{height:48px;}
   .tab-nav{top:48px;padding:0;}
@@ -227,14 +241,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .agent-name{font-size:13px;}
   .form-input,.form-select{font-size:13px;}
 }
+/* ── Galaxy Fold (≤360px) ── */
 @media (max-width:360px){
-  .stats{grid-template-columns:1fr 1fr;}
+  .stats{grid-template-columns:1fr;}
+  .stat-hero-wrap{padding:14px 12px 12px;border-radius:10px;}
+  .stat-hero-month{font-size:15px;}
+  .stat-hero-sub{font-size:10px;margin-bottom:12px;}
+  .stat-hero-grid{grid-template-columns:repeat(2,1fr);gap:5px;}
+  .stat-box{padding:9px 6px;}
+  .stat-val{font-size:16px;}
+  .stat-lbl{font-size:9px;}
   .header .logo-sub{display:none;}
   .tab-nav-item{font-size:11px;padding:9px 6px;}
   .tab-count{display:none;}
   .container{padding:10px 8px;}
   .card{padding:12px;}
-  .stat-val{font-size:14px;}
 }
 
 /* ── 계약 관리 개선 ── */
@@ -329,7 +350,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .comm-badge.cancelled{background:var(--red-light);color:var(--red);}
 .comm-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 8px;display:flex;align-items:center;gap:6px;}
 .comm-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.comm-total-box{background:linear-gradient(135deg,var(--accent-light) 0%,var(--surface) 60%);border:1.5px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.comm-total-box{background:linear-gradient(135deg,var(--accent-light) 0%,var(--surface) 70%);border:1.5px solid rgba(59,91,219,.25);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(59,91,219,.1);}
 
 .sec-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:20px;}
 .sec-label:first-child{margin-top:0;}
@@ -448,21 +469,28 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <!-- ───────────── 탭 1: 대시보드 ───────────── -->
   <div id="tab-dashboard" class="tab-panel active">
     <div class="stats">
-      <div class="stat-box">
-        <div class="stat-val" id="stat-agents">-</div>
-        <div class="stat-lbl">팀원</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-val" id="stat-customers">-</div>
-        <div class="stat-lbl">전체 고객</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-val" id="stat-contracts">-</div>
-        <div class="stat-lbl">전체 계약</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-val" id="stat-premium" style="font-size:18px;">-</div>
-        <div class="stat-lbl">총 보험료</div>
+      <div class="stat-hero-wrap">
+        <div class="stat-hero-label">이번 달 현황</div>
+        <div class="stat-hero-month" id="stat-hero-month">대시보드</div>
+        <div class="stat-hero-sub" id="stat-hero-sub">데이터 불러오는 중…</div>
+        <div class="stat-hero-grid">
+          <div class="stat-box">
+            <div class="stat-val" id="stat-agents">-</div>
+            <div class="stat-lbl">팀원</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="stat-customers">-</div>
+            <div class="stat-lbl">전체 고객</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="stat-contracts">-</div>
+            <div class="stat-lbl">전체 계약</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="stat-premium" style="font-size:17px;">-</div>
+            <div class="stat-lbl">총 보험료</div>
+          </div>
+        </div>
       </div>
     </div>
     <!-- 이번달 시상 등록 현황 배너 -->
@@ -487,7 +515,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     </div>
 
     <!-- 설계사별 실적 — 별도 카드로 분리해 구분감 부여 -->
-    <div class="card" style="background:linear-gradient(160deg,#F4F6FF 0%,var(--surface) 55%);border-color:rgba(59,91,219,.18);border-left:3px solid var(--accent);">
+    <div class="card" style="border-color:rgba(59,91,219,.22);border-top:3px solid var(--accent);">
       <div class="card-title" style="color:var(--accent);border-bottom-color:rgba(59,91,219,.12);">👤 설계사별 실적</div>
       <div id="admin-perf-agents"></div>
     </div>
@@ -1326,7 +1354,17 @@ function renderDashboard() {
   const premEl = document.getElementById('stat-premium');
   premEl.textContent = fmtLargeNum(totalPremium);
   const digits = String(Math.round(totalPremium)).length;
-  premEl.style.fontSize = digits >= 12 ? '11px' : digits >= 10 ? '12px' : digits >= 8 ? '13px' : digits >= 6 ? '15px' : '';
+  premEl.style.fontSize = digits >= 12 ? '11px' : digits >= 10 ? '12px' : digits >= 8 ? '13px' : digits >= 6 ? '15px' : '17px';
+
+  // ── 히어로 배너 월/날짜 텍스트 ──
+  const now = new Date();
+  const monthEl = document.getElementById('stat-hero-month');
+  const subEl = document.getElementById('stat-hero-sub');
+  if (monthEl) monthEl.textContent = now.getFullYear() + '년 ' + (now.getMonth()+1) + '월 현황';
+  if (subEl) {
+    const pad = n => String(n).padStart(2,'0');
+    subEl.textContent = '마지막 업데이트 ' + now.getFullYear() + '.' + pad(now.getMonth()+1) + '.' + pad(now.getDate());
+  }
 
   // ── 미배정 고객 (에이전트 없는 고객 안전 처리) ──
   const agentUids = new Set(agentsCache.map(a => a.uid).filter(Boolean));
@@ -3672,6 +3710,6 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.03-nav2</div>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.04-hero</div>
 </body>
 </html>
