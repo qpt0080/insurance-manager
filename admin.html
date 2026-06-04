@@ -201,6 +201,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .agent-filter-btn{padding:7px 13px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;display:flex;align-items:center;gap:5px;}
 .agent-filter-btn:hover{border-color:var(--text2);}
 .agent-filter-btn.active{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.agent-filter-btn.disabled{border-style:dashed;border-color:var(--text3);color:var(--text3);background:var(--surface2);opacity:.75;}
+.agent-filter-btn.disabled .agent-off-tag{font-size:10px;font-weight:700;opacity:.85;}
 
 /* ── 로그인 ── */
 #login-screen{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -3054,8 +3056,8 @@ function buildContractsFilters() {
          </button>`
       : '';
     agentBar.innerHTML = orphanBtn + (agentsCache.map(a =>
-      `<button class="agent-filter-btn ${cmAgents.has(a.uid)?'active':''}" onclick="toggleCmAgent('${a.uid}')">
-        <span>${a.role==='admin'?'👑':'👤'}</span>${escHtml(a.name||a.email)}
+      `<button class="agent-filter-btn ${cmAgents.has(a.uid)?'active':''} ${a.disabled?'disabled':''}" onclick="toggleCmAgent('${a.uid}')">
+        <span>${a.role==='admin'?'👑':(a.disabled?'🚫':'👤')}</span>${escHtml(a.name||a.email)}${a.disabled?'<span class="agent-off-tag">(비활성)</span>':''}
       </button>`
     ).join('') || '<span style="font-size:12px;color:var(--text3)">설계사 없음</span>');
   }
