@@ -1042,6 +1042,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;"></div>
     </div>
     <div id="admin-sheet-content"></div>
+    <button onclick="forceCloseAdminSheet()" style="position:sticky;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;margin:18px auto 0;padding:13px 28px;background:var(--accent);color:#fff;border:none;border-radius:30px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(59,91,219,.35),0 2px 6px rgba(0,0,0,.12);">✕ 닫기</button>
   </div>
 </div>
 
@@ -1352,7 +1353,7 @@ function renderDashboard() {
   customersCache.forEach(c => {
     (c.contracts||[]).forEach(ct => {
       totalContracts++;
-      const p = parseFloat(String(ct.premium||'').replace(/,/g,'')) || 0;
+      const p = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
       totalPremium += p;
     });
   });
@@ -1436,6 +1437,37 @@ window.reassignCustomer = async function(docId) {
     showToast(`✅ ${agent?.name||''}님으로 배정 완료!`);
     await loadAll();
   } catch(e) { showToast('❌ 배정 실패: ' + e.message); }
+};
+
+// ── 계약일 수정 저장 ──
+window.saveContractDate = async function(custDocId, ctId) {
+  const input = document.getElementById(`adm-date-${custDocId}-${ctId}`);
+  const btn = document.getElementById(`adm-date-save-${custDocId}-${ctId}`);
+  if (!input) return;
+  const val = input.value; // YYYY-MM-DD
+  const cust = customersCache.find(c => c._docId === custDocId);
+  if (!cust) return;
+  const updated = (cust.contracts||[]).map((ct,i) => {
+    const id = ct.id || ('ci'+i);
+    if (id !== ctId) return ct;
+    const nc = {...ct, startDate: val, dateEstimated: false};
+    if (nc.rawJson) nc.rawJson = {...nc.rawJson, 계약일: val};
+    return nc;
+  });
+  if (btn) { btn.textContent='…'; btn.disabled=true; }
+  try {
+    await updateDoc(doc(db,'customers',custDocId), {contracts: updated});
+    showToast('✅ 계약일이 수정됐어요.');
+    if (btn) { btn.textContent='💾'; btn.disabled=false; btn.style.display='none'; }
+    await loadAll(); buildContractsFilters(); renderContractsList();
+    // 수수료 탭이 열려 있으면 재계산 (계약일 변경이 수수료 집계에 반영되도록)
+    if (document.getElementById('tab-commission')?.classList.contains('active') && typeof onCommSelChange === 'function') {
+      onCommSelChange();
+    }
+  } catch(e) {
+    showToast('❌ 수정 실패: '+e.message);
+    if (btn) { btn.textContent='💾'; btn.disabled=false; }
+  }
 };
 
 // ── 고객 상세 모달에서 담당 변경(이관) ──
@@ -1560,6 +1592,11 @@ window.selectAgentPick = function(uid) {
   document.querySelectorAll('.agent-pick-btn').forEach(b => b.classList.remove('selected'));
   const btn = document.getElementById(`apb-${uid}`);
   if (btn) btn.classList.add('selected');
+  // 설계사를 바꾸면 해당 설계사 담당 고객 기준으로 후보 목록 다시 그리기
+  if (parsedContractData) {
+    selectedCustomerId = null;
+    renderMatchCandidates(parsedContractData);
+  }
 };
 
 // ── 계약 업로드 ──
@@ -1719,8 +1756,9 @@ function buildNoticeSnapshot() {
 
 function renderMatchCandidates(data) {
   const name = data.계약자 || data.피보험자 || '';
-  // 이름으로 유사 고객 검색
+  // 선택된 설계사 담당 고객 중에서 이름으로 유사 고객 검색
   const candidates = customersCache.filter(c =>
+    (!selectedUploadAgentUid || c.agentId === selectedUploadAgentUid) &&
     name && (c.name||'').includes(name.slice(0,2))
   ).slice(0,5);
 
@@ -1778,12 +1816,18 @@ window.saveUploadContract = async function() {
     // 계약 데이터 변환
     const d = parsedContractData;
     const premiumRaw = parseFloat(String(d.월보험료||'').replace(/[^0-9.]/g,'')) || 0;
+    // 계약일이 없으면 발행일을 계약일로 자동 인식 (추정 표시 남김 — 나중에 수정 가능)
+    const 발행일 = d.발행일 || d.발행일자 || d.rawJson?.발행일 || '';
+    const 계약일실제 = d.계약일 || '';
+    const startDateVal = 계약일실제 || 발행일 || '';
+    const dateEstimated = !계약일실제 && !!발행일; // 발행일로 추정한 경우 true
     const newContract = {
       id: 'ct_' + Date.now(),
       company: d.보험사 || '',
       product: d.상품명 || '',
       premium: premiumRaw,
-      startDate: d.계약일 || '',
+      startDate: startDateVal,
+      dateEstimated: dateEstimated,
       expiryDate: d.보험기간 || '',
       payPeriod: d.납입기간 || '',
       payMethod: d.납입방법 || '월납',
@@ -3408,6 +3452,30 @@ window.openCustDetail = function(custDocId) {
           <div id="adm-agent-status-${custDocId}" style="font-size:11px;color:var(--text3);margin-top:5px;">현재 담당: ${escHtml(cust.agentName||'미배정')}</div>
         </div>
 
+        <!-- 계약일 수정 (계약별) -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">📅 계약일</div>
+          ${(cust.contracts||[]).map((ct,i)=>{
+            const ctId = ct.id || ('ci'+i);
+            const co = escHtml(ct.company||ct.rawJson?.보험사||'보험사');
+            const cur = ct.startDate || ct.rawJson?.계약일 || '';
+            const isEst = ct.dateEstimated;
+            // YYYY-MM-DD 형태로 정규화 (input[type=date]용)
+            const dm = String(cur).match(/(\d{4})[.\-\/](\d{1,2})[.\-\/]?(\d{1,2})?/);
+            const dateVal = dm ? `${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]||'01').padStart(2,'0')}` : '';
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${co}${isEst?' <span style="font-size:10px;color:var(--amber);font-weight:700;">발행일 추정</span>':''}</div>
+                <input type="date" id="adm-date-${custDocId}-${ctId}" value="${dateVal}"
+                  onchange="document.getElementById('adm-date-save-${custDocId}-${ctId}').style.display='inline-flex';"
+                  style="width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;">
+              </div>
+              <button class="btn btn-primary btn-sm" id="adm-date-save-${custDocId}-${ctId}"
+                onclick="saveContractDate('${custDocId}','${ctId}')" style="display:none;align-self:flex-end;">💾</button>
+            </div>`;
+          }).join('') || '<div style="font-size:12px;color:var(--text3);">계약 없음</div>'}
+        </div>
+
         <!-- 고지사항 -->
         <div style="margin-bottom:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -3731,46 +3799,7 @@ window.addEventListener('popstate', function(e) {
 
 // ── 스와이프 좌우 탭 전환 ──
 function setupAdminSwipeNav() {
-  const TABS = ['dashboard','upload','contracts','commission','agents'];
-  const content = document.getElementById('main-content');
-  if (!content) return;
-
-  let startX = 0, startY = 0, tracking = false, swipeBlocked = false;
-
-  content.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1) { tracking = false; return; }
-    // 시트(모달)가 열려있으면 무시
-    const overlay = document.getElementById('admin-sheet-overlay');
-    if (overlay && overlay.style.display === 'flex') { tracking = false; return; }
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    tracking = true;
-    swipeBlocked = false;
-    // 입력 요소나 가로 스크롤 요소 위에서 시작하면 차단
-    let el = e.target;
-    while (el && el !== content) {
-      const tag = (el.tagName||'').toLowerCase();
-      if (['input','textarea','select','button'].includes(tag)) { swipeBlocked = true; break; }
-      if (el.scrollWidth > el.clientWidth + 4) { swipeBlocked = true; break; }
-      el = el.parentElement;
-    }
-  }, {passive:true});
-
-  content.addEventListener('touchend', (e) => {
-    if (!tracking || swipeBlocked) { tracking = false; return; }
-    tracking = false;
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (Math.abs(dx) < 60) return;
-    if (Math.abs(dx) < Math.abs(dy) * 1.8) return;
-
-    const curTab = TABS.find(t => document.getElementById('tab-'+t)?.classList.contains('active'));
-    if (!curTab) return;
-    const idx = TABS.indexOf(curTab);
-    let nextIdx = dx < 0 ? idx + 1 : idx - 1;
-    if (nextIdx < 0 || nextIdx >= TABS.length) return;
-    switchTab(TABS[nextIdx]);
-  }, {passive:true});
+  // 좌우 스와이프 탭 전환 기능 제거됨 (오작동으로 비활성화)
 }
 
 window.toggleAdminRefunds = function(id) {

@@ -38,8 +38,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .header-period{padding:10px 0 8px;border-top:1px solid var(--border);}
 .header-period-row{display:flex;align-items:center;gap:8px;}
 .header-period-label{font-size:10px;font-weight:700;color:var(--text3);white-space:nowrap;letter-spacing:.04em;flex-shrink:0;}
-.header-period-chips{display:flex;gap:5px;overflow-x:auto;flex:1;}
+.header-period-chips{display:flex;gap:5px;overflow-x:auto;flex:1;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scroll-padding:0 8px;mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 12px),transparent 100%);-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 12px),transparent 100%);padding:1px 2px;}
 .header-period-chips::-webkit-scrollbar{display:none;}
+.header-period-chips .hchip{scroll-snap-align:center;}
 .hchip{flex-shrink:0;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .18s;font-family:inherit;white-space:nowrap;display:flex;align-items:center;gap:3px;}
 .hchip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
 .hchip.active.amber{border-color:var(--amber);background:var(--amber-light);color:var(--amber);}
@@ -231,6 +232,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .empty{text-align:center;padding:44px 0;color:var(--text3);}
 .empty-icon{font-size:36px;margin-bottom:12px;}
 .pb{padding-bottom:28px;}
+/* 계약 상세 하단 floating 뒤로 버튼 (상단 노치/주소창 회피) */
+.floating-back{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;gap:7px;padding:13px 26px;background:var(--accent);color:#fff;border:none;border-radius:30px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(59,91,219,.35),0 2px 6px rgba(0,0,0,.12);transition:transform .12s,box-shadow .2s;}
+.floating-back:active{transform:translateX(-50%) scale(.95);}
+#screen-contract.active ~ .floating-back,#screen-contract:not(.active) .floating-back{}
+.floating-back{display:none;}
+#screen-contract.active .floating-back{display:flex;}
 .divider{height:1px;background:var(--border);margin:14px 0;}
 .spinner-sm{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;}
 /* ── 담보 레이아웃 개선 ── */
@@ -475,7 +482,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     </div>
     <!-- 계약 상세 (풀스크린) -->
     <div id="screen-contract" class="screen pb">
-      <div id="contract-content"></div>
+      <div id="contract-content" style="padding-bottom:80px;"></div>
+      <button class="floating-back" onclick="goBack()">← 목록으로</button>
     </div>
   </div>
 </div>
@@ -1358,7 +1366,7 @@ function renderHome() {
         const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0;
         const ctId = ct.id || '';
         return `
-        <div onclick="${ctId?`renderContractScreen('${cust._docId}','${ctId}');showScreen('contract');history.pushState({view:'contract',custId:'${cust._docId}',ctId:'${ctId}'},'')`:`showDetail('${cust._docId}')`}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer;">
+        <div onclick="${ctId?`openContractScreen('${cust._docId}','${ctId}')`:`showDetail('${cust._docId}')`}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer;">
           <div style="width:40px;height:40px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;">${escHtml(initial)}</div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:700;color:var(--text);">${escHtml(nm)}</div>
@@ -1976,7 +1984,7 @@ function renderContractScreen(custId, ctId) {
   <div class="info-grid">
     ${ic('보험사',company)}${ic('상품명',product)}
     ${ic('계약자',c.name||rj.계약자)}${ic('피보험자',rj.피보험자||c.name||'')}
-    ${ic('계약일',ct.startDate||rj.계약일)}
+    ${icEdit('계약일', (ct.startDate||rj.계약일||'미입력') + (ct.dateEstimated?' (발행일 추정)':''), `toggleDateEdit('${custId}','${ctId}','${ctSafeId}')`)}
     ${ic('보험기간',ct.expiryDate||rj.보험기간)}${ic('납입기간',ct.payPeriod||rj.납입기간)}
     ${icEdit('납입방법', payMethod||'미입력', `togglePayEdit('${custId}','${ctId}','${ctSafeId}')`)}
     ${ic('월 보험료',ct.premium?fmt(ct.premium):rj.월보험료)}
@@ -2005,6 +2013,20 @@ function renderContractScreen(custId, ctId) {
       <div class="edit-actions">
         <button class="edit-save" onclick="savePayMethod('${custId}','${ctId}','${ctSafeId}')">저장</button>
         <button class="edit-cancel" onclick="document.getElementById('pay-edit-${ctSafeId}').style.display='none'">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 계약일 편집 패널 -->
+  <div id="date-edit-${ctSafeId}" style="display:none">
+    <div class="pay-edit-panel">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">계약일 수정</div>
+      <input type="date" id="date-input-${ctSafeId}" value="${(()=>{const d=String(ct.startDate||rj.계약일||'').match(/(\d{4})[.\-\/](\d{1,2})[.\-\/]?(\d{1,2})?/);return d?`${d[1]}-${String(d[2]).padStart(2,'0')}-${String(d[3]||'01').padStart(2,'0')}`:'';})()}"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;box-sizing:border-box;"/>
+      ${ct.dateEstimated?'<div style="font-size:11px;color:var(--amber);margin-top:6px;">⚠️ 현재 발행일로 추정된 날짜예요. 실제 계약일로 수정하면 추정 표시가 사라져요.</div>':''}
+      <div class="edit-actions">
+        <button class="edit-save" onclick="saveContractDate('${custId}','${ctId}','${ctSafeId}')">저장</button>
+        <button class="edit-cancel" onclick="document.getElementById('date-edit-${ctSafeId}').style.display='none'">취소</button>
       </div>
     </div>
   </div>`;
@@ -2350,6 +2372,41 @@ window.togglePayEdit = function(custId, ctId, ctSafeId) {
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 };
 
+window.toggleDateEdit = function(custId, ctId, ctSafeId) {
+  const el = document.getElementById(`date-edit-${ctSafeId}`);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.saveContractDate = async function(custId, ctId, ctSafeId) {
+  const input = document.getElementById(`date-input-${ctSafeId}`);
+  if (!input) return;
+  const val = input.value; // YYYY-MM-DD
+  if (!val) { alert('날짜를 선택해주세요.'); return; }
+  const cust = customers.find(c => (c._docId||c.id) === custId);
+  if (!cust) return;
+  const updatedContracts = (cust.contracts||[]).map((ct,i) => {
+    const id = ct.id || ('ci'+i);
+    if (id !== ctId) return ct;
+    const nc = {...ct, startDate: val, dateEstimated: false};
+    if (nc.rawJson) nc.rawJson = {...nc.rawJson, 계약일: val};
+    return nc;
+  });
+  try {
+    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
+    cust.contracts = updatedContracts; // 로컬 캐시 갱신
+    // 계약일 변경이 기간 필터·홈·실적에 반영되도록 갱신
+    if (typeof buildPeriodChips === 'function') buildPeriodChips();
+    if (typeof renderHome === 'function') renderHome();
+    const perfEl = document.getElementById('view-performance') || document.querySelector('.perf-view');
+    if (typeof renderPerformance === 'function') renderPerformance();
+    openContractScreen(custId, ctId, true); // 상세 화면 새로고침
+  } catch(e) {
+    alert('계약일 저장 실패: ' + e.message);
+  }
+};
+
+
 window.onPayOptChange = function(ctSafeId, method) {
   // 버튼 active 상태 갱신
   ['월납','카드납','자동이체'].forEach(m => {
@@ -2430,46 +2487,7 @@ window.goBack = function() { history.back(); };
 
 // ── 스와이프 좌우 탭 전환 ──
 function setupSwipeNav() {
-  const TABS = ['home','list','performance'];
-  const content = document.querySelector('.content');
-  if (!content) return;
-
-  let startX = 0, startY = 0, tracking = false, swipeBlocked = false;
-
-  content.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1) { tracking = false; return; }
-    // 탭 화면(home/list/performance)에서만 동작 — 상세/계약 화면이면 무시
-    const onTabScreen = TABS.some(t => document.getElementById('screen-'+t)?.classList.contains('active'));
-    if (!onTabScreen) { tracking = false; return; }
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    tracking = true;
-    swipeBlocked = false;
-    // 가로 스크롤 가능한 요소 위에서 시작했으면 차단 (테이블 등)
-    let el = e.target;
-    while (el && el !== content) {
-      if (el.scrollWidth > el.clientWidth + 4) { swipeBlocked = true; break; }
-      el = el.parentElement;
-    }
-  }, {passive:true});
-
-  content.addEventListener('touchend', (e) => {
-    if (!tracking || swipeBlocked) { tracking = false; return; }
-    tracking = false;
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    // 가로 이동이 충분히 크고, 세로 이동의 1.8배 이상일 때만 탭 전환
-    if (Math.abs(dx) < 60) return;
-    if (Math.abs(dx) < Math.abs(dy) * 1.8) return;
-
-    // 현재 활성 탭 찾기
-    const curTab = TABS.find(t => document.getElementById('screen-'+t)?.classList.contains('active'));
-    if (!curTab) return;
-    const idx = TABS.indexOf(curTab);
-    let nextIdx = dx < 0 ? idx + 1 : idx - 1;  // 왼쪽으로 밀면 다음 탭
-    if (nextIdx < 0 || nextIdx >= TABS.length) return;  // 끝에서는 순환 안 함
-    showTab(TABS[nextIdx]);
-  }, {passive:true});
+  // 좌우 스와이프 탭 전환 기능 제거됨 (오작동으로 비활성화)
 }
 window.addEventListener('popstate', function(e) {
   const s = e.state;
@@ -2643,7 +2661,7 @@ window.deleteNoticeFromContract = async function(custId, ctId) {
 };
 function getV(ct,key) { return ct.rawJson?.[key]||''; }
 function getCoverages(ct) { return ct.coverages||ct.rawJson?.담보목록||[]; }
-function isLife(s) { return /생명|라이프/.test(s||''); }
+function isLife(s) { return /생명|생보|라이프|한화생|삼성생|교보생|흥국생|동양생|미래에셋생|푸본현대생|처브라이프|AIA|DB생명|KDB생명|ABL생명|DGB생명|iM라이프|메트라이프|신한라이프|카카오페이생명/.test(s||''); }
 function isRenew(cv) { return /갱신형/.test(cv.renew||cv.갱신여부||''); }
 function fmt(n) { return Number(String(n).replace(/,/g,'')).toLocaleString()+'원'; }
 function ic(k,v) { if(!v) return ''; const long = ['상품명','특이사항','납입면제조건'].includes(k)||String(v).length>14; return `<div class="info-cell${long?' full':''}"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v))}</div></div>`; }
