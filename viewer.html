@@ -483,6 +483,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
@@ -495,6 +496,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 const urlParams = new URLSearchParams(location.search);
 const token = urlParams.get('token');
 
@@ -515,6 +517,12 @@ let noticesCache = []; // 고지의무 캐시
 // ── 초기화 ──
 async function init() {
   if (!token) { showError('링크에 접근 코드가 없습니다.\n담당자에게 링크를 다시 받아주세요.'); return; }
+  // 익명 로그인: 저장(update) 권한 확보용. 실패해도 조회는 가능하도록 진행.
+  try {
+    await signInAnonymously(auth);
+  } catch(e) {
+    console.warn('익명 로그인 실패 (조회는 가능, 저장은 제한될 수 있음):', e.message);
+  }
   try {
     const snap = await getDocs(query(collection(db,'agents'), where('viewerToken','==',token)));
     if (snap.empty) { showError('유효하지 않은 링크입니다.\n담당자에게 링크를 다시 받아주세요.'); return; }

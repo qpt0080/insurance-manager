@@ -252,6 +252,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .stat-val{font-size:16px;}
   .stat-lbl{font-size:9px;}
   .header .logo-sub{display:none;}
+  .header-right .btn{padding:6px 9px;font-size:11px;}
   .tab-nav-item{font-size:11px;padding:9px 6px;}
   .tab-count{display:none;}
   .container{padding:10px 8px;}
@@ -447,6 +448,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     </div>
     <div class="header-right">
       <span id="admin-name-badge" style="font-size:12px;font-weight:600;color:var(--text2);"></span>
+      <a href="dashboard.html" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.25);">📊 대시보드</a>
       <button onclick="doLogout()" class="btn btn-sm">🚪 로그아웃</button>
     </div>
   </div>
@@ -498,8 +500,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
     <!-- 미배정 고객 알림 -->
     <div class="card" id="orphan-card" style="display:none;border-color:var(--amber);border-left:4px solid var(--amber);background:linear-gradient(135deg,var(--amber-light) 0%,var(--surface) 60%);">
-      <div class="card-title" style="color:var(--amber);border-bottom-color:rgba(180,83,9,.15);">⚠️ 미배정 고객 <span id="orphan-count" class="chip amber"></span></div>
-      <div style="font-size:12px;color:var(--amber);margin-bottom:12px;line-height:1.7;">설계사 삭제·변경으로 담당자가 없는 고객이에요. 반드시 재배정해주세요.</div>
+      <div class="card-title" style="color:var(--amber);border-bottom-color:rgba(180,83,9,.15);">⚠️ 담당 정리가 필요한 고객 <span id="orphan-count" class="chip amber"></span></div>
+      <div style="font-size:12px;color:var(--amber);margin-bottom:12px;line-height:1.7;">담당 설계사가 없거나(삭제·미배정), 비활성 처리된 설계사가 담당인 고객이에요. 현역 설계사에게 이관해주세요. (계약 데이터는 그대로 보존됩니다)</div>
       <div id="orphan-list"></div>
     </div>
 
@@ -1267,10 +1269,11 @@ function renderAdminPerf() {
       <div style="font-size:11px;color:var(--text3);font-weight:500;">${k.sub}</div>
     </div>`).join('');
 
-  // ── 설계사별 카드 그리드 ──
-  if (!agentsCache.length) { agentsEl.innerHTML = '<div class="empty">설계사 없음</div>'; return; }
+  // ── 설계사별 카드 그리드 (비활성 설계사 제외) ──
+  const activeAgents = agentsCache.filter(a => !a.disabled);
+  if (!activeAgents.length) { agentsEl.innerHTML = '<div class="empty">설계사 없음</div>'; return; }
 
-  const agentRows = agentsCache.map(a => {
+  const agentRows = activeAgents.map(a => {
     const myCusts = customersCache.filter(c => c.agentId === a.uid);
     const myCts = getContractsForPeriod(myCusts, adminPerfYear, adminPerfMonth, adminPerfYear === 0);
     const s = calcPerfStats(myCts);
@@ -1366,29 +1369,35 @@ function renderDashboard() {
     subEl.textContent = '마지막 업데이트 ' + now.getFullYear() + '.' + pad(now.getMonth()+1) + '.' + pad(now.getDate());
   }
 
-  // ── 미배정 고객 (에이전트 없는 고객 안전 처리) ──
+  // ── 미배정 / 비활성 담당 고객 (안전 처리) ──
   const agentUids = new Set(agentsCache.map(a => a.uid).filter(Boolean));
-  const orphans = customersCache.filter(c => c.agentId && !agentUids.has(c.agentId));
-  const noAgent = customersCache.filter(c => !c.agentId);  // agentId 자체가 없는 경우도
-  const allOrphans = [...orphans, ...noAgent];
+  const disabledUids = new Set(agentsCache.filter(a => a.disabled).map(a => a.uid).filter(Boolean));
+  const orphans = customersCache.filter(c => c.agentId && !agentUids.has(c.agentId));  // 삭제된 설계사
+  const noAgent = customersCache.filter(c => !c.agentId);  // agentId 자체가 없는 경우
+  const disabledAgentCusts = customersCache.filter(c => c.agentId && disabledUids.has(c.agentId)); // 비활성 설계사 담당
+  const allOrphans = [...orphans, ...noAgent, ...disabledAgentCusts];
 
   const orphanCard = document.getElementById('orphan-card');
   const orphanList = document.getElementById('orphan-list');
   if (allOrphans.length > 0) {
     orphanCard.style.display = 'block';
     document.getElementById('orphan-count').textContent = allOrphans.length + '명';
-    const agentOptions = agentsCache.map(a => `<option value="${a.uid}">${escHtml(a.name||a.email)}</option>`).join('');
+    const agentOptions = agentsCache.filter(a => !a.disabled).map(a => `<option value="${a.uid}">${escHtml(a.name||a.email)}</option>`).join('');
     orphanList.innerHTML = allOrphans.map(c => {
       const contracts = c.contracts||[];
       const consultName = contracts[0]?.rawJson?.컨설턴트 || c.agentName || '';
-      const autoMatch = agentsCache.find(a => consultName && (a.name||'').includes(consultName.slice(0,2)));
+      const autoMatch = agentsCache.find(a => !a.disabled && consultName && (a.name||'').includes(consultName.slice(0,2)));
+      const disabledAgent = agentsCache.find(a => a.uid === c.agentId && a.disabled);
+      const reasonBadge = disabledAgent
+        ? `<span class="chip amber" style="font-size:10px;">비활성 담당: ${escHtml(disabledAgent.name||disabledAgent.email)}</span>`
+        : (c.agentId ? '<span class="chip red" style="font-size:10px;">삭제된 담당</span>' : '<span class="chip" style="font-size:10px;">담당 없음</span>');
       return `
       <div style="background:var(--surface);border:1px solid rgba(180,83,9,.2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
           <div>
             <div style="font-size:14px;font-weight:700;">${escHtml(c.name||'이름없음')} <span style="font-size:11px;color:var(--text3);font-weight:400">계약 ${contracts.length}건</span></div>
-            ${consultName?`<div style="font-size:11px;color:var(--text2);margin-top:2px;">기존 담당: ${escHtml(consultName)}</div>`:''}
-            ${c.agentId?`<div style="font-size:10px;color:var(--text3);margin-top:1px;">이전 UID: ${escHtml(c.agentId.slice(0,12))}…</div>`:''}
+            <div style="margin-top:4px;">${reasonBadge}</div>
+            ${consultName?`<div style="font-size:11px;color:var(--text2);margin-top:4px;">기존 담당: ${escHtml(consultName)}</div>`:''}
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -1396,7 +1405,7 @@ function renderDashboard() {
             <option value="">설계사 선택...</option>
             ${agentOptions}
           </select>
-          <button class="btn btn-sm btn-primary" onclick="reassignCustomer('${c._docId}')">배정</button>
+          <button class="btn btn-sm btn-primary" onclick="reassignCustomer('${c._docId}')">이관</button>
         </div>
         ${autoMatch?`<div style="font-size:11px;color:var(--green);margin-top:6px;cursor:pointer;" onclick="document.getElementById('reassign-${c._docId}').value='${autoMatch.uid}'">💡 "${escHtml(autoMatch.name)}"으로 자동 매칭 — 클릭해서 선택</div>`:''}
       </div>`;

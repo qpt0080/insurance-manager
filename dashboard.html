@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>보험Manager · 팀 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#f4f7fe; --bg1:#eef2fc; --surface:#ffffff;
+  --glass:rgba(255,255,255,.78); --glass2:#ffffff; --glass-border:rgba(99,140,255,.2);
+  --cyan:#0891b2; --cyan-bright:#06b6d4; --blue:#2563eb; --indigo:#4f46e5; --violet:#7c3aed; --violet-bright:#9333ea;
+  --pink:#db2777; --green:#059669; --green-bright:#10b981; --amber:#d97706; --gold:#ca8a04; --red:#dc2626;
+  --text:#0f172a; --text2:#475569; --text3:#94a3b8;
+  --glow-cyan:0 0 16px rgba(8,145,178,.22);
+  --shadow-sm:0 1px 3px rgba(59,91,219,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 4px 20px rgba(59,91,219,.1),0 2px 8px rgba(0,0,0,.05);
+  --shadow-lg:0 10px 36px rgba(59,91,219,.14),0 4px 14px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;}
+body{
+  font-family:'Noto Sans KR',sans-serif;color:var(--text);
+  background:var(--bg0);min-height:100vh;
+  -webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;
+}
+#bg-canvas{position:fixed;inset:0;z-index:0;opacity:.6;}
+.bg-grid{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background-image:linear-gradient(rgba(99,140,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(99,140,255,.07) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 30%,#000 20%,transparent 70%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 30%,#000 20%,transparent 70%);}
+.bg-glow{position:fixed;border-radius:50%;filter:blur(100px);z-index:1;pointer-events:none;opacity:.4;}
+.bg-glow.g1{width:520px;height:520px;background:radial-gradient(circle,#93c5fd,transparent 70%);top:-160px;left:-120px;animation:drift1 22s ease-in-out infinite;}
+.bg-glow.g2{width:480px;height:480px;background:radial-gradient(circle,#d8b4fe,transparent 70%);bottom:-160px;right:-100px;animation:drift2 26s ease-in-out infinite;}
+.bg-glow.g3{width:400px;height:400px;background:radial-gradient(circle,#a5f3fc,transparent 70%);top:42%;left:55%;animation:drift1 30s ease-in-out infinite reverse;}
+@keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(80px,60px)}}
+@keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-70px,-50px)}}
+
+.wrap{position:relative;z-index:5;max-width:1200px;margin:0 auto;padding:22px 26px 40px;}
+
+.dash-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-shrink:0;gap:16px;}
+.dash-logo{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:.3em;color:var(--cyan);text-transform:uppercase;}
+.dash-title{font-size:25px;font-weight:900;letter-spacing:-.5px;line-height:1;margin-top:4px;}
+.dash-title .accent{background:linear-gradient(90deg,var(--cyan-bright),var(--violet-bright));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.live-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--green);background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:20px;padding:3px 10px;letter-spacing:.1em;margin-left:10px;vertical-align:middle;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green-bright);box-shadow:0 0 8px var(--green-bright);animation:pulse 1.6s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.dash-sub{font-size:12px;color:var(--text2);margin-top:7px;letter-spacing:.02em;}
+.dash-clock-wrap{text-align:right;flex-shrink:0;}
+.dash-clock{font-family:'Orbitron',sans-serif;font-size:30px;font-weight:700;letter-spacing:.04em;color:var(--text);line-height:1;}
+.dash-date{font-size:12px;color:var(--text2);margin-top:6px;letter-spacing:.06em;}
+
+.tab-switch{display:inline-flex;gap:4px;background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:4px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+.tab-switch-btn{padding:9px 20px;border-radius:11px;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;transition:all .2s;border:none;background:transparent;font-family:inherit;display:flex;align-items:center;gap:7px;}
+.tab-switch-btn.active{color:#fff;background:linear-gradient(135deg,var(--cyan-bright),var(--blue));box-shadow:0 4px 14px rgba(8,145,178,.3);}
+.tab-switch-btn:not(.active):hover{color:var(--text2);background:var(--bg1);}
+
+.view{display:none;}
+.view.active{display:block;animation:fadeUp .35s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+.kpi-card{position:relative;background:var(--surface);border:1px solid var(--glass-border);border-radius:18px;padding:18px 20px;overflow:hidden;box-shadow:var(--shadow-sm);transition:box-shadow .2s,transform .2s;}
+.kpi-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--kc,var(--cyan)),transparent);}
+.kpi-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:12px;background:var(--kc-bg,rgba(8,145,178,.1));}
+.kpi-label{font-size:11px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:8px;}
+.kpi-value{font-family:'Orbitron',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.5px;line-height:1;color:var(--kc,var(--cyan));}
+.kpi-value .unit{font-size:15px;font-weight:500;color:var(--text3);margin-left:4px;font-family:'Noto Sans KR';}
+.kpi-foot{font-size:11px;color:var(--text3);margin-top:8px;font-weight:500;}
+
+.main-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;}
+.panel{position:relative;background:var(--surface);border:1px solid var(--glass-border);border-radius:18px;padding:20px 22px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.panel-title{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:var(--text);letter-spacing:.04em;margin-bottom:16px;flex-shrink:0;text-transform:uppercase;}
+.panel-title .bar{width:4px;height:16px;border-radius:2px;background:linear-gradient(var(--cyan-bright),var(--violet-bright));}
+.panel-title .cnt{margin-left:auto;font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.03em;text-transform:none;}
+
+.rank-list{flex:1;display:flex;flex-direction:column;gap:10px;}
+.rank-row{position:relative;display:flex;align-items:center;gap:14px;padding:13px 16px;border-radius:14px;background:var(--bg0);border:1px solid rgba(99,140,255,.12);overflow:hidden;transition:all .4s cubic-bezier(.34,1.56,.64,1);}
+.rank-row.top1{background:linear-gradient(90deg,rgba(202,138,4,.1),var(--surface));border-color:rgba(202,138,4,.32);}
+.rank-row.top2{background:linear-gradient(90deg,rgba(148,163,184,.12),var(--surface));border-color:rgba(148,163,184,.32);}
+.rank-row.top3{background:linear-gradient(90deg,rgba(217,119,6,.09),var(--surface));border-color:rgba(217,119,6,.28);}
+.rank-bg-bar{position:absolute;inset:0;border-radius:14px;background:linear-gradient(90deg,var(--rc,rgba(37,99,235,.1)),transparent 82%);width:var(--rw,0%);transition:width 1.1s cubic-bezier(.25,.46,.45,.94);z-index:0;}
+.rank-pos{position:relative;z-index:1;font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;width:40px;text-align:center;flex-shrink:0;color:var(--text3);}
+.rank-medal{font-size:22px;}
+.rank-av{position:relative;z-index:1;width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;flex-shrink:0;}
+.rank-info{position:relative;z-index:1;flex:1;min-width:0;}
+.rank-name{font-size:16px;font-weight:700;letter-spacing:-.2px;}
+.rank-meta{font-size:11px;color:var(--text2);margin-top:3px;letter-spacing:.02em;}
+.rank-stat{position:relative;z-index:1;text-align:right;flex-shrink:0;}
+.rank-count{font-family:'Orbitron',sans-serif;font-size:24px;font-weight:700;line-height:1;color:var(--rc-text,var(--cyan));}
+.rank-count .u{font-size:12px;color:var(--text3);font-family:'Noto Sans KR';margin-left:2px;}
+.rank-prem{font-size:11px;color:var(--text3);margin-top:4px;font-weight:600;}
+
+.right-col{display:flex;flex-direction:column;gap:16px;min-height:0;}
+
+.co-chart{flex:1;display:flex;flex-direction:column;gap:11px;justify-content:center;}
+.co-bar-row{display:flex;align-items:center;gap:12px;}
+.co-bar-name{font-size:12px;font-weight:600;color:var(--text2);width:74px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.co-bar-track{flex:1;height:22px;background:var(--bg1);border-radius:8px;overflow:hidden;position:relative;}
+.co-bar-fill{height:100%;border-radius:8px;width:var(--cw,0%);transition:width 1.2s cubic-bezier(.25,.46,.45,.94);}
+.co-bar-fill.life{background:linear-gradient(90deg,#9333ea,#c084fc);}
+.co-bar-fill.nonlife{background:linear-gradient(90deg,#0891b2,#22d3ee);}
+.co-bar-val{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;width:40px;flex-shrink:0;color:var(--text);}
+
+.donut-wrap{flex:1;display:flex;align-items:center;justify-content:center;gap:24px;}
+.donut-center-val{font-family:'Orbitron',sans-serif;font-size:30px;font-weight:700;fill:var(--text);}
+.donut-center-lbl{font-size:11px;fill:var(--text2);letter-spacing:.08em;}
+.donut-legend{display:flex;flex-direction:column;gap:14px;}
+.legend-item{display:flex;align-items:center;gap:10px;}
+.legend-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0;}
+.legend-dot.life{background:linear-gradient(135deg,#9333ea,#c084fc);}
+.legend-dot.nonlife{background:linear-gradient(135deg,#0891b2,#22d3ee);}
+.legend-txt{font-size:12px;color:var(--text2);}
+.legend-txt b{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;color:var(--text);display:block;margin-top:2px;}
+.legend-txt span{color:var(--text3);font-size:11px;}
+
+.ticker{margin-top:16px;background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;height:46px;display:flex;align-items:center;overflow:hidden;box-shadow:var(--shadow-sm);}
+.ticker-label{flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;color:#fff;background:linear-gradient(90deg,var(--cyan-bright),var(--blue));padding:0 18px;height:100%;display:flex;align-items:center;}
+.ticker-track{flex:1;overflow:hidden;white-space:nowrap;position:relative;height:100%;}
+.ticker-move{position:absolute;top:0;left:0;height:100%;display:flex;align-items:center;white-space:nowrap;animation:tick 38s linear infinite;}
+.ticker-move:hover{animation-play-state:paused;}
+@keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{display:inline-flex;align-items:center;gap:8px;padding:0 28px;font-size:13px;color:var(--text);border-right:1px solid var(--glass-border);}
+.ticker-item .tk-co{color:var(--cyan);font-weight:700;}
+.ticker-item .tk-amt{font-family:'Orbitron',sans-serif;font-weight:700;color:var(--green);}
+
+.sim-wrap{max-width:760px;margin:0 auto;}
+.sim-panel{position:relative;background:var(--surface);border:1px solid var(--glass-border);border-radius:20px;padding:22px 24px;margin-bottom:18px;box-shadow:var(--shadow-sm);overflow:hidden;}
+.sim-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan-bright),var(--violet-bright),transparent);}
+.sim-panel-label{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px;}
+.sim-panel-label .bar{width:4px;height:15px;border-radius:2px;background:linear-gradient(var(--cyan-bright),var(--violet-bright));}
+.sel-grid{display:grid;grid-template-columns:1fr 120px;gap:10px;}
+.fz-select{appearance:none;-webkit-appearance:none;width:100%;padding:13px 16px;background:var(--bg0);border:1px solid var(--glass-border);border-radius:13px;color:var(--text);font-size:15px;font-weight:700;font-family:inherit;outline:none;cursor:pointer;transition:all .2s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath fill='%230891b2' d='M5.5 7L0 0h11z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:38px;}
+.fz-select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(8,145,178,.12);background:var(--surface);}
+.agent-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+.agent-chip{padding:8px 15px;border-radius:22px;font-size:13px;font-weight:600;border:1px solid var(--glass-border);background:var(--bg0);color:var(--text2);cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;gap:7px;}
+.agent-chip:hover{border-color:rgba(8,145,178,.5);color:var(--text);}
+.agent-chip.active{border-color:var(--cyan);background:rgba(8,145,178,.1);color:var(--cyan);}
+.agent-chip .ac-dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+
+.slider-panel{background:linear-gradient(135deg,rgba(8,145,178,.05),rgba(124,58,237,.05));}
+.prem-display{text-align:center;margin-bottom:20px;}
+.prem-now-label{font-size:11px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-bottom:6px;}
+.prem-value{font-family:'Orbitron',sans-serif;font-size:46px;font-weight:900;line-height:1;letter-spacing:-1px;
+  background:linear-gradient(90deg,var(--cyan-bright),var(--violet-bright));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.prem-value .won{font-size:20px;-webkit-text-fill-color:var(--text3);margin-left:6px;}
+.prem-base-note{font-size:12px;color:var(--text2);margin-top:8px;}
+.prem-base-note b{color:var(--cyan);font-weight:700;}
+.range-wrap{position:relative;padding:6px 0 4px;}
+.range-track-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:8px;font-family:'Orbitron',sans-serif;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:6px;outline:none;cursor:pointer;
+  background:linear-gradient(90deg,var(--cyan-bright) 0%,var(--violet-bright) var(--fill,30%),#dde5f5 var(--fill,30%));}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,var(--cyan-bright));border:3px solid #fff;cursor:pointer;box-shadow:0 0 12px rgba(8,145,178,.5),0 2px 8px rgba(0,0,0,.18);transition:transform .15s;}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.2);}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,var(--cyan-bright));border:3px solid #fff;cursor:pointer;box-shadow:0 0 12px rgba(8,145,178,.5);}
+.quick-btns{display:flex;gap:8px;margin-top:18px;}
+.quick-btn{flex:1;padding:9px 6px;border-radius:11px;font-size:12px;font-weight:700;border:1px solid var(--glass-border);background:var(--bg0);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;}
+.quick-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+.result-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px;}
+.rs-card{position:relative;background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:16px 14px;text-align:center;overflow:hidden;box-shadow:var(--shadow-sm);}
+.rs-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--rsc,var(--cyan));}
+.rs-ico{font-size:18px;margin-bottom:8px;}
+.rs-label{font-size:10px;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;font-weight:700;margin-bottom:7px;}
+.rs-value{font-family:'Orbitron',sans-serif;font-size:23px;font-weight:700;line-height:1;color:var(--rsc,var(--cyan));}
+.rs-value .u{font-size:12px;color:var(--text3);font-family:'Noto Sans KR';margin-left:2px;}
+.rs-sub{font-size:10px;color:var(--text3);margin-top:6px;}
+
+.tier-card{position:relative;background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow-sm);transition:all .3s;overflow:hidden;}
+.tier-card.achieved{border-color:rgba(16,185,129,.4);background:linear-gradient(135deg,rgba(16,185,129,.06),var(--surface));}
+.tier-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.tier-card-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.tier-badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px;letter-spacing:.04em;text-transform:uppercase;}
+.tier-badge.nm{background:rgba(8,145,178,.12);color:var(--cyan);}
+.tier-badge.th{background:rgba(217,119,6,.12);color:var(--amber);}
+.tier-status{font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;flex-shrink:0;}
+.tier-status.on{background:rgba(16,185,129,.15);color:var(--green);}
+.tier-status.off{background:rgba(148,163,184,.15);color:var(--text3);}
+.tier-reward-now{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;color:var(--green);margin-bottom:14px;}
+.tier-reward-now.zero{color:var(--text3);font-size:16px;}
+.tier-reward-now .u{font-size:12px;font-family:'Noto Sans KR';color:var(--text3);}
+.tier-steps{display:flex;gap:5px;}
+.tier-step{flex:1;text-align:center;}
+.tier-step-bar{height:7px;border-radius:4px;background:var(--bg1);position:relative;overflow:hidden;}
+.tier-step-bar .fill{position:absolute;inset:0;width:0;border-radius:4px;transition:width .6s cubic-bezier(.25,.46,.45,.94);}
+.tier-step.done .tier-step-bar .fill{width:100%;background:linear-gradient(90deg,var(--green-bright),#059669);}
+.tier-step.current .tier-step-bar .fill{background:linear-gradient(90deg,var(--cyan-bright),var(--blue));}
+.tier-step-th{font-size:10px;color:var(--text3);margin-top:6px;font-weight:600;}
+.tier-step.done .tier-step-th{color:var(--green);}
+.tier-step.current .tier-step-th{color:var(--cyan);}
+.tier-step-rw{font-size:10px;color:var(--text2);margin-top:2px;font-weight:700;}
+.next-hint{margin-top:12px;padding:10px 13px;background:rgba(8,145,178,.06);border:1px solid rgba(8,145,178,.18);border-radius:11px;font-size:12px;color:var(--text2);line-height:1.5;}
+.next-hint b{color:var(--cyan);font-weight:700;}
+.next-hint.maxed{background:rgba(217,119,6,.07);border-color:rgba(217,119,6,.22);}
+.next-hint.maxed b{color:var(--amber);}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);}
+.empty-state .ico{font-size:40px;margin-bottom:14px;}
+
+#loading{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bg0);}
+.loader-ring{width:50px;height:50px;border:3px solid rgba(99,140,255,.15);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#error{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg0);text-align:center;padding:30px;}
+
+.foot-note{text-align:center;font-size:11px;color:var(--text3);margin-top:24px;line-height:1.7;}
+
+@media (max-width:1100px){
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .main-grid{grid-template-columns:1fr;}
+  .dash-clock{font-size:24px;}
+}
+@media (max-width:680px){
+  .wrap{padding:16px 14px 40px;}
+  .dash-header{flex-direction:column;gap:12px;}
+  .dash-clock-wrap{text-align:left;}
+  .kpi-row{grid-template-columns:1fr 1fr;gap:10px;}
+  .kpi-value{font-size:24px;}
+  .panel{padding:16px 16px;}
+  .prem-value{font-size:38px;}
+  .result-summary{grid-template-columns:1fr;gap:10px;}
+  .rs-card{display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px;}
+  .rs-card::before{width:3px;height:100%;top:0;left:0;right:auto;}
+  .rs-ico{margin-bottom:0;font-size:20px;}
+  .rs-label{margin-bottom:3px;}
+  .sel-grid{grid-template-columns:1fr;}
+  .tab-switch-btn{padding:8px 14px;font-size:12px;}
+}
+@media (max-width:360px){
+  .wrap{padding:12px 10px 36px;}
+  .kpi-value{font-size:20px;}
+  .prem-value{font-size:32px;}
+  .dash-title{font-size:21px;}
+  .tier-step-th{font-size:9px;}
+  .tier-step-rw{font-size:9px;}
+  .tab-switch{width:100%;}
+  .tab-switch-btn{flex:1;justify-content:center;}
+}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="bg-grid"></div>
+<div class="bg-glow g1"></div>
+<div class="bg-glow g2"></div>
+<div class="bg-glow g3"></div>
+
+<div id="loading">
+  <div class="loader-ring"></div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:.25em;color:var(--cyan);">LOADING TEAM DATA</div>
+</div>
+<div id="error">
+  <div style="font-size:44px;">🛰️</div>
+  <div style="font-size:18px;font-weight:700;">데이터를 불러올 수 없어요</div>
+  <div style="font-size:13px;color:var(--text2);" id="error-msg">네트워크를 확인해주세요.</div>
+  <button onclick="location.reload()" style="margin-top:8px;background:rgba(8,145,178,.1);border:1px solid rgba(8,145,178,.4);color:var(--cyan);padding:10px 22px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">다시 시도</button>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+  <div class="dash-header">
+    <div>
+      <div class="dash-logo">INSURANCE MANAGER</div>
+      <div class="dash-title">팀 <span class="accent">대시보드</span><span class="live-pill"><span class="live-dot"></span>LIVE</span></div>
+      <div class="dash-sub" id="period-label">— 이번 달 누적 실적</div>
+    </div>
+    <div class="dash-clock-wrap">
+      <div class="dash-clock" id="clock">00:00:00</div>
+      <div class="dash-date" id="date">—</div>
+    </div>
+  </div>
+
+  <div class="tab-switch">
+    <button class="tab-switch-btn active" id="tabbtn-dash" onclick="switchView('dash')">📊 팀 대시보드</button>
+    <button class="tab-switch-btn" id="tabbtn-sim" onclick="switchView('sim')">🏆 시상 시뮬레이터</button>
+  </div>
+
+  <!-- VIEW 1: 대시보드 -->
+  <div class="view active" id="view-dash">
+    <div class="kpi-row">
+      <div class="kpi-card" style="--kc:var(--cyan);--kc-bg:rgba(8,145,178,.1);">
+        <div class="kpi-ico">📋</div>
+        <div class="kpi-label">총 신계약</div>
+        <div class="kpi-value"><span id="kpi-contracts">0</span><span class="unit">건</span></div>
+        <div class="kpi-foot" id="kpi-contracts-foot">손보 0 · 생보 0</div>
+      </div>
+      <div class="kpi-card" style="--kc:var(--green);--kc-bg:rgba(5,150,105,.1);">
+        <div class="kpi-ico">💰</div>
+        <div class="kpi-label">월 보험료</div>
+        <div class="kpi-value"><span id="kpi-premium">0</span><span class="unit">만원</span></div>
+        <div class="kpi-foot">신계약 환산 합계</div>
+      </div>
+      <div class="kpi-card" style="--kc:var(--violet);--kc-bg:rgba(124,58,237,.1);">
+        <div class="kpi-ico">🏆</div>
+        <div class="kpi-label">예상 수수료</div>
+        <div class="kpi-value"><span id="kpi-comm">0</span><span class="unit">만원</span></div>
+        <div class="kpi-foot">기본 522% 기준</div>
+      </div>
+      <div class="kpi-card" style="--kc:var(--amber);--kc-bg:rgba(217,119,6,.1);">
+        <div class="kpi-ico">👥</div>
+        <div class="kpi-label">활동 설계사</div>
+        <div class="kpi-value"><span id="kpi-agents">0</span><span class="unit">명</span></div>
+        <div class="kpi-foot" id="kpi-agents-foot">전체 0명 중</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="panel">
+        <div class="panel-title"><span class="bar"></span>설계사 실적 랭킹<span class="cnt" id="rank-cnt"></span></div>
+        <div class="rank-list" id="rank-list"></div>
+      </div>
+      <div class="right-col">
+        <div class="panel">
+          <div class="panel-title"><span class="bar"></span>보험사별 실적 TOP</div>
+          <div class="co-chart" id="co-chart"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><span class="bar"></span>생보 · 손보 비중</div>
+          <div class="donut-wrap" id="donut-wrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ticker">
+      <div class="ticker-label">▶ 최근 계약</div>
+      <div class="ticker-track"><div class="ticker-move" id="ticker-move"></div></div>
+    </div>
+  </div>
+
+  <!-- VIEW 2: 시상 시뮬레이터 -->
+  <div class="view" id="view-sim">
+    <div class="sim-wrap">
+      <div class="sim-panel">
+        <div class="sim-panel-label"><span class="bar"></span>보험사 · 시상 월 선택</div>
+        <div class="sel-grid">
+          <select class="fz-select" id="company-sel" onchange="onCompanyChange()"></select>
+          <select class="fz-select" id="month-sel" onchange="onMonthChange()"></select>
+        </div>
+        <div class="agent-chips" id="agent-chips"></div>
+      </div>
+
+      <div class="sim-panel slider-panel">
+        <div class="sim-panel-label"><span class="bar"></span>이번 달 보험료 (이 보험사 합산)</div>
+        <div class="prem-display">
+          <div class="prem-now-label">시뮬레이션 보험료</div>
+          <div class="prem-value"><span id="prem-num">0</span><span class="won">만원</span></div>
+          <div class="prem-base-note" id="prem-base-note"></div>
+        </div>
+        <div class="range-wrap">
+          <input type="range" id="prem-range" min="0" max="100" step="1" value="0" oninput="onRangeInput()">
+          <div class="range-track-labels"><span>0</span><span>25만</span><span>50만</span><span>75만</span><span>100만</span></div>
+        </div>
+        <div class="quick-btns">
+          <button class="quick-btn" onclick="setPrem(100000)">10만</button>
+          <button class="quick-btn" onclick="setPrem(200000)">20만</button>
+          <button class="quick-btn" onclick="setPrem(300000)">30만</button>
+          <button class="quick-btn" onclick="setPrem(500000)">50만</button>
+          <button class="quick-btn" onclick="resetToActual()">실제값</button>
+        </div>
+      </div>
+
+      <div class="result-summary">
+        <div class="rs-card" style="--rsc:var(--cyan);">
+          <div class="rs-ico">💵</div>
+          <div>
+            <div class="rs-label">기본 수수료</div>
+            <div class="rs-value"><span id="rs-comm">0</span><span class="u">만</span></div>
+            <div class="rs-sub">522% · 익월 25일</div>
+          </div>
+        </div>
+        <div class="rs-card" style="--rsc:var(--cyan);">
+          <div class="rs-ico">🏆</div>
+          <div>
+            <div class="rs-label">익월 시상</div>
+            <div class="rs-value"><span id="rs-nm">0</span><span class="u">만</span></div>
+            <div class="rs-sub">익월 말일 지급</div>
+          </div>
+        </div>
+        <div class="rs-card" style="--rsc:var(--amber);">
+          <div class="rs-ico">⭐</div>
+          <div>
+            <div class="rs-label">13회차 시상</div>
+            <div class="rs-value"><span id="rs-th">0</span><span class="u">만</span></div>
+            <div class="rs-sub">13개월 유지 시</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sim-panel">
+        <div class="sim-panel-label"><span class="bar"></span>시상 항목별 달성 현황</div>
+        <div id="tiers-list"></div>
+      </div>
+
+      <div class="foot-note">
+        ※ 시상 정책은 관리자가 등록한 데이터 기준이며, 실제 지급은 보험사 환수 규정 등에 따라 달라질 수 있어요.<br>
+        연속가동·클럽 등 복합 조건 시상은 단순 보험료 구간 계산에서 제외됩니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
+  authDomain: "insurance-manager-c4308.firebaseapp.com",
+  projectId: "insurance-manager-c4308",
+  storageBucket: "insurance-manager-c4308.firebasestorage.app",
+  messagingSenderId: "769412429451",
+  appId: "1:769412429451:web:0c3a31bb14430f8fe5068e"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let agentsCache = [], customersCache = [], awardsCache = [];
+const NOW = new Date();
+const CUR_YEAR = NOW.getFullYear(), CUR_MONTH = NOW.getMonth() + 1;
+
+let curPrem = 0, selectedAgentUid = '';
+const RANGE_MAX = 1000000;
+
+// 비활성 설계사 uid 집합 (랭킹·KPI 집계에서 제외)
+let disabledUids = new Set();
+function activeCustomers(){
+  return customersCache.filter(c => !(c.agentId && disabledUids.has(c.agentId)));
+}
+
+function isLifeCompany(name){
+  return /생명|생보|라이프|한화생|삼성생|교보생|흥국생|동양생|미래에셋생|푸본현대생|처브라이프|AIA|DB생명|KDB생명|ABL생명|DGB생명|iM라이프|메트라이프|신한라이프|카카오페이생명/.test(name||'');
+}
+function parsePeriod(ct){
+  const d = ct.startDate || ct.rawJson?.계약일 || '';
+  const m = d.match(/(\d{4})[.\-\/](\d{1,2})/);
+  return m ? {year:parseInt(m[1]), month:parseInt(m[2])} : null;
+}
+function premOf(ct){ return parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function curMonthContracts(custs){
+  return custs.flatMap(c => (c.contracts||[])
+    .filter(ct => { const p = parsePeriod(ct); return p && p.year===CUR_YEAR && p.month===CUR_MONTH; })
+    .map(ct => ({...ct, _agentId: c.agentId})));
+}
+
+async function loadAll(){
+  try{
+    const [aSnap, cSnap, awSnap] = await Promise.all([
+      getDocs(collection(db,'agents')),
+      getDocs(collection(db,'customers')),
+      getDocs(collection(db,'awards')),
+    ]);
+    agentsCache = []; customersCache = []; awardsCache = [];
+    aSnap.forEach(d => agentsCache.push({...d.data()}));
+    cSnap.forEach(d => customersCache.push({...d.data(), _docId:d.id}));
+    awSnap.forEach(d => awardsCache.push(d.data()));
+    disabledUids = new Set(agentsCache.filter(a => a.disabled).map(a => a.uid).filter(Boolean));
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderDash();
+    initSimControls();
+  }catch(e){
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'flex';
+    document.getElementById('error-msg').textContent = (e&&e.message) ? e.message : '알 수 없는 오류';
+  }
+}
+
+window.switchView = function(v){
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-switch-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('tabbtn-'+v).classList.add('active');
+};
+
+const AVATAR = [
+  {bg:'rgba(8,145,178,.12)',color:'#0891b2',rc:'rgba(8,145,178,.12)'},
+  {bg:'rgba(124,58,237,.12)',color:'#7c3aed',rc:'rgba(124,58,237,.12)'},
+  {bg:'rgba(5,150,105,.12)',color:'#059669',rc:'rgba(5,150,105,.12)'},
+  {bg:'rgba(217,119,6,.12)',color:'#d97706',rc:'rgba(217,119,6,.12)'},
+  {bg:'rgba(219,39,119,.12)',color:'#db2777',rc:'rgba(219,39,119,.12)'},
+  {bg:'rgba(37,99,235,.12)',color:'#2563eb',rc:'rgba(37,99,235,.12)'},
+];
+const MEDAL = ['🥇','🥈','🥉'];
+
+function renderDash(){
+  const allCts = curMonthContracts(activeCustomers());
+  let totalPrem = 0, lifeCount = 0, nonlifeCount = 0, lifePrem = 0, nonlifePrem = 0;
+  const coMap = {};
+  allCts.forEach(ct => {
+    const co = ct.company || ct.rawJson?.보험사 || '기타';
+    const p = premOf(ct);
+    totalPrem += p;
+    const life = isLifeCompany(co);
+    if(life){ lifeCount++; lifePrem += p; } else { nonlifeCount++; nonlifePrem += p; }
+    if(!coMap[co]) coMap[co] = {count:0, prem:0, life};
+    coMap[co].count++; coMap[co].prem += p;
+  });
+  const commEst = totalPrem * 5.22;
+  const activeAgents = new Set(allCts.map(c => c._agentId).filter(Boolean));
+  const totalAgents = agentsCache.filter(a => a.role !== 'admin' && !a.disabled).length;
+
+  document.getElementById('period-label').textContent = `— ${CUR_YEAR}년 ${CUR_MONTH}월 누적 실적`;
+  countUp('kpi-contracts', allCts.length);
+  document.getElementById('kpi-contracts-foot').textContent = `손보 ${nonlifeCount} · 생보 ${lifeCount}`;
+  countUp('kpi-premium', Math.round(totalPrem/10000));
+  countUp('kpi-comm', Math.round(commEst/10000));
+  countUp('kpi-agents', activeAgents.size);
+  document.getElementById('kpi-agents-foot').textContent = `전체 ${totalAgents}명 중`;
+
+  renderRanking();
+  renderCoChart(coMap);
+  renderDonut(lifeCount, nonlifeCount, lifePrem, nonlifePrem);
+  renderTicker(allCts);
+}
+
+function renderRanking(){
+  const rows = agentsCache.filter(a => a.role !== 'admin' && !a.disabled).map(a => {
+    const myCusts = customersCache.filter(c => c.agentId === a.uid);
+    const cts = curMonthContracts(myCusts);
+    const prem = cts.reduce((s,ct) => s + premOf(ct), 0);
+    return {a, count:cts.length, prem};
+  }).sort((x,y) => y.count - x.count || y.prem - x.prem);
+
+  document.getElementById('rank-cnt').textContent = `${rows.length}명`;
+  const maxCount = Math.max(1, rows[0]?.count || 1);
+  const el = document.getElementById('rank-list');
+  const shown = rows.slice(0, 6);
+
+  el.innerHTML = shown.map((r, i) => {
+    const col = AVATAR[i % AVATAR.length];
+    const pct = Math.round(r.count / maxCount * 100);
+    const cls = i===0?'top1':i===1?'top2':i===2?'top3':'';
+    const pos = i < 3 ? `<span class="rank-medal">${MEDAL[i]}</span>` : (i+1);
+    return `<div class="rank-row ${cls}" style="--rc:${col.rc};">
+      <div class="rank-bg-bar" data-w="${pct}%"></div>
+      <div class="rank-pos">${pos}</div>
+      <div class="rank-av" style="background:${col.bg};color:${col.color};">${esc((r.a.name||'?').slice(0,1))}</div>
+      <div class="rank-info">
+        <div class="rank-name">${esc(r.a.name||'이름없음')}</div>
+        <div class="rank-meta">월 보험료 ${r.prem>0?Math.round(r.prem/10000).toLocaleString()+'만원':'-'}</div>
+      </div>
+      <div class="rank-stat">
+        <div class="rank-count" style="--rc-text:${col.color};">${r.count}<span class="u">건</span></div>
+        <div class="rank-prem">수수료 ≈${Math.round(r.prem*5.22/10000).toLocaleString()}만</div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="margin:auto;color:var(--text3);font-size:13px;">이번 달 실적이 아직 없어요</div>';
+
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.rank-bg-bar').forEach(b => { b.style.setProperty('--rw', b.dataset.w); });
+  });
+}
+
+function renderCoChart(coMap){
+  const cos = Object.entries(coMap).sort((a,b) => b[1].count - a[1].count).slice(0, 6);
+  const max = Math.max(1, ...cos.map(c => c[1].count));
+  const el = document.getElementById('co-chart');
+  el.innerHTML = cos.map(([name, d]) => {
+    const pct = Math.round(d.count / max * 100);
+    return `<div class="co-bar-row">
+      <div class="co-bar-name" title="${esc(name)}">${esc(name)}</div>
+      <div class="co-bar-track"><div class="co-bar-fill ${d.life?'life':'nonlife'}" data-w="${pct}%"></div></div>
+      <div class="co-bar-val">${d.count}건</div>
+    </div>`;
+  }).join('') || '<div style="margin:auto;color:var(--text3);font-size:13px;">데이터 없음</div>';
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.co-bar-fill').forEach(b => b.style.setProperty('--cw', b.dataset.w));
+  });
+}
+
+function renderDonut(lifeC, nonlifeC, lifeP, nonlifeP){
+  const total = lifeC + nonlifeC;
+  const lifePct = total ? lifeC/total : 0;
+  const R = 58, C = 2*Math.PI*R;
+  const lifeLen = C * lifePct;
+  const el = document.getElementById('donut-wrap');
+  el.innerHTML = `
+    <svg width="150" height="150" viewBox="0 0 150 150">
+      <defs>
+        <linearGradient id="gLife" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9333ea"/><stop offset="1" stop-color="#c084fc"/></linearGradient>
+        <linearGradient id="gNon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0891b2"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
+      </defs>
+      <circle cx="75" cy="75" r="${R}" fill="none" stroke="#e8eefb" stroke-width="16"/>
+      <circle cx="75" cy="75" r="${R}" fill="none" stroke="url(#gNon)" stroke-width="16" stroke-linecap="round"
+        stroke-dasharray="${C}" stroke-dashoffset="${C}" transform="rotate(-90 75 75)"
+        style="transition:stroke-dashoffset 1.3s cubic-bezier(.25,.46,.45,.94);" id="ring-non"/>
+      <circle cx="75" cy="75" r="${R}" fill="none" stroke="url(#gLife)" stroke-width="16" stroke-linecap="round"
+        stroke-dasharray="${C}" stroke-dashoffset="${C}" transform="rotate(${-90 + (1-lifePct)*360} 75 75)"
+        style="transition:stroke-dashoffset 1.3s cubic-bezier(.25,.46,.45,.94) .2s;" id="ring-life"/>
+      <text class="donut-center-val" x="75" y="72" text-anchor="middle">${total}</text>
+      <text class="donut-center-lbl" x="75" y="92" text-anchor="middle">건 / 월</text>
+    </svg>
+    <div class="donut-legend">
+      <div class="legend-item">
+        <div class="legend-dot nonlife"></div>
+        <div class="legend-txt">손해보험 <b>${nonlifeC}건</b><span>${Math.round(nonlifeP/10000).toLocaleString()}만원</span></div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot life"></div>
+        <div class="legend-txt">생명보험 <b>${lifeC}건</b><span>${Math.round(lifeP/10000).toLocaleString()}만원</span></div>
+      </div>
+    </div>`;
+  requestAnimationFrame(() => {
+    const nonLen = C * (1 - lifePct);
+    document.getElementById('ring-non').style.strokeDashoffset = C - nonLen;
+    document.getElementById('ring-life').style.strokeDashoffset = C - lifeLen;
+  });
+}
+
+function renderTicker(cts){
+  const items = [...cts].sort((a,b) => {
+    const da = a.startDate || a.rawJson?.계약일 || '';
+    const db_ = b.startDate || b.rawJson?.계약일 || '';
+    return db_.localeCompare(da);
+  }).slice(0, 14);
+  const el = document.getElementById('ticker-move');
+  if(!items.length){ el.innerHTML = `<div class="ticker-item">이번 달 신규 계약이 아직 없어요 ✨</div>`; el.style.animation = 'none'; return; }
+  const agentName = uid => (agentsCache.find(a => a.uid === uid)?.name) || '미배정';
+  const one = items.map(ct => {
+    const co = ct.company || ct.rawJson?.보험사 || '기타';
+    const prod = ct.productName || ct.rawJson?.상품명 || '신계약';
+    const prem = premOf(ct);
+    return `<div class="ticker-item"><span class="tk-co">${esc(co)}</span> ${esc(String(prod).slice(0,18))} <span class="tk-amt">${prem>0?Math.round(prem/10000)+'만':''}</span> <span style="color:var(--text3);font-size:11px;">· ${esc(agentName(ct._agentId))}</span></div>`;
+  }).join('');
+  el.innerHTML = one + one;
+}
+
+function countUp(id, target){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const dur = 1100, start = performance.now();
+  const from = parseInt(String(el.textContent).replace(/,/g,'')) || 0;
+  function step(t){
+    const p = Math.min(1, (t - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(from + (target - from) * eased);
+    el.textContent = val.toLocaleString();
+    if(p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function initSimControls(){
+  const coSel = document.getElementById('company-sel');
+  const companies = [...new Set(awardsCache.map(a => a.company).filter(Boolean))].sort();
+  if(!companies.length){
+    document.getElementById('view-sim').innerHTML =
+      `<div class="empty-state" style="padding:60px 20px;"><div class="ico">📭</div><div style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px;">등록된 시상이 없어요</div><div style="font-size:13px;">관리자 페이지에서 시상을 먼저 등록해주세요.</div></div>`;
+    return;
+  }
+  coSel.innerHTML = companies.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
+  const chipEl = document.getElementById('agent-chips');
+  const agents = agentsCache.filter(a => a.role !== 'admin' && a.uid && !a.disabled);
+  chipEl.innerHTML =
+    `<button class="agent-chip active" data-uid="" onclick="pickAgent('',this)"><span class="ac-dot"></span>전체 보기</button>` +
+    agents.map(a => `<button class="agent-chip" data-uid="${esc(a.uid)}" onclick="pickAgent('${esc(a.uid)}',this)"><span class="ac-dot"></span>${esc(a.name||a.email)}</button>`).join('');
+
+  updateMonthOptions();
+  resetToActual();
+}
+
+function updateMonthOptions(){
+  const co = document.getElementById('company-sel').value;
+  const monthSel = document.getElementById('month-sel');
+  const months = awardsCache.filter(a => a.company === co)
+    .map(a => ({y:a.year, m:a.month, w:a.week}))
+    .sort((x,y) => (y.y-x.y) || (y.m-x.m) || ((y.w||0)-(x.w||0)));
+  const seen = new Set();
+  monthSel.innerHTML = months.filter(mm => {
+    const k = `${mm.y}-${mm.m}-${mm.w||0}`;
+    if(seen.has(k)) return false; seen.add(k); return true;
+  }).map(mm => {
+    const label = `${mm.m}월${mm.w?` ${mm.w}주`:''}`;
+    return `<option value="${mm.y}-${mm.m}-${mm.w||0}">${label}</option>`;
+  }).join('');
+}
+
+window.onCompanyChange = function(){ updateMonthOptions(); resetToActual(); };
+window.onMonthChange = function(){ resetToActual(); };
+
+window.pickAgent = function(uid, btn){
+  selectedAgentUid = uid;
+  document.querySelectorAll('.agent-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  resetToActual();
+};
+
+function resetToActual(){
+  const actual = getActualPrem();
+  setPrem(actual > 0 ? actual : 100000);
+}
+
+function getActualPrem(){
+  const co = document.getElementById('company-sel').value;
+  const monthVal = document.getElementById('month-sel').value;
+  if(!monthVal) return 0;
+  const [y, m] = monthVal.split('-').map(Number);
+  let custs = customersCache;
+  if(selectedAgentUid) custs = custs.filter(c => c.agentId === selectedAgentUid);
+  return custs.flatMap(c => c.contracts||[])
+    .filter(ct => {
+      const p = parsePeriod(ct);
+      return p && p.year===y && p.month===m && (ct.company||ct.rawJson?.보험사||'')===co;
+    })
+    .reduce((s,ct) => s + premOf(ct), 0);
+}
+
+window.setPrem = function(won){
+  curPrem = Math.max(0, Math.min(RANGE_MAX, won));
+  const range = document.getElementById('prem-range');
+  range.value = Math.round(curPrem / RANGE_MAX * 100);
+  range.style.setProperty('--fill', (curPrem/RANGE_MAX*100) + '%');
+  renderSim();
+};
+
+window.onRangeInput = function(){
+  const range = document.getElementById('prem-range');
+  curPrem = Math.round(range.value / 100 * RANGE_MAX);
+  range.style.setProperty('--fill', range.value + '%');
+  renderSim();
+};
+
+function getCurrentAward(){
+  const co = document.getElementById('company-sel').value;
+  const monthVal = document.getElementById('month-sel').value;
+  if(!monthVal) return null;
+  const [y, m, w] = monthVal.split('-').map(Number);
+  return awardsCache.find(a => a.company===co && a.year===y && a.month===m && (a.week||0)===(w||0));
+}
+
+function renderSim(){
+  document.getElementById('prem-num').textContent = Math.round(curPrem/10000).toLocaleString();
+  const actual = getActualPrem();
+  const note = document.getElementById('prem-base-note');
+  if(actual > 0){
+    const diff = curPrem - actual;
+    note.innerHTML = `실제 등록 보험료 <b>${Math.round(actual/10000).toLocaleString()}만원</b>` +
+      (diff > 0 ? ` · 시뮬 +${Math.round(diff/10000).toLocaleString()}만` : diff < 0 ? ` · 시뮬 ${Math.round(diff/10000).toLocaleString()}만` : ' (현재값과 동일)');
+  } else {
+    note.innerHTML = `이 조건에 등록된 실제 계약은 아직 없어요 · 가정값으로 시뮬레이션 중`;
+  }
+
+  const award = getCurrentAward();
+  document.getElementById('rs-comm').textContent = Math.round(curPrem*5.22/10000).toLocaleString();
+
+  const tiersEl = document.getElementById('tiers-list');
+  if(!award || !(award.tiers||[]).length){
+    tiersEl.innerHTML = `<div class="empty-state"><div class="ico">📭</div><div style="font-size:14px;">이 보험사·월의 시상 항목이 없어요</div></div>`;
+    document.getElementById('rs-nm').textContent = '0';
+    document.getElementById('rs-th').textContent = '0';
+    return;
+  }
+
+  let nmTotal = 0, thTotal = 0;
+  const cards = [];
+  (award.tiers||[]).forEach(t => {
+    if(['consecutive','club'].includes(t.type) || !(t.tiers||[]).length) return;
+    const steps = [...t.tiers].filter(s => s.threshold != null).sort((a,b) => a.threshold - b.threshold);
+    if(!steps.length) return;
+
+    const achievedIdx = steps.map((s,i) => curPrem >= s.threshold ? i : -1).reduce((a,b)=>Math.max(a,b), -1);
+    const best = achievedIdx >= 0 ? steps[achievedIdx] : null;
+    const reward = best?.reward || 0;
+    const isNextMonth = t.payTiming === 'next_month';
+    if(reward){ isNextMonth ? nmTotal += reward : thTotal += reward; }
+
+    const nextStep = steps.find(s => s.threshold > curPrem);
+    let hint;
+    if(nextStep && !best){
+      const gap = nextStep.threshold - curPrem;
+      hint = `<div class="next-hint"><b>${Math.round(gap/10000).toLocaleString()}만원</b> 더 채우면 <b>${rewardLabel(nextStep)}</b> 시상 구간 진입!</div>`;
+    } else if(nextStep){
+      const gap = nextStep.threshold - curPrem;
+      hint = `<div class="next-hint"><b>${Math.round(gap/10000).toLocaleString()}만원</b> 더 채우면 <b>${rewardLabel(nextStep)}</b>로 상향!</div>`;
+    } else if(best){
+      hint = `<div class="next-hint maxed">🎉 최고 구간 <b>${rewardLabel(best)}</b> 달성! 더 이상 상위 구간이 없어요.</div>`;
+    } else {
+      hint = '';
+    }
+
+    const stepsHtml = steps.map((s,i) => {
+      const cls = i <= achievedIdx ? 'done' : (i === achievedIdx + 1 ? 'current' : '');
+      return `<div class="tier-step ${cls}">
+        <div class="tier-step-bar"><div class="fill"></div></div>
+        <div class="tier-step-th">${Math.round(s.threshold/10000)}만↑</div>
+        <div class="tier-step-rw">${rewardLabel(s)}</div>
+      </div>`;
+    }).join('');
+
+    cards.push(`<div class="tier-card ${reward?'achieved':''}">
+      <div class="tier-card-head">
+        <div class="tier-card-name">${esc(t.label||'시상')}
+          <span class="tier-badge ${isNextMonth?'nm':'th'}">${isNextMonth?'익월':'13회차'}</span>
+        </div>
+        <div class="tier-status ${reward?'on':'off'}">${reward?'✓ 달성':'미달성'}</div>
+      </div>
+      <div class="tier-reward-now ${reward?'':'zero'}">
+        ${reward ? (best.goldReward ? '금 '+esc(best.goldReward) : Math.round(reward/10000).toLocaleString()+'<span class="u">만원</span>') : '아직 시상 없음'}
+      </div>
+      <div class="tier-steps">${stepsHtml}</div>
+      ${hint}
+    </div>`);
+  });
+
+  document.getElementById('rs-nm').textContent = Math.round(nmTotal/10000).toLocaleString();
+  document.getElementById('rs-th').textContent = Math.round(thTotal/10000).toLocaleString();
+
+  tiersEl.innerHTML = cards.length ? cards.join('') :
+    `<div class="empty-state"><div class="ico">🧮</div><div style="font-size:14px;">단순 보험료 구간 시상 항목이 없어요<br><span style="font-size:12px;color:var(--text3);">(연속가동·클럽 등 복합 조건만 등록됨)</span></div></div>`;
+
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.tier-step.done .fill, .tier-step.current .fill').forEach(f => { f.style.width = '100%'; });
+  });
+}
+
+function rewardLabel(s){
+  if(s.goldReward) return '금 ' + s.goldReward;
+  if(s.reward) return Math.round(s.reward/10000) + '만';
+  return '-';
+}
+
+function tickClock(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('date').textContent = `${d.getFullYear()}. ${pad(d.getMonth()+1)}. ${pad(d.getDate())} (${days[d.getDay()]})`;
+}
+setInterval(tickClock, 1000); tickClock();
+
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+function resize(){ W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+resize(); addEventListener('resize', resize);
+(function initP(){ particles = []; const n = Math.min(60, Math.floor(W*H/26000));
+  for(let i=0;i<n;i++) particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,r:Math.random()*1.5+.4}); })();
+(function anim(){
+  ctx.clearRect(0,0,W,H);
+  for(const p of particles){ p.x+=p.vx;p.y+=p.vy; if(p.x<0||p.x>W)p.vx*=-1; if(p.y<0||p.y>H)p.vy*=-1;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fillStyle='rgba(99,140,255,.4)';ctx.fill(); }
+  for(let i=0;i<particles.length;i++)for(let j=i+1;j<particles.length;j++){
+    const a=particles[i],b=particles[j],dx=a.x-b.x,dy=a.y-b.y,d=dx*dx+dy*dy;
+    if(d<14000){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(99,140,255,${.13*(1-d/14000)})`;ctx.lineWidth=.6;ctx.stroke();} }
+  requestAnimationFrame(anim);
+})();
+
+loadAll();
+setInterval(loadAll, 5*60*1000);
+</script>
+</body>
+</html>
