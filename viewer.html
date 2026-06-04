@@ -1165,8 +1165,14 @@ function renderHome() {
   const now = new Date();
   const ym = `${now.getFullYear()}년 ${now.getMonth()+1}월`;
 
-  // 기간 필터된 계약 (이번 달 기준)
-  const cts = getPerfContracts();
+  // "오늘의 현황"은 항상 실제 이번 달(시스템 날짜) 기준 — 기간 필터/날짜 없는 계약과 무관
+  const curY = now.getFullYear(), curM = now.getMonth() + 1;
+  const cts = customers.flatMap(c =>
+    (c.contracts||[]).map(ct => ({...ct, _custName: c.name, _custId: c._docId||c.id}))
+  ).filter(ct => {
+    const p = parsePeriod(ct);
+    return p && p.year === curY && p.month === curM; // 날짜 없으면 제외
+  });
 
   // 신계약 건수 (기간 필터된 것)
   const newCount = cts.length;
