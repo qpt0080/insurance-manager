@@ -1125,7 +1125,7 @@ async function loadAdminAwards() {
   try {
     const snap = await getDocs(collection(db,'awards'));
     awardsCache = [];
-    snap.forEach(d => awardsCache.push(d.data()));
+    snap.forEach(d => awardsCache.push({id:d.id, ...d.data()}));
   } catch(e) { awardsCache = []; }
 }
 
@@ -2937,18 +2937,15 @@ window.saveAwardJson = async function() {
   }
 };
 
-async function loadAwardList() {
+function loadAwardList() {
   const el = document.getElementById('award-saved-list');
   if (!el) return;
-  try {
-    const snap = await getDocs(collection(db,'awards'));
-    if (snap.empty) { el.innerHTML='<div class="empty">저장된 시상 정책 없음</div>'; window._awardListCache=[]; return; }
-    const list = [];
-    snap.forEach(d=>list.push({id:d.id,...d.data()}));
-    list.sort((a,b)=>b.id.localeCompare(a.id));
-    window._awardListCache = list;
-    renderAwardSavedList('');
-  } catch(e) { el.innerHTML='<div class="empty">불러오기 실패</div>'; }
+  // 별도 읽기 없이 이미 로드된 awardsCache 재사용 (읽기 비용 절감)
+  const list = (awardsCache||[]).map(a => ({...a}));
+  if (!list.length) { el.innerHTML='<div class="empty">저장된 시상 정책 없음</div>'; window._awardListCache=[]; return; }
+  list.sort((a,b)=>(b.id||'').localeCompare(a.id||''));
+  window._awardListCache = list;
+  renderAwardSavedList('');
 }
 
 window.renderAwardSavedList = function(keyword){
@@ -3005,7 +3002,7 @@ window.switchTab = function(tab, skipHistory) {
   document.getElementById('nav-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if (tab === 'contracts') { buildContractsFilters(); renderContractsList(); }
-  if (tab === 'upload') { initAwardCheckSelects(); renderAwardStatusCard(); loadAwardList(); loadNotices().then(renderNoticeSavedList); }
+  if (tab === 'upload') { initAwardCheckSelects(); renderAwardStatusCard(); loadAwardList(); if (!noticesCache.length) { loadNotices().then(renderNoticeSavedList); } else { renderNoticeSavedList(); } }
   if (tab === 'commission') { initCommissionTab(); }
   if (!skipHistory) {
     const cur = history.state;
