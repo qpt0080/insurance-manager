@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>예상수입 시뮬레이터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1c1a17; --ink2:#5c554c; --ink3:#938b80;
+    --paper:#faf8f3; --card:#ffffff; --line:#ece6db; --line2:#ddd4c4;
+    --gold:#c8881d; --gold-deep:#9a6510; --gold-soft:#fdf3e0;
+    --green:#3f7d56; --blue:#3a5bb5; --rose:#b5563a;
+    --shadow:0 1px 2px rgba(40,30,10,.04),0 8px 28px rgba(40,30,10,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background:
+      radial-gradient(1200px 500px at 85% -10%, #fbeecf 0%, transparent 55%),
+      radial-gradient(900px 600px at -10% 110%, #f1ece0 0%, transparent 50%),
+      var(--paper);
+    color:var(--ink); line-height:1.5; padding:28px 18px 60px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px;margin:0 auto;}
+  .num{font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;}
+
+  header{margin-bottom:6px;}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--gold-deep);display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .eyebrow::before{content:"";width:26px;height:1.5px;background:var(--gold);}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(28px,5.5vw,42px);
+    line-height:1.08;letter-spacing:-.01em;}
+  h1 em{font-style:italic;color:var(--gold-deep);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px;box-shadow:var(--shadow);margin-top:18px;}
+  .card-h{font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--ink3);
+    text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:7px;}
+  .card-h .right{margin-left:auto;font-weight:700;letter-spacing:0;text-transform:none;font-size:11.5px;color:var(--gold-deep);}
+
+  .sel-row{display:flex;gap:10px;flex-wrap:wrap;}
+  select.sel{padding:11px 13px;border:1.5px solid var(--line2);border-radius:11px;
+    font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink);background:var(--gold-soft);outline:none;cursor:pointer;}
+  select.sel.company{flex:1;min-width:180px;}
+  select.sel.week{flex:1;min-width:150px;}
+  select.sel:disabled{opacity:.4;cursor:default;}
+  .policy-note{font-size:11.5px;color:var(--ink3);margin-top:9px;}
+  .policy-note b{color:var(--ink2);}
+
+  .bands{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+  .band{padding:13px 4px;border:1.5px solid var(--line2);border-radius:12px;background:var(--card);
+    cursor:pointer;text-align:center;font-family:inherit;transition:.15s;}
+  .band b{display:block;font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--ink);}
+  .band span{font-size:11px;color:var(--ink3);font-weight:600;}
+  .band.on{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 2px 10px rgba(200,136,29,.15);}
+  .band.on b{color:var(--gold-deep);}
+
+  .inrow{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px;}
+  .ib{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
+    border-radius:11px;padding:0 12px;transition:.15s;}
+  .ib:focus-within{border-color:var(--gold);}
+  .ib .pre{font-size:13px;font-weight:700;color:var(--ink3);margin-right:4px;}
+  .ib .unit{font-size:13px;font-weight:700;color:var(--ink3);margin-left:6px;}
+  .ib input{flex:1;width:100%;background:none;border:none;outline:none;color:var(--ink);
+    font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;padding:11px 0;text-align:right;}
+
+  /* 총 수령 카드 */
+  .totals{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:18px;}
+  .total-c{background:var(--card);padding:20px 18px;}
+  .total-c .lbl{font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:8px;}
+  .total-c .val{font-family:'Fraunces',serif;font-weight:600;font-size:30px;line-height:1;letter-spacing:-.01em;color:var(--gold-deep);}
+  .total-c .val .w{font-size:14px;font-weight:600;color:var(--ink2);margin-left:2px;}
+  .total-c .foot{font-size:11px;color:var(--ink3);margin-top:7px;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:13px;font-size:11.5px;color:var(--ink2);font-weight:600;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+  .item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);}
+  .item:last-of-type{border-bottom:none;}
+  .item .chk{width:20px;height:20px;flex-shrink:0;accent-color:var(--gold);cursor:pointer;}
+  .item .tag{width:8px;height:26px;border-radius:3px;flex-shrink:0;}
+  .item .nm{flex:1;min-width:0;}
+  .item .nm b{display:block;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .item .nm small{font-size:10.5px;color:var(--ink3);font-weight:600;}
+  .item .vbox{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
+    border-radius:9px;padding:0 9px;width:104px;flex-shrink:0;}
+  .item .vbox input{width:100%;background:none;border:none;outline:none;text-align:right;
+    font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:var(--ink);padding:8px 0;}
+  .item .vbox .u{font-size:11px;color:var(--ink3);font-weight:700;margin-left:3px;}
+  .item .pay{font-size:11px;font-weight:700;color:var(--ink2);border:1.5px solid var(--line2);
+    border-radius:8px;padding:7px 6px;font-family:inherit;background:var(--card);flex-shrink:0;outline:none;cursor:pointer;}
+  .item.off{opacity:.42;}
+  .add-item{margin-top:12px;width:100%;padding:10px;border:1.5px dashed var(--line2);border-radius:11px;
+    background:none;color:var(--ink2);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s;}
+  .add-item:hover{border-color:var(--gold);color:var(--gold-deep);}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th,td{padding:9px 6px;text-align:right;border-bottom:1px solid var(--line);}
+  th{font-size:11px;color:var(--ink3);font-weight:700;}
+  td:first-child,th:first-child{text-align:left;font-weight:700;color:var(--ink);}
+  td.num,th.num{font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;}
+  td.tot{font-weight:700;color:var(--gold-deep);}
+  tr.jump td{background:var(--gold-soft);}
+  tr.jump td:first-child::after{content:" ★";color:var(--blue);}
+
+  .note{font-size:11.5px;color:var(--ink3);line-height:1.65;background:var(--paper);
+    border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-top:14px;}
+  .note b{color:var(--ink2);}
+  .srow{display:flex;align-items:center;justify-content:space-between;margin:14px 0 9px;}
+  .srow .lbl{font-size:12.5px;font-weight:700;color:var(--ink2);}
+  .srow .cv{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--gold-deep);}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:5px;border-radius:5px;
+    background:linear-gradient(var(--gold),var(--gold)) no-repeat,var(--line);background-size:50% 100%;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+    background:var(--card);border:2.5px solid var(--gold);box-shadow:0 1px 4px rgba(0,0,0,.15);cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--card);border:2.5px solid var(--gold);cursor:pointer;}
+  .kbtns{display:flex;gap:8px;flex-wrap:wrap;}
+  .kbtn{padding:9px 15px;border:1.5px solid var(--line2);border-radius:10px;background:var(--card);
+    cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--ink2);transition:.15s;}
+  .kbtn.on{border-color:var(--gold);background:var(--gold-soft);color:var(--gold-deep);box-shadow:0 2px 8px rgba(200,136,29,.12);}
+  .disclaim{font-size:11px;color:var(--ink3);text-align:center;margin-top:18px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">예상수입 시뮬레이터</div>
+    <h1>이 정도 하면, <em>이 정도</em> 받습니다</h1>
+  </header>
+
+  <!-- 시상 정책 -->
+  <div class="card">
+    <div class="card-h">📋 시상 정책</div>
+    <div class="sel-row">
+      <select class="sel company" id="sel-company"></select>
+      <select class="sel week" id="sel-week"></select>
+    </div>
+    <div class="policy-note" id="policy-status">시상 불러오는 중…</div>
+  </div>
+
+  <!-- 월 실적 & 수수료 -->
+  <div class="card">
+    <div class="card-h">💰 월 실적 &amp; 수수료</div>
+    <div class="bands" id="bands"></div>
+    <div class="inrow">
+      <div class="field"><label>월 실적 (월납)</label>
+        <div class="ib"><span class="pre">₩</span><input id="i-perf" type="text" inputmode="numeric" value="100,000"></div></div>
+      <div class="field"><label>기본 수수료율 <span style="color:var(--ink3);font-weight:600;">(손보/생보 다를 수 있음)</span></label>
+        <div class="ib"><input id="i-comm" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div></div>
+    </div>
+  </div>
+
+  <!-- 시상 항목 -->
+  <div class="card">
+    <div class="card-h">🏆 시상 항목 <span class="right" id="band-tag"></span></div>
+    <div id="items"></div>
+    <button class="add-item" id="add-item">+ 시상 항목 직접 추가</button>
+    <div class="note">금액은 <b>선택한 실적 구간</b> 기준이에요. 지급 시점이 <b>익월</b>이면 다음 달에, <b>13회차</b>면 계약 12개월 뒤(13회차 도달)에 돈이 들어와요.</div>
+  </div>
+
+  <!-- 가동 개월수 -->
+  <div class="card">
+    <div class="card-h">📅 가동 개월수 <span class="right" id="k-mode"></span></div>
+    <div class="kbtns" id="kbtns"></div>
+    <div class="srow"><span class="lbl">계약을 몇 달 동안 하나요?</span><span class="cv" id="k-label">12개월</span></div>
+    <input type="range" id="i-k" min="1" max="24" step="1" value="12">
+    <div class="note" id="k-note"></div>
+  </div>
+
+  <!-- 그래프: 받는 시점 -->
+  <div class="card">
+    <div class="card-h">📈 받는 시점별 수입 (월별 실제 입금)</div>
+    <div style="position:relative;height:300px;"><canvas id="chart"></canvas></div>
+    <div class="legend" id="legend"></div>
+    <div class="note" id="graph-note"></div>
+  </div>
+
+  <!-- 합산 -->
+  <div class="totals">
+    <div class="total-c"><div class="lbl">12개월간 총 수령</div>
+      <div class="val num" id="t12">–</div><div class="foot" id="t12f"></div></div>
+    <div class="total-c"><div class="lbl">24개월간 총 수령</div>
+      <div class="val num" id="t24">–</div><div class="foot" id="t24f"></div></div>
+  </div>
+
+  <!-- 표 -->
+  <div class="card">
+    <div class="card-h">🗓️ 월별 상세 (받는 시점 기준)</div>
+    <div style="overflow-x:auto;"><table id="tbl"></table></div>
+  </div>
+
+  <p class="disclaim">시상 항목·지급 시점·수수료율은 직접 수정해서 쓰세요. 실제 지급 조건은 정책마다 다를 수 있어요.</p>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
+  authDomain:"insurance-manager-c4308.firebaseapp.com",
+  projectId:"insurance-manager-c4308",
+  storageBucket:"insurance-manager-c4308.firebasestorage.app",
+  messagingSenderId:"769412429451",
+  appId:"1:769412429451:web:0c3a31bb14430f8fe5068e"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const onlyDigits = s => (''+s).replace(/[^0-9]/g,'');
+const comma = n => (Math.round(+n)||0).toLocaleString('ko-KR');
+const KRW = n => '₩' + comma(n);
+const man = n => (n/10000).toLocaleString('ko-KR',{maximumFractionDigits:1});
+const F = id => document.getElementById(id);
+
+const BANDS = [100000,200000,300000,500000];
+const COLORS = ['#c8881d','#e3b35a','#d8a548','#3f7d56','#5a9e74','#3a5bb5','#6f86c9','#b5563a','#8a7a5a'];
+
+// ── 예시 프리셋 (오프라인/데이터 없을 때 대비) ──
+function kbWeek1(){
+  return [
+    {id:'basic_in', label:'인보험 기본시상', sub:'KB150%+GAK280%=430%', mode:'rate', rate:430, timing:'next_month', on:true},
+    {id:'weekly_250', label:'인보험 가동시상 250%', sub:'1~7일', mode:'amount',
+      bands:{100000:250000,200000:500000,300000:750000,500000:1250000}, timing:'next_month', on:true},
+    {id:'weekly_200', label:'인보험 가동시상 200%', sub:'13회차 유지', mode:'amount',
+      bands:{100000:200000,200000:400000,300000:600000,500000:1000000}, timing:'13th', on:true},
+    {id:'flagship_200', label:'주력보종 시상 200%', sub:'간편+종합+자녀+LTC', mode:'amount',
+      bands:{100000:200000,200000:400000,300000:600000,500000:1000000}, timing:'13th', on:true},
+    {id:'consec_base', label:'기본 연속가동 최대300%', sub:'5~6월', mode:'amount',
+      bands:{100000:200000,200000:600000,300000:800000,500000:1800000}, timing:'13th', on:true},
+    {id:'consec_extra', label:'추가 연속가동 최대300%', sub:'5~6월', mode:'amount',
+      bands:{100000:200000,200000:600000,300000:800000,500000:1800000}, timing:'13th', on:true},
+    {id:'pet_basic', label:'펫보험 기본시상', sub:'300%', mode:'rate', rate:300, timing:'next_month', on:false},
+  ];
+}
+
+// ── 저장된 시상 문서(award-extract 스키마)의 tiers[] → 시뮬레이터 항목 변환 ──
+function bandsFromTiers(arr, keys){
+  const bands={100000:0,200000:0,300000:0,500000:0};
+  (arr||[]).forEach(t=>{
+    let th=null; for(const k of keys){ if(t[k]!=null){ th=t[k]; break; } }
+    if(th!=null && bands[th]!==undefined && (+t.reward)>0) bands[th]=+t.reward;
+  });
+  return bands;
+}
+function itemsFromDoc(d){
+  const out=[];
+  (d.tiers||[]).forEach((t,i)=>{
+    const timing=(t.payTiming==='13th_payment'||t.retention===13)?'13th':'next_month';
+    if(t.type==='basic'){
+      const p=(t.periods&&t.periods[0])||{}; const rate=(p.totalRate??p.ownRate??0);
+      out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true});
+    } else if(t.type==='consecutive'){
+      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:'', mode:'amount',
+        bands:bandsFromTiers(t.tiers,['currThreshold','threshold','prevThreshold']), timing, on:true});
+    } else if(['weekly','weekly_extra','flagship','club','membership'].includes(t.type)){
+      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:'', mode:'amount',
+        bands:bandsFromTiers(t.tiers,['threshold']), timing, on:true});
+    }
+    // gift(물품) 등 현금 아님 → 제외
+  });
+  return out;
+}
+
+// 정책 목록: [{company, label, items}] — 기본은 예시, Firestore 로드되면 교체
+let POLICIES = [{ company:'예시 (수동)', label:'KB 26년 6월 1주차', items:kbWeek1() }];
+
+let items = JSON.parse(JSON.stringify(POLICIES[0].items));
+let perf = 100000;
+let comm = 522;
+
+const selCo = F('sel-company'), selWk = F('sel-week');
+
+function companyList(){ return [...new Set(POLICIES.map(p=>p.company))]; }
+function rebuildCompanySelect(){
+  selCo.innerHTML='';
+  companyList().forEach(co=>{ const o=document.createElement('option'); o.value=co; o.textContent=co; selCo.appendChild(o); });
+  rebuildPolicySelect();
+}
+function rebuildPolicySelect(){
+  const co=selCo.value;
+  const list=POLICIES.filter(p=>p.company===co);
+  selWk.innerHTML='';
+  list.forEach(p=>{ const o=document.createElement('option'); o.value=POLICIES.indexOf(p); o.textContent=p.label; selWk.appendChild(o); });
+  selWk.style.display = list.length>0 ? '' : 'none';
+  loadPolicy();
+}
+function loadPolicy(){
+  const p=POLICIES[+selWk.value]||POLICIES[0];
+  items=JSON.parse(JSON.stringify(p.items));   // 깊은 복사 (편집해도 원본 보존)
+}
+selCo.addEventListener('change',()=>{ rebuildPolicySelect(); renderItems(); renderAll(); });
+selWk.addEventListener('change',()=>{ loadPolicy(); renderItems(); renderAll(); });
+
+// ── Firestore에서 등록 시상 로드 ──
+async function loadAwards(){
+  try{
+    const snap=await getDocs(collection(db,'awards'));
+    const loaded=[];
+    snap.forEach(docu=>{
+      const d=docu.data();
+      const its=itemsFromDoc(d);
+      if(!its.length) return;
+      const wk=d.week?` ${d.week}주차`:'';
+      const yy=d.year?String(d.year).slice(2):'';
+      loaded.push({ company:d.company||'(미상)', label:`${yy}년 ${d.month}월${wk}`, items:its, _id:docu.id });
+    });
+    if(loaded.length){
+      loaded.sort((a,b)=> a.company.localeCompare(b.company) || (''+b._id).localeCompare(''+a._id));
+      POLICIES=loaded;
+      F('policy-status').innerHTML=`✅ 등록 시상 <b>${loaded.length}건</b> 불러옴 — 회사·월을 선택하세요. (값은 직접 수정 가능)`;
+    } else {
+      F('policy-status').innerHTML=`등록된 시상이 없어 <b>예시 프리셋</b>으로 표시 중이에요.`;
+    }
+  }catch(e){
+    F('policy-status').innerHTML=`시상을 불러오지 못해 <b>예시 프리셋</b>으로 표시 중이에요. <span style="color:var(--ink3)">(${e.code||e.message||'오류'})</span>`;
+  }
+  rebuildCompanySelect(); renderItems(); renderAll();
+}
+
+// 인증 후 로드 (admin 세션 있으면 그대로 사용, 없으면 익명 로그인)
+let _started=false;
+onAuthStateChanged(auth, async(user)=>{
+  if(_started) return;
+  if(user){ _started=true; await loadAwards(); }
+  else { try{ await signInAnonymously(auth); }catch(e){ _started=true; await loadAwards(); } }
+});
+
+function matchBand(P){ let b=null; for(const t of BANDS){ if(P>=t) b=t; } return b; }
+function itemColor(i){ return COLORS[i % COLORS.length]; }
+function itemReward(it){
+  if(!it.on) return 0;
+  if(it.mode==='rate') return perf*(it.rate||0)/100;
+  const b=matchBand(perf); return b?(it.bands[b]||0):0;
+}
+
+// ── 받는 시점 기준 시뮬레이션 (매월 같은 실적으로 꾸준히 가동한다고 가정) ──
+// 익월 항목: 전월 생산분이 다음 달 입금 → m>=2부터 매월
+// 13회차 항목: 12개월 전 생산분이 13회차 도달 시 입금 → m>=13부터 매월
+let K = 12; // 가동(계약) 개월수: 1=단건, 24=계속
+
+// 받는 시점 기준. 매달 신규 계약 1건(월납 perf)을 K개월 동안 한다고 가정.
+// 익월 항목: p월 계약분이 (p+1)월 입금  → 입금월 m의 계약월 p=m-1
+// 13회차 항목: p월 계약분이 (p+12)월 입금 → p=m-12
+// 그 계약월 p가 1..K 안에 있을 때만 입금 발생 (K=1이면 단건 1회성)
+function simulate(N){
+  const rows=[]; let cum=0;
+  for(let m=1;m<=N;m++){
+    const per={}; let recv=0;
+    items.forEach(it=>{
+      const r=itemReward(it);
+      const p = (it.timing==='13th') ? (m-12) : (m-1);
+      const active = (p>=1 && p<=K);
+      const v = active ? r : 0;
+      per[it.id]=v; recv+=v;
+    });
+    const pc = m-1;
+    const commission = (pc>=1 && pc<=K) ? perf*comm/100 : 0; // 수수료 시점은 추후 반영
+    const total = recv + commission;
+    cum += total;
+    rows.push({m, per, recv, commission, total, cum});
+  }
+  return rows;
+}
+
+// ── 밴드 버튼 ──
+function renderBands(){
+  const labels=['10만','20만','30만','50만'];
+  F('bands').innerHTML = BANDS.map((b,i)=>`
+    <button class="band ${perf===b?'on':''}" data-b="${b}"><b>${labels[i]}↑</b><span>월 실적</span></button>`).join('');
+  F('bands').querySelectorAll('.band').forEach(el=>el.addEventListener('click',()=>{
+    perf=+el.dataset.b; F('i-perf').value=comma(perf); renderBands(); renderItems(); renderAll();
+  }));
+  const b=matchBand(perf);
+  F('band-tag').textContent = b ? `${man(b)}만↑ 구간 기준` : '구간 미달';
+}
+
+// ── 시상 항목 UI ──
+function renderItems(){
+  const b=matchBand(perf);
+  F('items').innerHTML = items.map((it,idx)=>{
+    const c=itemColor(idx);
+    const valInput = it.mode==='rate'
+      ? `<div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="rate" value="${comma(it.rate)}"><span class="u">%</span></div>`
+      : `<div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="amount" value="${b?comma(Math.round((it.bands[b]||0)/10000)):0}" ${b?'':'disabled'}><span class="u">만</span></div>`;
+    return `<div class="item ${it.on?'':'off'}">
+      <input type="checkbox" class="chk" data-i="${idx}" ${it.on?'checked':''}>
+      <div class="tag" style="background:${c}"></div>
+      <div class="nm"><b>${it.label}</b><small>${it.sub||''}</small></div>
+      ${valInput}
+      <select class="pay" data-i="${idx}">
+        <option value="next_month" ${it.timing==='next_month'?'selected':''}>익월</option>
+        <option value="13th" ${it.timing==='13th'?'selected':''}>13회차</option>
+      </select>
+    </div>`;
+  }).join('');
+
+  F('items').querySelectorAll('.chk').forEach(el=>el.addEventListener('change',()=>{
+    items[+el.dataset.i].on=el.checked; renderItems(); renderAll();
+  }));
+  F('items').querySelectorAll('.vbox input').forEach(el=>el.addEventListener('input',()=>{
+    const v=+onlyDigits(el.value)||0; const it=items[+el.dataset.i];
+    if(el.dataset.f==='rate') it.rate=v;
+    else { const bb=matchBand(perf); if(bb) it.bands[bb]=v*10000; }
+    renderAll();
+  }));
+  F('items').querySelectorAll('select.pay').forEach(el=>el.addEventListener('change',()=>{
+    items[+el.dataset.i].timing=el.value; renderAll();
+  }));
+}
+
+F('add-item').addEventListener('click',()=>{
+  items.push({id:'custom_'+Date.now(), label:'새 시상 항목', sub:'직접 입력', mode:'amount',
+    bands:{100000:0,200000:0,300000:0,500000:0}, timing:'next_month', on:true});
+  renderItems(); renderAll();
+});
+
+// ── 렌더 ──
+let chart;
+function renderAll(){
+  const N=24;
+  const rows=simulate(N);
+  const t12=rows.slice(0,12).reduce((s,r)=>s+r.total,0);
+  const t24=rows[23].cum;
+
+  F('t12').innerHTML=`${man(t12)}<span class="w">만원</span>`; F('t12f').textContent=KRW(t12);
+  F('t24').innerHTML=`${man(t24)}<span class="w">만원</span>`; F('t24f').textContent=KRW(t24);
+
+  const onItems=items.map((it,idx)=>({it,idx})).filter(x=>x.it.on);
+  const labels=rows.map(r=>r.m);
+  const ds=onItems.map(({it,idx})=>({label:it.label,data:rows.map(r=>r.per[it.id]||0),
+    backgroundColor:itemColor(idx),stack:'s',order:2,yAxisID:'y',borderSkipped:false}));
+  if(comm>0) ds.push({label:'기본 수수료',data:rows.map(r=>r.commission),backgroundColor:'#b5563a',stack:'s',order:2,yAxisID:'y'});
+  ds.push({label:'누적',type:'line',data:rows.map(r=>r.cum),borderColor:'#9a6510',backgroundColor:'#9a6510',
+    borderWidth:2.5,tension:.3,pointRadius:1.5,pointBackgroundColor:'#fff',pointBorderWidth:1.5,order:1,yAxisID:'y2'});
+
+  const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{callbacks:{
+      title:i=>i[0].label+'개월차 입금', label:c=>`${c.dataset.label}: ${KRW(c.parsed.y)}`}}},
+    scales:{x:{grid:{display:false},ticks:{font:{size:10}}},
+      y:{stacked:true,title:{display:true,text:'월 입금액',font:{size:9}},ticks:{callback:v=>v/10000+'만',font:{size:9}},grid:{color:'#f1ece0'}},
+      y2:{position:'right',title:{display:true,text:'누적',font:{size:9}},ticks:{callback:v=>v/10000+'만',font:{size:9}},grid:{display:false}}}};
+  if(chart){chart.data={labels,datasets:ds};chart.options=opts;chart.update();}
+  else chart=new Chart(F('chart'),{type:'bar',data:{labels,datasets:ds},options:opts});
+
+  F('legend').innerHTML = onItems.map(({it,idx})=>`<span><i class="dot" style="background:${itemColor(idx)}"></i>${it.label}</span>`).join('')
+    + (comm>0?`<span><i class="dot" style="background:#b5563a"></i>기본 수수료</span>`:'')
+    + `<span><i class="dot" style="background:#9a6510;border-radius:50%"></i>누적(선)</span>`;
+
+  // 계약 1건당 1회성 시상 (참고)
+  const oneNext = items.filter(it=>it.on&&it.timing==='next_month').reduce((s,it)=>s+itemReward(it),0);
+  const one13   = items.filter(it=>it.on&&it.timing==='13th').reduce((s,it)=>s+itemReward(it),0);
+  F('graph-note').innerHTML = `📌 매달 신규 10만급 계약을 <b>${K}개월</b> 동안 한다고 가정. 시상은 전부 <b>1회성</b>이지만, 매달 새 계약이 들어와 다른 계약의 1회성 시상이 줄줄이 입금돼요.<br>계약 <b>1건당</b>: 익월 ${KRW(oneNext)} + 13회차 ${KRW(one13)} = <b>${KRW(oneNext+one13)}</b> (평생 2회).`;
+
+  F('tbl').innerHTML=`<thead><tr>
+    <th>입금 월</th><th class="num">시상 입금</th><th class="num">수수료</th><th class="num">월 합계</th><th class="num">누적</th>
+    </tr></thead><tbody>${rows.map((r,i)=>{
+      const jump = i>0 && r.total>rows[i-1].total+1;
+      return `<tr class="${jump?'jump':''}">
+        <td>${r.m}개월</td>
+        <td class="num">${r.recv?KRW(r.recv):'–'}</td>
+        <td class="num">${r.commission?KRW(r.commission):'–'}</td>
+        <td class="num tot">${KRW(r.total)}</td>
+        <td class="num">${KRW(r.cum)}</td></tr>`;
+    }).join('')}</tbody>`;
+}
+
+// 월 실적 입력 (콤마, 세모 없음)
+F('i-perf').addEventListener('input',()=>{
+  const v=+onlyDigits(F('i-perf').value)||0; perf=v; F('i-perf').value=comma(v);
+  renderBands(); renderItems(); renderAll();
+});
+F('i-comm').addEventListener('input',()=>{
+  const v=+onlyDigits(F('i-comm').value)||0; comm=v; F('i-comm').value=comma(v);
+  renderAll();
+});
+
+// 가동 개월수 컨트롤
+const KPRESETS=[{v:1,t:'단건'},{v:12,t:'12개월'},{v:24,t:'24개월'}];
+function renderK(){
+  F('kbtns').innerHTML = KPRESETS.map(p=>`<button class="kbtn ${K===p.v?'on':''}" data-v="${p.v}">${p.t}</button>`).join('');
+  F('kbtns').querySelectorAll('.kbtn').forEach(el=>el.addEventListener('click',()=>{
+    K=+el.dataset.v; F('i-k').value=K; renderK(); renderAll();
+  }));
+  F('k-label').textContent = K===1 ? '단건 (1건)' : K+'개월';
+  const pct=(K-1)/(24-1)*100; F('i-k').style.backgroundSize=pct+'% 100%';
+  F('k-mode').textContent = K===1 ? '단건 1회성' : (K>=24?'계속 가동':'매월 꾸준히');
+  F('k-note').innerHTML = K===1
+    ? '한 건만 계약하고 멈춘 경우 — 2개월차(익월)·13개월차(13회차)에 딱 두 번 입금돼요.'
+    : `${K}개월 동안 매달 신규 계약 → 1회성 시상이 겹쳐 쌓여요. 슬라이더를 <b>1(단건)</b>로 내리면 막대 2개로, <b>24</b>로 올리면 매월 흐름으로 변해요.`;
+}
+F('i-k').addEventListener('input',()=>{ K=+F('i-k').value; renderK(); renderAll(); });
+
+// 초기화 — 먼저 예시 프리셋으로 즉시 렌더, Firebase 로드되면 자동 갱신
+rebuildCompanySelect(); renderBands(); renderK(); renderItems(); renderAll();
+</script>
+</body>
+</html>
