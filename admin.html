@@ -420,6 +420,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .perf-card-prem{font-size:12px;font-weight:700;color:var(--text);}
 .perf-card-comm{font-size:11px;font-weight:700;color:var(--green);}
 </style>
+<script src="search-engine.js"></script>
+<script>if(!window.InsSearch){window.InsSearch={matchAll:function(h,q){var t=(q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);var s=(h||"").toLowerCase();return t.every(function(x){return s.indexOf(x)!==-1;});},touches:function(t,q){return window.InsSearch.matchAll(t,q);},termsInText:function(){return[];},tokenize:function(q){return (q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);}};console.warn("search-engine.js가 로드되지 않아 기본 검색으로 동작합니다(동의어 미적용). 같은 폴더에 search-engine.js를 올려주세요.");}</script>
 </head>
 <body>
 
@@ -966,13 +968,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div class="filter-section" style="margin-bottom:0;">
           <div class="filter-section-label">🔤 키워드 검색</div>
           <input class="form-input" id="contracts-search"
-            placeholder="고객명 · 보험사 · 상품명 · 담보명 · 질병명 · 상해명"
+            placeholder="여러 단어 띄어쓰기 (예: 삼성 암 진단)"
             oninput="renderContractsList()" style="font-size:13px;"/>
-          <div style="font-size:11px;color:var(--text3);margin-top:5px;">위 필터를 먼저 좁힌 뒤 키워드로 추가 검색</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:5px;">단어를 띄어쓰면 모두 포함된 계약만 검색 · 암↔악성신생물, 뇌혈관↔뇌졸중 등 동의어 자동 인식</div>
         </div>
 
       </div><!-- /cm-filter-body -->
     </div><!-- /card -->
+    <div id="cm-scope-banner" style="display:none;align-items:center;justify-content:space-between;gap:8px;background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:10px;font-size:12px;color:var(--accent);"></div>
     <div id="cm-count" style="font-size:12px;color:var(--text3);margin-bottom:10px;padding:0 4px;"></div>
     <div id="contracts-list"></div>
   </div>
@@ -3064,6 +3067,7 @@ window.switchAgentSub = function(sub) {
 
 // ── 계약 관리 필터 상태 ──
 let cmAgents = new Set();
+let cmScopeCustomer = null; // 특정 고객으로 검색 범위 좁히기 (docId)
 let cmYears = new Set();
 let cmMonths = new Set();
 let cmTags = new Set(); // life, nonlife, card, bank, renew, notemp, claimed, hasmemo, cov0, cov1, cov2, cov3
@@ -3116,7 +3120,7 @@ function updateCmActiveBadge() {
   const badge = document.getElementById('cm-active-badge');
   if (!badge) return;
   const q = (document.getElementById('contracts-search')?.value||'').trim();
-  const active = q || cmAgents.size || cmYears.size || cmMonths.size || cmTags.size;
+  const active = q || cmAgents.size || cmYears.size || cmMonths.size || cmTags.size || cmScopeCustomer;
   badge.style.display = active ? 'inline-block' : 'none';
 }
 
@@ -3174,11 +3178,39 @@ window.toggleCmMonth = function(m) {
 };
 window.clearContractsFilter = function() {
   cmAgents.clear(); cmYears.clear(); cmMonths.clear(); cmTags.clear();
+  cmScopeCustomer = null;
   document.getElementById('contracts-search').value = '';
   document.querySelectorAll('.cm-tag-btn').forEach(b => b.classList.remove('active'));
   updateCmActiveBadge();
+  renderCmScopeBanner();
   buildContractsFilters(); renderContractsList();
 };
+
+// ── 고객 단위 검색 범위 ──
+window.setCmScopeCustomer = function(docId) {
+  cmScopeCustomer = docId;
+  // 키워드 입력창에 포커스 줘서 바로 검색하도록
+  renderCmScopeBanner();
+  renderContractsList();
+  const inp = document.getElementById('contracts-search');
+  if (inp) inp.focus();
+};
+window.clearCmScopeCustomer = function() {
+  cmScopeCustomer = null;
+  renderCmScopeBanner();
+  renderContractsList();
+};
+function renderCmScopeBanner() {
+  const b = document.getElementById('cm-scope-banner');
+  if (!b) return;
+  if (!cmScopeCustomer) { b.style.display = 'none'; b.innerHTML = ''; return; }
+  const c = customersCache.find(x => x._docId === cmScopeCustomer);
+  if (!c) { cmScopeCustomer = null; b.style.display = 'none'; b.innerHTML = ''; return; }
+  const cnt = (c.contracts||[]).length;
+  b.style.display = 'flex';
+  b.innerHTML = `<span>🔎 <strong>${escHtml(c.name||'')}</strong> 고객 안에서만 검색 중 · 계약 ${cnt}건</span>
+    <button class="btn btn-sm" onclick="clearCmScopeCustomer()" style="color:var(--accent);font-size:11px;border-color:var(--accent);">✕ 전체로</button>`;
+}
 
 function matchesCmPeriod(ct) {
   if (cmYears.size === 0 && cmMonths.size === 0) return true;
@@ -3222,6 +3254,7 @@ window.renderContractsList = function() {
   }
 
   updateCmActiveBadge();
+  renderCmScopeBanner();
 
   let list = [...customersCache];
   if (cmAgents.size > 0) {
@@ -3235,11 +3268,12 @@ window.renderContractsList = function() {
     });
   }
 
-  function ctMatches(ct) {
-    const company    = (ct.company||ct.rawJson?.보험사||'').toLowerCase();
-    const product    = (ct.product||ct.rawJson?.상품명||'').toLowerCase();
-    const contractor = (ct.rawJson?.계약자||'').toLowerCase();
-    const cvs  = ct.coverages||ct.rawJson?.담보목록||[];
+  // 고객 단위 범위 좁히기 (설계사 선택 → 특정 고객 → 그 고객 내에서만 검색)
+  if (cmScopeCustomer) {
+    list = list.filter(c => c._docId === cmScopeCustomer);
+  }
+
+  function ctMatches(c, ct) {
     const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
     const hasClaimed = (ct.coverageMeta||[]).some(m=>m&&m.claimed) || (ct.claims||[]).length > 0;
     const hasMemo    = !!(ct.memo || ct.rawJson?.특이사항);
@@ -3247,9 +3281,17 @@ window.renderContractsList = function() {
 
     if (!matchesCmPeriod(ct)) return false;
 
+    // 키워드: 고객명/연락처 + 계약 전 필드 + 담보명을 하나로 합쳐 다중키워드+동의어 매칭
     if (q) {
-      const covNames = cvs.map(cv=>(cv.담보명||cv.name||'').toLowerCase()).join(' ');
-      if (!company.includes(q) && !product.includes(q) && !contractor.includes(q) && !covNames.includes(q)) return false;
+      const cvs = ct.coverages||ct.rawJson?.담보목록||[];
+      const haystack = [
+        c.name, c.phone,
+        ct.company, ct.rawJson?.보험사,
+        ct.product, ct.rawJson?.상품명,
+        ct.rawJson?.계약자,
+        ct.memo, ct.rawJson?.특이사항
+      ].concat(cvs.map(cv=>cv.담보명||cv.name||'')).filter(Boolean).join(' ');
+      if (!window.InsSearch.matchAll(haystack, q)) return false;
     }
 
     if (cmTags.has('life')    && !isLife) return false;
@@ -3269,14 +3311,12 @@ window.renderContractsList = function() {
   const hasPeriodFilter    = cmYears.size > 0 || cmMonths.size > 0;
   const hasContractFilter  = hasPeriodFilter || cmTags.size > 0 || q;
 
-  if (q) {
+  if (hasContractFilter) {
     list = list.filter(c => {
-      const custHit = (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q);
-      const ctHit   = (c.contracts||[]).some(ct => ctMatches(ct));
-      return custHit || ctHit;
+      // 고객명/연락처만으로도 히트 (계약 없는 고객 대비)
+      const nameHit = q ? window.InsSearch.matchAll([c.name,c.phone].filter(Boolean).join(' '), q) : false;
+      return nameHit || (c.contracts||[]).some(ct => ctMatches(c, ct));
     });
-  } else if (hasContractFilter) {
-    list = list.filter(c => (c.contracts||[]).some(ct => ctMatches(ct)));
   }
 
   // 정렬: 최신순 고정
@@ -3292,7 +3332,7 @@ window.renderContractsList = function() {
   let totalContracts = 0;
   list.forEach(c => {
     totalContracts += hasContractFilter
-      ? (c.contracts||[]).filter(ct => ctMatches(ct)).length
+      ? (c.contracts||[]).filter(ct => ctMatches(c, ct)).length
       : (c.contracts||[]).length;
   });
 
@@ -3301,7 +3341,7 @@ window.renderContractsList = function() {
 
   el.innerHTML = list.map(c => {
     let contracts = hasContractFilter
-      ? (c.contracts||[]).filter(ct => ctMatches(ct))
+      ? (c.contracts||[]).filter(ct => ctMatches(c, ct))
       : (c.contracts||[]);
     // 키워드가 고객명/연락처 히트인 경우엔 계약 전체 표시
     if (q && contracts.length === 0) contracts = c.contracts||[];
@@ -3361,6 +3401,7 @@ window.renderContractsList = function() {
         <div class="cm-cust-menu-wrap">
           <button class="cm-cust-menu-btn" onclick="event.stopPropagation();toggleCustMenu('${c._docId}')" title="메뉴">⋯</button>
           <div class="cm-cust-dropdown" id="cust-menu-${c._docId}">
+            <button class="cm-cust-dropdown-item" onclick="event.stopPropagation();closeCustMenus();setCmScopeCustomer('${c._docId}')">🔎 이 고객 안에서 검색</button>
             <button class="cm-cust-dropdown-item" onclick="event.stopPropagation();closeCustMenus();openCustDetail('${c._docId}')">👤 고객 상세</button>
             <div class="cm-cust-dropdown-divider"></div>
             <button class="cm-cust-dropdown-item danger" onclick="event.stopPropagation();closeCustMenus();deleteCustomer('${c._docId}','${escHtml(c.name||'')}',${c.contracts?.length||0})">🗑 고객 삭제</button>

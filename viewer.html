@@ -379,6 +379,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .perf-stats-toggle-icon.open{transform:rotate(180deg);}
 .perf-stats-body{overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1);}
 </style>
+<script src="search-engine.js"></script>
+<script>if(!window.InsSearch){window.InsSearch={matchAll:function(h,q){var t=(q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);var s=(h||"").toLowerCase();return t.every(function(x){return s.indexOf(x)!==-1;});},touches:function(t,q){return window.InsSearch.matchAll(t,q);},termsInText:function(){return[];},tokenize:function(q){return (q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);}};console.warn("search-engine.js가 로드되지 않아 기본 검색으로 동작합니다(동의어 미적용). 같은 폴더에 search-engine.js를 올려주세요.");}</script>
 </head>
 <body>
 <div id="loading-screen"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--text2);">데이터 불러오는 중...</div></div>
@@ -686,7 +688,7 @@ window.setSearchMode = function(mode) {
   document.getElementById('mode-name-btn').classList.toggle('active', mode==='name');
   document.getElementById('mode-dambo-btn').classList.toggle('active', mode==='dambo');
   const inp = document.getElementById('search-input');
-  inp.placeholder = mode==='name' ? '고객 이름 또는 전화번호' : '담보명 입력 (예: 뇌혈관, 암진단)';
+  inp.placeholder = mode==='name' ? '고객 이름 또는 전화번호' : '담보명 여러 단어 가능 (예: 암 진단)';
   inp.value = '';
   // 담보 토글 초기화
   const wrap = document.getElementById('dambo-toggle-wrap');
@@ -789,10 +791,12 @@ window.renderList = function() {
   // 검색어 필터
   if (q) {
     if (searchMode === 'name') {
-      list = list.filter(c => (c.name||'').includes(q) || (c.phone||'').includes(q));
+      list = list.filter(c => window.InsSearch.matchAll([c.name, c.phone].filter(Boolean).join(' '), q));
     } else {
-      // 담보명 검색
-      const hasFn = c => (c.contracts||[]).some(ct => getCoverages(ct).some(cv=>(cv.name||cv.담보명||'').includes(q)));
+      // 담보명 검색: 고객의 전체 담보명을 합쳐 다중키워드+동의어 매칭
+      const covHay = c => (c.contracts||[]).reduce((s,ct)=>
+        s + ' ' + getCoverages(ct).map(cv=>cv.name||cv.담보명||'').join(' '), '');
+      const hasFn = c => window.InsSearch.matchAll(covHay(c), q);
       list = damboMode === 'not' ? list.filter(c=>!hasFn(c)) : list.filter(hasFn);
     }
   }
@@ -849,7 +853,7 @@ function renderCustCard(c, highlight) {
   let hint = '';
   if (highlight) {
     const m = [];
-    contracts.forEach(ct=>getCoverages(ct).forEach(cv=>{if((cv.name||cv.담보명||'').includes(highlight))m.push(cv.name||cv.담보명);}));
+    contracts.forEach(ct=>getCoverages(ct).forEach(cv=>{const nm=cv.name||cv.담보명||''; if(nm && window.InsSearch.touches(nm, highlight))m.push(nm);}));
     if (m.length) hint = `<div style="font-size:11px;color:var(--accent);margin-top:5px;">🛡 ${m.slice(0,3).map(n=>escHtml(n)).join(', ')}${m.length>3?` 외 ${m.length-3}개`:''}</div>`;
   }
   // 계약일 표시
