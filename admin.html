@@ -594,7 +594,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
               </div>
             </div>
 
-            <div style="margin-top:16px;">
+            <div style="margin-top:16px;display:none;">
               <div class="sec-label" style="margin-top:0;margin-bottom:10px;">📋 계약전 알릴의무 <span style="font-size:10px;font-weight:500;color:var(--text3);">(통과 조건 기록)</span></div>
               <select class="form-select" id="notice-pick-select" onchange="onNoticePickSelect()" style="margin-bottom:10px;">
                 <option value="">고지의무 선택 안 함</option>
@@ -856,8 +856,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           </div>
         </div>
         <div class="card">
-          <div class="card-title">📁 저장된 고지의무 목록</div>
+          <div class="card-title">📋 알릴의무(고지사항) 통합 항목 <span id="notice-pool-count" style="font-size:12px;color:var(--text3);font-weight:500;"></span></div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5;">고지의무를 추출·저장하면 항목이 여기에 모입니다. 같은 키의 항목은 자동으로 무시돼요. 직접 추가·수정·삭제할 수 있어요.</div>
           <div id="notice-saved-list"><div class="empty">불러오는 중...</div></div>
+          <div style="display:flex;gap:6px;margin-top:10px;">
+            <input class="form-input" id="pool-add-label" placeholder="항목명 (예: 최근 2년내 입원·수술 없음)" style="flex:1;font-size:12px;"/>
+            <input class="form-input" id="pool-add-key" placeholder="키 (예: 입원·수술/2년)" style="width:130px;font-size:12px;"/>
+            <button class="btn btn-primary" onclick="addPoolItem()" style="font-size:12px;white-space:nowrap;">추가</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1070,7 +1076,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, getDocs, doc, setDoc, deleteDoc,
+  getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc,
   updateDoc, query, where, addDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
@@ -2585,6 +2591,25 @@ async function loadNotices() {
   } catch(e) { noticesCache=[]; }
 }
 
+// ── 알릴의무(고지사항) 통합 항목 풀 ──
+let noticePool = []; // [{key,label,category,periodYears,periodMonths,detail}]
+function deriveKey(it) {
+  const per = it.periodYears ? ('/'+it.periodYears+'년') : it.periodMonths ? ('/'+it.periodMonths+'개월') : '';
+  return ((it.category||'') + per) || (it.label||'');
+}
+function poolKeyOf(it) {
+  return String(it.key || deriveKey(it)).trim().toLowerCase().replace(/\s+/g,'');
+}
+async function loadNoticePool() {
+  try {
+    const d = await getDoc(doc(db,'notices','__pool__'));
+    noticePool = d.exists() ? (d.data().items||[]) : [];
+  } catch(e) { noticePool = []; }
+}
+async function savePoolDoc() {
+  await setDoc(doc(db,'notices','__pool__'), { pool:true, items:noticePool, updatedAt:new Date().toISOString() });
+}
+
 window.onNoticeImgSelect = function(e) {
   const file = e.target.files[0]; if(!file) return;
   noticeImgMime = file.type;
@@ -2626,6 +2651,7 @@ window.extractNoticeJson = async function() {
     {
       "id": "item_1",
       "label": "최근 2년내 입원 없음",
+      "key": "입원·수술/2년",
       "category": "입원|진단|수술|투약|질병|검사|직업|장애|기타",
       "periodYears": null또는숫자,
       "periodMonths": null또는숫자,
@@ -2636,7 +2662,9 @@ window.extractNoticeJson = async function() {
   "rawText": "원문요약"
 }
 
-모든 항목은 통과 조건 기준으로 "~없음"/"~아님" 형태로 작성.`,
+모든 항목은 통과 조건 기준으로 "~없음"/"~아님" 형태로 작성.
+"key"는 항목의 대표 키워드(핵심 명사 + 기간)를 짧게 만든 것. 같은 의미면 회사가 달라도 같은 key가 되도록 통일된 표현을 쓸 것.
+예) "최근 2년내 입원·수술 없음" → "입원·수술/2년", "암·심장·뇌혈관 진단 없음" → "암·심장·뇌혈관", "현재 투약 중 아님" → "투약/현재", "최근 3개월내 추가검사 없음" → "추가검사/3개월". 기간이 다르면 다른 key로 구분(2년≠5년).`,
         messages:[{
           role:'user',
           content:[
@@ -2688,47 +2716,80 @@ window.toggleNoticeRaw=function(){
 window.saveNoticeJson=async function(){
   if(!noticeExtracted) return;
   const status=document.getElementById('notice-save-status');
-  status.style.display='block'; status.textContent='저장 중...'; status.style.color='var(--text3)';
+  status.style.display='block'; status.textContent='수집 중...'; status.style.color='var(--text3)';
   try {
     const raw=document.getElementById('notice-json-textarea').value;
     try{ noticeExtracted=JSON.parse(raw); }catch(e){}
-    const docId=`notice_${Date.now()}`;
-    await setDoc(doc(db,'notices',docId),{
-      ...noticeExtracted, uploadedAt:new Date().toISOString(), uploadedBy:currentAdmin?.uid||'admin'
+    await loadNoticePool();
+    const have = new Set(noticePool.map(poolKeyOf));
+    let added=0, dup=0;
+    (noticeExtracted.items||[]).forEach(it=>{
+      if(!(it.label||'').trim()) return;
+      const k = poolKeyOf(it);
+      if(have.has(k)){ dup++; return; }
+      have.add(k);
+      noticePool.push({
+        key: String(it.key||deriveKey(it)).trim(),
+        label: it.label||'',
+        category: it.category||'',
+        periodYears: it.periodYears??null,
+        periodMonths: it.periodMonths??null,
+        detail: it.detail||null
+      });
+      added++;
     });
-    noticesCache.push({_id:docId,...noticeExtracted});
-    status.textContent=`✅ "${noticeExtracted.title||noticeExtracted.product}" 저장됐어요!`; status.style.color='var(--green)';
-    showToast('✅ 고지의무가 저장됐어요!');
+    await savePoolDoc();
+    status.textContent=`✅ ${added}개 추가, ${dup}개 중복 무시 (현재 총 ${noticePool.length}개)`; status.style.color='var(--green)';
+    showToast(`✅ 통합 항목 ${added}개 추가됐어요!`);
     renderNoticeSavedList();
   } catch(e){ status.textContent='❌ 실패: '+e.message; status.style.color='var(--red)'; }
 };
 
+// 통합 항목(풀) 목록 표시 + 직접 관리
 function renderNoticeSavedList() {
   const el=document.getElementById('notice-saved-list'); if(!el) return;
-  if(!noticesCache.length){ el.innerHTML='<div class="empty">저장된 고지의무 없음</div>'; return; }
-  el.innerHTML=[...noticesCache].reverse().map(n=>`
-    <div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div>
-          <div style="font-size:13px;font-weight:700;">${escHtml(n.title||n.product||'')}</div>
-          <div style="font-size:11px;color:var(--text3);">${escHtml(n.company||'')} · ${(n.items||[]).length}개 항목</div>
-        </div>
-        <button class="btn btn-sm" onclick="deleteNotice('${n._id}','${escHtml(n.title||n.product||'')}')" style="color:var(--red);border-color:var(--red);">🗑</button>
+  const cnt=document.getElementById('notice-pool-count'); if(cnt) cnt.textContent = noticePool.length ? `(${noticePool.length}개)` : '';
+  if(!noticePool.length){ el.innerHTML='<div class="empty">수집된 항목이 없어요. 고지의무를 추출해 저장하면 여기에 모여요.</div>'; return; }
+  el.innerHTML = noticePool.map((it,idx)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">${escHtml(it.label||'')}</div>
+        <div style="font-size:10px;color:var(--text3);">키: ${escHtml(it.key||'')}${it.category?(' · '+escHtml(it.category)):''}</div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;">
-        ${(n.items||[]).map(i=>`<span class="chip" style="font-size:10px;">${escHtml(i.label)}</span>`).join('')}
-      </div>
+      <button class="btn btn-sm" onclick="editPoolItem(${idx})" style="font-size:11px;">✏️</button>
+      <button class="btn btn-sm" onclick="deletePoolItem(${idx})" style="color:var(--red);border-color:var(--red);font-size:11px;">🗑</button>
     </div>`).join('');
 }
 
-window.deleteNotice=async function(docId,name){
-  if(!confirm(`"${name}" 고지의무를 삭제할까요?`)) return;
-  try{
-    await deleteDoc(doc(db,'notices',docId));
-    noticesCache=noticesCache.filter(n=>n._id!==docId);
-    showToast(`✅ "${name}" 삭제됐어요.`);
-    renderNoticeSavedList();
-  }catch(e){ showToast('❌ 실패: '+e.message); }
+window.addPoolItem = async function(){
+  const labelEl=document.getElementById('pool-add-label');
+  const keyEl=document.getElementById('pool-add-key');
+  const label=(labelEl?.value||'').trim();
+  let key=(keyEl?.value||'').trim();
+  if(!label){ showToast('항목명을 입력해주세요.'); return; }
+  if(!key) key=label;
+  await loadNoticePool();
+  if(noticePool.some(it=>poolKeyOf(it)===poolKeyOf({key}))){ showToast('이미 같은 키의 항목이 있어요.'); return; }
+  noticePool.push({key,label,category:'',periodYears:null,periodMonths:null,detail:null});
+  try{ await savePoolDoc(); if(labelEl)labelEl.value=''; if(keyEl)keyEl.value=''; renderNoticeSavedList(); showToast('✅ 항목 추가됐어요!'); }
+  catch(e){ showToast('❌ 실패: '+e.message); }
+};
+
+window.editPoolItem = async function(idx){
+  const it=noticePool[idx]; if(!it) return;
+  const label=prompt('항목명', it.label||''); if(label===null) return;
+  const key=prompt('키 (대표 키워드)', it.key||''); if(key===null) return;
+  noticePool[idx]={...it, label:label.trim()||it.label, key:(key.trim()||it.key)};
+  try{ await savePoolDoc(); renderNoticeSavedList(); showToast('✅ 수정됐어요!'); }
+  catch(e){ showToast('❌ 실패: '+e.message); }
+};
+
+window.deletePoolItem = async function(idx){
+  const it=noticePool[idx]; if(!it) return;
+  if(!confirm(`"${it.label}" 항목을 삭제할까요?`)) return;
+  noticePool.splice(idx,1);
+  try{ await savePoolDoc(); renderNoticeSavedList(); showToast('✅ 삭제됐어요.'); }
+  catch(e){ showToast('❌ 실패: '+e.message); }
 };
 
 // ──────────────────────────────────────────
@@ -3048,7 +3109,7 @@ window.switchTab = function(tab, skipHistory) {
   document.getElementById('nav-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if (tab === 'contracts') { buildContractsFilters(); renderContractsList(); }
-  if (tab === 'upload') { initAwardCheckSelects(); renderAwardStatusCard(); loadAwardList(); if (!noticesCache.length) { loadNotices().then(renderNoticeSavedList); } else { renderNoticeSavedList(); } }
+  if (tab === 'upload') { initAwardCheckSelects(); renderAwardStatusCard(); loadAwardList(); loadNoticePool().then(renderNoticeSavedList); }
   if (tab === 'commission') { initCommissionTab(); }
   if (!skipHistory) {
     const cur = history.state;

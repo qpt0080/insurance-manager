@@ -475,7 +475,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         </div>
         <!-- 고지의무 필터 -->
         <div id="notice-filter-section" style="display:none;">
-          <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.04em;margin-bottom:8px;">📋 고지의무 통과</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.04em;margin-bottom:8px;">📋 알릴의무(고지사항) · 해당 항목으로 찾기</div>
           <div id="notice-filter-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
         </div>
       </div>
@@ -501,7 +501,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -720,7 +720,7 @@ window.setSearchMode = function(mode) {
 };
 
 // ── 고지의무 필터 ──
-let selectedNoticeIds = new Set();
+let selectedNoticeItems = new Set(); // 'setId||항목라벨' 형태
 
 function renderNoticeFilterChips() {
   const section = document.getElementById('notice-filter-section');
@@ -728,18 +728,29 @@ function renderNoticeFilterChips() {
   if (!section || !chips) return;
   if (!noticesCache.length) { section.style.display='none'; return; }
   section.style.display = 'block';
-  chips.innerHTML = noticesCache.map(n =>
-    `<button class="v-tag-btn ${selectedNoticeIds.has(n._id)?'active':''}"
-      id="ntag-${n._id}" onclick="toggleNoticeFilter('${n._id}')">
-      📋 ${escHtml(n.title||n.product||'')} 통과
-    </button>`).join('');
+  chips.innerHTML = noticesCache.map(n => {
+    const items = n.items||[];
+    if (!items.length) return '';
+    const single = noticesCache.length === 1;
+    return `<div style="width:100%;margin-bottom:6px;">
+      ${single ? '' : `<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:5px;">${escHtml((n.company||'')+' '+(n.title||n.product||''))}</div>`}
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${items.map((it,idx)=>{
+          const key=n._id+'||'+(it.label||'');
+          return `<button class="v-tag-btn ${selectedNoticeItems.has(key)?'active':''}" onclick="toggleNoticeItemFilter('${n._id}',${idx})">${escHtml(it.label||'')}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 
-window.toggleNoticeFilter = function(noticeId) {
-  if (selectedNoticeIds.has(noticeId)) selectedNoticeIds.delete(noticeId);
-  else selectedNoticeIds.add(noticeId);
-  const btn = document.getElementById('ntag-'+noticeId);
-  if (btn) btn.classList.toggle('active', selectedNoticeIds.has(noticeId));
+window.toggleNoticeItemFilter = function(setId, itemIdx) {
+  const n = noticesCache.find(x=>x._id===setId); if(!n) return;
+  const label = (n.items||[])[itemIdx]?.label || '';
+  const key = setId+'||'+label;
+  if (selectedNoticeItems.has(key)) selectedNoticeItems.delete(key);
+  else selectedNoticeItems.add(key);
+  renderNoticeFilterChips();
   renderList();
 };
 
@@ -834,17 +845,20 @@ window.renderList = function() {
   if (vTags.has('claimed')) list = list.filter(c=>(c.contracts||[]).some(ct=>(ct.claims||[]).length>0||(ct.coverageMeta||[]).some(m=>m&&m.claimed)));
   if (vTags.has('hasmemo')) list = list.filter(c=>(c.contracts||[]).some(ct=>ct.memo||(ct.coverageMeta||[]).some(m=>m&&m.memo)));
 
-  // 고지의무 통과 필터
-  if (selectedNoticeIds.size > 0) {
+  // 고지 해당 항목 필터 (계약별 ct.notice 기준)
+  // 선택한 (고지세트·항목)마다, 그 항목을 '해당'으로 체크한 계약을 1건 이상 가진 고객만 표시
+  if (selectedNoticeItems.size > 0) {
     list = list.filter(c => {
-      const noticeResults = c.noticeResults||{};
-      return [...selectedNoticeIds].every(noticeId => {
-        const notice = noticesCache.find(n => n._id === noticeId);
-        if (!notice) return false;
-        // 모든 항목이 pass여야 통과
-        return (notice.items||[]).every(item =>
-          noticeResults[noticeId+'_'+item.id] === 'pass'
-        );
+      const cts = c.contracts || [];
+      return [...selectedNoticeItems].every(key => {
+        const sep = key.indexOf('||');
+        const setId = key.slice(0, sep);
+        const label = key.slice(sep + 2);
+        return cts.some(ct => {
+          const nt = ct.notice;
+          if (!nt || nt.noticeId !== setId) return false;
+          return (nt.items || []).some(it => it.label === label && it.checked);
+        });
       });
     });
   }
@@ -909,10 +923,13 @@ async function loadAwards() {
 
 // ── 고지의무 로드 ──
 async function loadNotices() {
+  // 통합 풀(notices/__pool__)을 단일 '알릴의무(고지사항)' 세트로 로드
   try {
-    const snap = await getDocs(collection(db,'notices'));
-    noticesCache = [];
-    snap.forEach(d => noticesCache.push({_id:d.id,...d.data()}));
+    const d = await getDoc(doc(db,'notices','__pool__'));
+    const items = d.exists() ? (d.data().items||[]) : [];
+    noticesCache = items.length
+      ? [{ _id:'__pool__', title:'알릴의무(고지사항)', company:'', product:'', items }]
+      : [];
   } catch(e) { noticesCache=[]; }
 }
 async function loadCommissions() {
@@ -2178,12 +2195,13 @@ function renderContractScreen(custId, ctId) {
   {
     const nt = ct.notice;
     const hasNotice = nt && (nt.items||[]).length;
+    const hitCount = hasNotice ? nt.items.filter(x=>x.checked).length : 0;
     html += `<div class="divider"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div class="sec-label" style="margin:0">📋 계약전 알릴의무</div>
+      <div class="sec-label" style="margin:0">📋 알릴의무(고지사항)</div>
       ${hasNotice
         ? `<div style="display:flex;gap:6px;align-items:center;">
-            <span class="chip ${nt.items.filter(x=>x.passed).length===nt.items.length?'green':'amber'}" style="font-size:10px;">${nt.items.filter(x=>x.passed).length}/${nt.items.length} 통과</span>
+            ${hitCount>0?`<span class="chip" style="font-size:10px;background:var(--amber-light);color:var(--amber);">해당 ${hitCount}건</span>`:'<span class="chip" style="font-size:10px;">해당 없음</span>'}
             <button class="refund-toggle-btn" onclick="openNoticeEditor('${custId}','${ctId}')">수정 ✏️</button>
            </div>`
         : `<button class="refund-toggle-btn" onclick="openNoticeEditor('${custId}','${ctId}')">+ 추가</button>`
@@ -2194,18 +2212,16 @@ function renderContractScreen(custId, ctId) {
       <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">
         ${escHtml(nt.company||'')} ${escHtml(nt.product||'')}${nt.recordedAt ? ' · 기록 '+nt.recordedAt.slice(0,10) : ''}
       </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
-        ${nt.items.map(item => `
-          <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);">
-            <span style="flex-shrink:0;font-size:13px;margin-top:1px;">${item.passed ? '✅' : '⚠️'}</span>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:12px;font-weight:600;color:${item.passed?'var(--text2)':'var(--amber)'};">${escHtml(item.label||'')}</div>
-              ${item.detail ? `<div style="font-size:10px;color:var(--text3);margin-top:1px;">${escHtml(item.detail)}</div>` : ''}
-            </div>
-            ${item.category ? `<span class="chip" style="font-size:10px;flex-shrink:0;">${escHtml(item.category)}</span>` : ''}
-          </div>`).join('')}
-        ${nt.memo ? `<div style="padding:9px 12px;background:var(--surface2);font-size:11px;color:var(--text2);">💬 ${escHtml(nt.memo)}</div>` : ''}
-      </div>`;
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;">
+        ${nt.items.map(item => {
+          const on = !!item.checked;
+          return `<div style="display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid ${on?'var(--amber)':'var(--border)'};border-radius:var(--radius-sm);background:${on?'var(--amber-light)':'var(--surface)'};">
+            <span style="flex-shrink:0;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;${on?'background:var(--amber);color:#fff;':'background:var(--surface2);color:transparent;'}">${on?'✓':''}</span>
+            <span style="font-size:11px;line-height:1.25;color:${on?'var(--amber)':'var(--text3)'};font-weight:${on?'700':'400'};">${escHtml(item.label||'')}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ${nt.memo ? `<div style="margin-top:8px;padding:9px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text2);">💬 ${escHtml(nt.memo)}</div>` : ''}`;
     } else {
       html += `<div style="font-size:12px;color:var(--text3);margin-bottom:6px;">등록된 고지 조건이 없어요. "+ 추가"로 기록할 수 있어요.</div>`;
     }
@@ -2567,34 +2583,20 @@ window.openNoticeEditor = function(custId, ctId) {
   const ct = findContract(c, ctId);
   const existing = ct?.notice || null;
 
-  const co = (ct?.company||ct?.rawJson?.보험사||'').trim();
-  const pr = (ct?.product||ct?.rawJson?.상품명||'').trim();
-
-  // 매칭 점수로 정렬
-  const scored = noticesCache.map(n => {
-    let s = 0;
-    if (co && (n.company||'').trim()===co) s+=2;
-    if (pr && n.product && (pr.includes(n.product)||n.product.includes(pr))) s+=3;
-    return {n,s};
-  }).sort((a,b)=>b.s-a.s);
-
   if (!noticesCache.length) {
-    panel.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:10px;background:var(--surface2);border-radius:var(--radius-sm);">저장된 고지의무가 없어요. 먼저 관리자에서 고지의무를 업로드해주세요.</div>`;
+    panel.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:10px;background:var(--surface2);border-radius:var(--radius-sm);">등록된 알릴의무(고지사항) 항목이 없어요.\n관리자에서 먼저 고지의무를 추출·저장해주세요.</div>`;
     return;
   }
 
-  const selId = existing?.noticeId || (scored[0] && scored[0].s>=2 ? scored[0].n._id : '');
+  const pool = noticesCache[0]; // 통합 풀(단일 세트)
   panel.innerHTML = `
     <div style="background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius);padding:12px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;">고지의무 선택</div>
-      <select id="nedit-sel-${ctId}" class="form-select" style="margin-bottom:10px;" onchange="renderNoticeEditItems('${custId}','${ctId}')">
-        <option value="">선택하세요</option>
-        ${scored.map(({n,s})=>`<option value="${n._id}" ${n._id===selId?'selected':''}>${s>0?'⭐ ':''}${escHtml((n.company||'')+' '+(n.product||'')+' ('+(n.items||[]).length+'개)')}</option>`).join('')}
-      </select>
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">📋 알릴의무(고지사항) · 해당되는 항목을 체크</div>
+      <select id="nedit-sel-${ctId}" style="display:none;"><option value="${pool._id}" selected></option></select>
       <div id="nedit-items-${ctId}"></div>
       <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="btn btn-green" style="flex:1;font-size:13px;padding:10px;" onclick="saveNoticeToContract('${custId}','${ctId}')">💾 저장</button>
-        ${existing ? `<button class="btn" style="flex:0 0 auto;font-size:13px;padding:10px 14px;color:var(--red);" onclick="deleteNoticeFromContract('${custId}','${ctId}')">삭제</button>` : ''}
+        <button class="btn btn-green" style="flex:1;font-size:13px;padding:11px;" onclick="saveNoticeToContract('${custId}','${ctId}')">💾 저장</button>
+        ${existing ? `<button class="btn" style="flex:0 0 auto;font-size:13px;padding:11px 14px;color:var(--red);" onclick="deleteNoticeFromContract('${custId}','${ctId}')">삭제</button>` : ''}
       </div>
     </div>`;
   renderNoticeEditItems(custId, ctId);
@@ -2610,27 +2612,25 @@ window.renderNoticeEditItems = function(custId, ctId) {
   const c = getCust(custId);
   const ct = findContract(c, ctId);
   const existing = ct?.notice;
-  // 기존 통과 상태 복원 (같은 고지의무일 때만)
-  const prevPassed = {};
+  // 기존 체크 상태 복원 (같은 고지의무일 때만), 기본은 미체크
+  const prevChecked = {};
   if (existing && existing.noticeId === notice._id) {
-    (existing.items||[]).forEach(it => { prevPassed[it.label] = it.passed; });
+    (existing.items||[]).forEach(it => { prevChecked[it.label] = !!it.checked; });
   }
 
   box.innerHTML = `
-    <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">✅ 통과한 항목을 체크하세요</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:7px;">해당되는 항목을 탭해 체크하세요</div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;align-items:stretch;">
     ${(notice.items||[]).map((item,i)=>{
-      const checked = existing ? (prevPassed[item.label] !== false) : true;
+      const checked = !!prevChecked[item.label];
       return `
-      <label style="display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:5px;cursor:pointer;background:var(--surface2);">
-        <input type="checkbox" class="nedit-check-${ctId}" data-idx="${i}" ${checked?'checked':''} style="margin-top:2px;width:16px;height:16px;flex-shrink:0;"/>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;color:var(--text2);">${escHtml(item.label||'')}</div>
-          ${item.detail?`<div style="font-size:10px;color:var(--text3);margin-top:1px;">${escHtml(item.detail)}</div>`:''}
-        </div>
-        ${item.category?`<span class="chip" style="font-size:10px;flex-shrink:0;">${escHtml(item.category)}</span>`:''}
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:var(--surface2);">
+        <input type="checkbox" class="nedit-check-${ctId}" data-idx="${i}" ${checked?'checked':''} style="width:16px;height:16px;flex-shrink:0;"/>
+        <span style="font-size:12px;font-weight:600;color:var(--text2);line-height:1.25;">${escHtml(item.label||'')}</span>
       </label>`;
     }).join('')}
-    <textarea id="nedit-memo-${ctId}" class="form-textarea" placeholder="고지 관련 메모 (선택)" style="min-height:46px;font-size:12px;margin-top:4px;">${escHtml(existing?.memo||'')}</textarea>`;
+    </div>
+    <textarea id="nedit-memo-${ctId}" class="form-textarea" placeholder="고지 관련 메모 (선택)" style="min-height:46px;font-size:12px;margin-top:8px;">${escHtml(existing?.memo||'')}</textarea>`;
 };
 
 window.saveNoticeToContract = async function(custId, ctId) {
@@ -2642,7 +2642,7 @@ window.saveNoticeToContract = async function(custId, ctId) {
   const checks = document.querySelectorAll(`.nedit-check-${ctId}`);
   const items = (notice.items||[]).map((item,i)=>{
     const cb = [...checks].find(c=>+c.dataset.idx===i);
-    return { label:item.label||'', category:item.category||'', detail:item.detail||null, passed: cb?cb.checked:false };
+    return { label:item.label||'', category:item.category||'', detail:item.detail||null, checked: cb?cb.checked:false };
   });
   const memo = document.getElementById(`nedit-memo-${ctId}`)?.value.trim() || '';
 
