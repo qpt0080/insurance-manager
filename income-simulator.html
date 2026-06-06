@@ -126,6 +126,15 @@
   .kbtn.on{border-color:var(--gold);background:var(--gold-soft);color:var(--gold-deep);box-shadow:0 2px 8px rgba(200,136,29,.12);}
   .disclaim{font-size:11px;color:var(--ink3);text-align:center;margin-top:18px;line-height:1.6;}
 </style>
+  <link rel="manifest" href="manifest-admin.webmanifest">
+  <meta name="theme-color" content="#3B5BDB">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="무진 관리">
+  <script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </head>
 <body>
 <div class="wrap">

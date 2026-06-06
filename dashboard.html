@@ -240,6 +240,15 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
   .tab-switch-btn{flex:1;justify-content:center;}
 }
 </style>
+  <link rel="manifest" href="manifest-admin.webmanifest">
+  <meta name="theme-color" content="#3B5BDB">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="무진 관리">
+  <script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>

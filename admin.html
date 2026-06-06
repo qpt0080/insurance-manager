@@ -422,6 +422,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 </style>
 <script src="search-engine.js"></script>
 <script>if(!window.InsSearch){window.InsSearch={matchAll:function(h,q){var t=(q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);var s=(h||"").toLowerCase();return t.every(function(x){return s.indexOf(x)!==-1;});},touches:function(t,q){return window.InsSearch.matchAll(t,q);},termsInText:function(){return[];},tokenize:function(q){return (q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);}};console.warn("search-engine.js가 로드되지 않아 기본 검색으로 동작합니다(동의어 미적용). 같은 폴더에 search-engine.js를 올려주세요.");}</script>
+  <link rel="manifest" href="manifest-admin.webmanifest">
+  <meta name="theme-color" content="#3B5BDB">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="무진 관리">
+  <script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </head>
 <body>
 

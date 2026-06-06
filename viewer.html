@@ -381,10 +381,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 </style>
 <script src="search-engine.js"></script>
 <script>if(!window.InsSearch){window.InsSearch={matchAll:function(h,q){var t=(q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);var s=(h||"").toLowerCase();return t.every(function(x){return s.indexOf(x)!==-1;});},touches:function(t,q){return window.InsSearch.matchAll(t,q);},termsInText:function(){return[];},tokenize:function(q){return (q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);}};console.warn("search-engine.js가 로드되지 않아 기본 검색으로 동작합니다(동의어 미적용). 같은 폴더에 search-engine.js를 올려주세요.");}</script>
+  <link rel="manifest" href="manifest-viewer.webmanifest">
+  <meta name="theme-color" content="#3B5BDB">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="무진 뷰어">
+  <script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </head>
 <body>
 <div id="loading-screen"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--text2);">데이터 불러오는 중...</div></div>
-<div id="error-screen"><div><div style="font-size:48px;margin-bottom:16px;">🔒</div><div style="font-size:18px;font-weight:700;margin-bottom:8px;">접근 불가</div><div style="font-size:13px;color:var(--text2);line-height:1.7;" id="error-msg">유효하지 않은 링크입니다.</div></div></div>
+<div id="error-screen"><div><div style="font-size:48px;margin-bottom:16px;">🔒</div><div style="font-size:18px;font-weight:700;margin-bottom:8px;">접근 불가</div><div style="font-size:13px;color:var(--text2);line-height:1.7;" id="error-msg">유효하지 않은 링크입니다.</div><a href="index.html" style="display:inline-block;margin-top:18px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:9px 16px;border-radius:9px;">← 처음으로</a></div></div>
 
 <div class="app" id="app" style="display:none;">
   <header class="header">
@@ -508,7 +517,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const urlParams = new URLSearchParams(location.search);
-const token = urlParams.get('token');
+let token = urlParams.get('token');
+// 설치형(PWA)으로 아이콘 실행 시엔 URL에 token이 없으므로 저장해둔 코드를 사용.
+// (저장은 init()에서 '검증 성공 후'에만 — 틀린 코드가 저장되어 갇히는 것을 방지)
+if (!token) { try { token = localStorage.getItem('mujinViewerToken'); } catch (e) {} }
 
 let customers = [];
 let currentFilter = 'all';
@@ -535,9 +547,13 @@ async function init() {
   }
   try {
     const snap = await getDocs(query(collection(db,'agents'), where('viewerToken','==',token)));
-    if (snap.empty) { showError('유효하지 않은 링크입니다.\n담당자에게 링크를 다시 받아주세요.'); return; }
+    if (snap.empty) {
+      try { localStorage.removeItem('mujinViewerToken'); } catch(e){} // 무효 코드는 저장 안 남김
+      showError('유효하지 않은 링크입니다.\n담당자에게 링크를 다시 받아주세요.'); return;
+    }
     snap.forEach(d => agentInfo = d.data());
     if (agentInfo.disabled) { showError('비활성화된 계정입니다.'); return; }
+    try { localStorage.setItem('mujinViewerToken', token); } catch(e){} // 검증 성공 → 이 기기에 저장
     document.getElementById('agent-badge').textContent = agentInfo.name || agentInfo.email;
     await loadCustomers();
     await loadAwards();

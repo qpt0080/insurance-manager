@@ -2,10 +2,135 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0;url=admin.html">
-  <title>보험Manager</title>
-  <script>window.location.replace("admin.html");</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>무진</title>
+  <meta name="theme-color" content="#3B5BDB">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#F0F2F8; --surface:#FFFFFF; --border:#D8DAE8;
+      --text:#16151A; --text2:#5A5870; --text3:#9896A8;
+      --accent:#3B5BDB; --accent-light:#EDF2FF; --accent-dark:#2F4AC0;
+      --red:#B91C1C; --red-light:#FEE2E2;
+      --radius:14px; --radius-sm:9px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);
+      min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;
+      padding:24px;-webkit-font-smoothing:antialiased;}
+    .wrap{width:100%;max-width:380px;}
+    .brand{text-align:center;margin-bottom:28px;}
+    .brand-logo{width:76px;height:76px;border-radius:20px;margin:0 auto 14px;
+      background:linear-gradient(160deg,#3B5BDB 0%,#263A96 100%);
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;font-weight:900;font-size:30px;letter-spacing:-1px;
+      box-shadow:0 8px 26px rgba(59,91,219,.32);}
+    .brand-title{font-size:24px;font-weight:900;letter-spacing:-.5px;}
+    .brand-sub{font-size:13px;color:var(--text2);margin-top:5px;}
+    .choose-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;
+      letter-spacing:.08em;text-align:center;margin-bottom:12px;}
+    .role-btn{width:100%;display:flex;align-items:center;gap:14px;padding:18px 18px;
+      background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+      cursor:pointer;font-family:inherit;text-align:left;transition:all .16s;margin-bottom:12px;
+      box-shadow:0 1px 2px rgba(22,21,26,.04);}
+    .role-btn:hover{border-color:var(--accent);box-shadow:0 6px 20px rgba(59,91,219,.14);transform:translateY(-1px);}
+    .role-ic{width:46px;height:46px;border-radius:12px;flex-shrink:0;display:flex;
+      align-items:center;justify-content:center;font-size:22px;background:var(--accent-light);}
+    .role-tx{min-width:0;}
+    .role-tx b{display:block;font-size:16px;font-weight:700;color:var(--text);}
+    .role-tx span{font-size:12px;color:var(--text2);}
+    .role-arrow{margin-left:auto;color:var(--text3);font-size:18px;flex-shrink:0;}
+    /* 코드 입력 패널 */
+    .code-panel{display:none;background:var(--surface);border:1.5px solid var(--border);
+      border-radius:var(--radius);padding:18px;margin-top:4px;box-shadow:0 6px 20px rgba(59,91,219,.10);}
+    .code-panel.open{display:block;animation:slidein .2s ease;}
+    @keyframes slidein{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+    .code-panel-label{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:9px;}
+    .code-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+      font-size:15px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;
+      transition:border-color .16s,box-shadow .16s;}
+    .code-input:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px rgba(59,91,219,.08);}
+    .code-go{width:100%;margin-top:10px;padding:12px;border:none;border-radius:var(--radius-sm);
+      background:var(--accent);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;
+      box-shadow:0 2px 8px rgba(59,91,219,.22);transition:background .16s;}
+    .code-go:hover{background:var(--accent-dark);}
+    .code-hint{font-size:11px;color:var(--text3);margin-top:9px;line-height:1.5;}
+    .code-err{display:none;font-size:12px;color:var(--red);background:var(--red-light);
+      border-radius:var(--radius-sm);padding:8px 11px;margin-top:9px;}
+    .foot{text-align:center;font-size:11px;color:var(--text3);margin-top:22px;}
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="brand-logo">무진</div>
+      <div class="brand-title">무진 보험관리</div>
+      <div class="brand-sub">역할을 선택해 주세요</div>
+    </div>
+
+    <div class="choose-label">입장</div>
+
+    <button class="role-btn" onclick="goAdmin()">
+      <div class="role-ic">🗂️</div>
+      <div class="role-tx"><b>관리자</b><span>계약·설계사·실적 관리</span></div>
+      <div class="role-arrow">›</div>
+    </button>
+
+    <button class="role-btn" onclick="clickAgent()">
+      <div class="role-ic">👤</div>
+      <div class="role-tx"><b>설계사</b><span>담당 고객·계약 조회</span></div>
+      <div class="role-arrow">›</div>
+    </button>
+
+    <!-- 저장된 토큰이 없을 때만 펼쳐지는 코드 입력 -->
+    <div class="code-panel" id="codePanel">
+      <div class="code-panel-label">🔑 접근 코드 입력</div>
+      <input class="code-input" id="codeInput" type="text" inputmode="text" autocomplete="off"
+        placeholder="담당자에게 받은 코드" onkeydown="if(event.key==='Enter')goAgent()"/>
+      <button class="code-go" onclick="goAgent()">입장하기</button>
+      <div class="code-err" id="codeErr"></div>
+      <div class="code-hint">코드는 담당 관리자가 발급한 개인 링크의 코드입니다. 한 번 입장하면 이 기기에 저장되어 다음부턴 바로 입장돼요.</div>
+    </div>
+
+    <div class="foot">무진 보험관리 시스템</div>
+  </div>
+
+  <script>
+    function goAdmin(){ location.href = 'admin.html'; }
+
+    function clickAgent(){
+      var saved = null;
+      try { saved = localStorage.getItem('mujinViewerToken'); } catch(e){}
+      if (saved) {
+        // 저장된 토큰 있으면 바로 입장 (viewer가 localStorage에서 읽음)
+        location.href = 'viewer.html';
+      } else {
+        // 없으면 코드 입력란 펼치기
+        var p = document.getElementById('codePanel');
+        p.classList.add('open');
+        document.getElementById('codeInput').focus();
+      }
+    }
+
+    function goAgent(){
+      var code = (document.getElementById('codeInput').value || '').trim();
+      var err = document.getElementById('codeErr');
+      if (!code){
+        err.textContent = '접근 코드를 입력해 주세요.';
+        err.style.display = 'block';
+        return;
+      }
+      // viewer로 토큰 전달 (viewer가 검증 후 저장)
+      location.href = 'viewer.html?token=' + encodeURIComponent(code);
+    }
+
+    // 서비스워커 등록 (루트 진입 시에도 PWA 캐시 활성화)
+    if ('serviceWorker' in navigator) {
+      addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+    }
+  </script>
 </body>
 </html>
