@@ -86,14 +86,20 @@
   .item .tag{width:8px;height:26px;border-radius:3px;flex-shrink:0;}
   .item .nm{flex:1;min-width:0;}
   .item .nm b{display:block;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .item .nm-edit{display:block;width:100%;font-size:13px;font-weight:700;color:var(--ink);background:none;
+    border:none;border-bottom:1px solid transparent;outline:none;font-family:inherit;padding:2px 0;}
+  .item .nm-edit:focus{border-bottom-color:var(--gold);}
   .item .nm small{font-size:10.5px;color:var(--ink3);font-weight:600;}
   .item .vbox{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
-    border-radius:9px;padding:0 9px;width:104px;flex-shrink:0;}
+    border-radius:9px;padding:0 9px;width:78px;flex-shrink:0;}
   .item .vbox input{width:100%;background:none;border:none;outline:none;text-align:right;
     font-family:inherit;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:var(--ink);padding:8px 0;}
   .item .vbox .u{font-size:11px;color:var(--ink3);font-weight:700;margin-left:3px;}
   .item .pay{font-size:11px;font-weight:700;color:var(--ink2);border:1.5px solid var(--line2);
     border-radius:8px;padding:7px 6px;font-family:inherit;background:var(--card);flex-shrink:0;outline:none;cursor:pointer;}
+  .item .del-item{flex-shrink:0;width:26px;height:26px;border:none;background:none;color:var(--ink3);
+    font-size:19px;line-height:1;cursor:pointer;border-radius:7px;padding:0;transition:.15s;}
+  .item .del-item:hover{background:#FCECEC;color:#DC2626;}
   .item.off{opacity:.42;}
   .add-item{margin-top:12px;width:100%;padding:10px;border:1.5px dashed var(--line2);border-radius:11px;
     background:none;color:var(--ink2);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s;}
@@ -236,16 +242,11 @@ const COLORS = ['#3B5BDB','#6B85E8','#9AA0AA','#1A7F4B','#5AA37C','#2C46B8','#7E
 function kbWeek1(){
   return [
     {id:'basic_in', label:'인보험 기본시상', sub:'KB150%+GAK280%=430%', mode:'rate', rate:430, timing:'next_month', on:true},
-    {id:'weekly_250', label:'인보험 가동시상 250%', sub:'1~7일', mode:'amount',
-      bands:{100000:250000,200000:500000,300000:750000,500000:1250000}, timing:'next_month', on:true},
-    {id:'weekly_200', label:'인보험 가동시상 200%', sub:'13회차 유지', mode:'amount',
-      bands:{100000:200000,200000:400000,300000:600000,500000:1000000}, timing:'13th', on:true},
-    {id:'flagship_200', label:'주력보종 시상 200%', sub:'간편+종합+자녀+LTC', mode:'amount',
-      bands:{100000:200000,200000:400000,300000:600000,500000:1000000}, timing:'13th', on:true},
-    {id:'consec_base', label:'기본 연속가동 최대300%', sub:'5~6월', mode:'amount',
-      bands:{100000:200000,200000:600000,300000:800000,500000:1800000}, timing:'13th', on:true},
-    {id:'consec_extra', label:'추가 연속가동 최대300%', sub:'5~6월', mode:'amount',
-      bands:{100000:200000,200000:600000,300000:800000,500000:1800000}, timing:'13th', on:true},
+    {id:'weekly_250', label:'인보험 가동시상 250%', sub:'1~7일', mode:'rate', rate:250, timing:'next_month', on:true},
+    {id:'weekly_200', label:'인보험 가동시상 200%', sub:'13회차 유지', mode:'rate', rate:200, timing:'13th', on:true},
+    {id:'flagship_200', label:'주력보종 시상 200%', sub:'간편+종합+자녀+LTC', mode:'rate', rate:200, timing:'13th', on:true},
+    {id:'consec_base', label:'기본 연속가동 최대300%', sub:'5~6월', mode:'rate', rate:300, timing:'13th', on:true},
+    {id:'consec_extra', label:'추가 연속가동 최대300%', sub:'5~6월', mode:'rate', rate:300, timing:'13th', on:true},
     {id:'pet_basic', label:'펫보험 기본시상', sub:'300%', mode:'rate', rate:300, timing:'next_month', on:false},
   ];
 }
@@ -259,6 +260,11 @@ function bandsFromTiers(arr, keys){
   });
   return bands;
 }
+// 금액 구간(bands)을 대표 %로 환산 (10만 기준 우선)
+function rateFromBands(b){
+  for(const k of [100000,200000,300000,500000]){ if(b[k]>0) return Math.round(b[k]/k*100); }
+  return 0;
+}
 function itemsFromDoc(d){
   const out=[];
   (d.tiers||[]).forEach((t,i)=>{
@@ -267,11 +273,11 @@ function itemsFromDoc(d){
       const p=(t.periods&&t.periods[0])||{}; const rate=(p.totalRate??p.ownRate??0);
       out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true});
     } else if(t.type==='consecutive'){
-      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:'', mode:'amount',
-        bands:bandsFromTiers(t.tiers,['currThreshold','threshold','prevThreshold']), timing, on:true});
+      const rate=rateFromBands(bandsFromTiers(t.tiers,['currThreshold','threshold','prevThreshold']));
+      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:rate?rate+'%':'', mode:'rate', rate, timing, on:true});
     } else if(['weekly','weekly_extra','flagship','club','membership'].includes(t.type)){
-      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:'', mode:'amount',
-        bands:bandsFromTiers(t.tiers,['threshold']), timing, on:true});
+      const rate=rateFromBands(bandsFromTiers(t.tiers,['threshold']));
+      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:rate?rate+'%':'', mode:'rate', rate, timing, on:true});
     }
     // gift(물품) 등 현금 아님 → 제외
   });
@@ -393,41 +399,43 @@ function renderBands(){
 
 // ── 시상 항목 UI ──
 function renderItems(){
-  const b=matchBand(perf);
   F('items').innerHTML = items.map((it,idx)=>{
     const c=itemColor(idx);
-    const valInput = it.mode==='rate'
-      ? `<div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="rate" value="${comma(it.rate)}"><span class="u">%</span></div>`
-      : `<div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="amount" value="${b?comma(Math.round((it.bands[b]||0)/10000)):0}" ${b?'':'disabled'}><span class="u">만</span></div>`;
     return `<div class="item ${it.on?'':'off'}">
       <input type="checkbox" class="chk" data-i="${idx}" ${it.on?'checked':''}>
       <div class="tag" style="background:${c}"></div>
-      <div class="nm"><b>${it.label}</b><small>${it.sub||''}</small></div>
-      ${valInput}
+      <div class="nm">
+        <input class="nm-edit" data-i="${idx}" value="${(it.label||'').replace(/"/g,'&quot;')}" placeholder="시상 항목명">
+        <small>${it.sub||''}</small>
+      </div>
+      <div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="rate" value="${comma(it.rate||0)}"><span class="u">%</span></div>
       <select class="pay" data-i="${idx}">
         <option value="next_month" ${it.timing==='next_month'?'selected':''}>익월</option>
         <option value="13th" ${it.timing==='13th'?'selected':''}>13회차</option>
       </select>
+      <button class="del-item" data-i="${idx}" title="삭제" aria-label="항목 삭제">×</button>
     </div>`;
   }).join('');
 
   F('items').querySelectorAll('.chk').forEach(el=>el.addEventListener('change',()=>{
     items[+el.dataset.i].on=el.checked; renderItems(); renderAll();
   }));
+  F('items').querySelectorAll('.nm-edit').forEach(el=>el.addEventListener('input',()=>{
+    items[+el.dataset.i].label=el.value;
+  }));
   F('items').querySelectorAll('.vbox input').forEach(el=>el.addEventListener('input',()=>{
-    const v=+onlyDigits(el.value)||0; const it=items[+el.dataset.i];
-    if(el.dataset.f==='rate') it.rate=v;
-    else { const bb=matchBand(perf); if(bb) it.bands[bb]=v*10000; }
-    renderAll();
+    items[+el.dataset.i].rate=+onlyDigits(el.value)||0; renderAll();
   }));
   F('items').querySelectorAll('select.pay').forEach(el=>el.addEventListener('change',()=>{
     items[+el.dataset.i].timing=el.value; renderAll();
   }));
+  F('items').querySelectorAll('.del-item').forEach(el=>el.addEventListener('click',()=>{
+    items.splice(+el.dataset.i,1); renderItems(); renderAll();
+  }));
 }
 
 F('add-item').addEventListener('click',()=>{
-  items.push({id:'custom_'+Date.now(), label:'새 시상 항목', sub:'직접 입력', mode:'amount',
-    bands:{100000:0,200000:0,300000:0,500000:0}, timing:'next_month', on:true});
+  items.push({id:'custom_'+Date.now(), label:'새 시상 항목', sub:'', mode:'rate', rate:100, timing:'next_month', on:true});
   renderItems(); renderAll();
 });
 
@@ -442,26 +450,27 @@ function renderAll(){
   F('t12').innerHTML=`${man(t12)}<span class="w">만원</span>`; F('t12f').textContent=KRW(t12);
   F('t24').innerHTML=`${man(t24)}<span class="w">만원</span>`; F('t24f').textContent=KRW(t24);
 
-  const onItems=items.map((it,idx)=>({it,idx})).filter(x=>x.it.on);
-  const labels=rows.map(r=>r.m);
-  const ds=onItems.map(({it,idx})=>({label:it.label,data:rows.map(r=>r.per[it.id]||0),
-    backgroundColor:itemColor(idx),stack:'s',order:2,yAxisID:'y',borderSkipped:false}));
-  if(comm>0) ds.push({label:'기본 수수료',data:rows.map(r=>r.commission),backgroundColor:'#5B6068',stack:'s',order:2,yAxisID:'y'});
-  ds.push({label:'누적',type:'line',data:rows.map(r=>r.cum),borderColor:'#2C46B8',backgroundColor:'#2C46B8',
-    borderWidth:2.5,tension:.3,pointRadius:1.5,pointBackgroundColor:'#fff',pointBorderWidth:1.5,order:1,yAxisID:'y2'});
+  const labels=rows.map(r=>r.m+'월');
+  const ds=[
+    {label:'월 입금', type:'bar', data:rows.map(r=>r.total),
+      backgroundColor:'#AEBEF5', hoverBackgroundColor:'#3B5BDB', borderRadius:6, borderSkipped:false,
+      yAxisID:'y', order:2, barPercentage:.8, categoryPercentage:.84},
+    {label:'누적 수령', type:'line', data:rows.map(r=>r.cum),
+      borderColor:'#3B5BDB', backgroundColor:'rgba(59,91,219,.13)', borderWidth:2.5, fill:true,
+      tension:.35, pointRadius:0, pointHoverRadius:4, pointBackgroundColor:'#3B5BDB', yAxisID:'y2', order:1}
+  ];
 
   const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
     plugins:{legend:{display:false},tooltip:{callbacks:{
-      title:i=>i[0].label+'개월차 입금', label:c=>`${c.dataset.label}: ${KRW(c.parsed.y)}`}}},
-    scales:{x:{grid:{display:false},ticks:{font:{size:10}}},
-      y:{stacked:true,title:{display:true,text:'월 입금액',font:{size:9}},ticks:{callback:v=>v/10000+'만',font:{size:9}},grid:{color:'#f1ece0'}},
-      y2:{position:'right',title:{display:true,text:'누적',font:{size:9}},ticks:{callback:v=>v/10000+'만',font:{size:9}},grid:{display:false}}}};
+      title:i=>i[0].label+' 입금', label:c=>`${c.dataset.label}: ${KRW(c.parsed.y)}`}}},
+    scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:0,autoSkip:true,maxTicksLimit:8}},
+      y:{position:'left',beginAtZero:true,title:{display:true,text:'월 입금',font:{size:9}},ticks:{callback:v=>v/10000+'만',font:{size:9}},grid:{color:'#EEF0F4'}},
+      y2:{position:'right',beginAtZero:true,title:{display:true,text:'누적',font:{size:9}},ticks:{callback:v=>Math.round(v/10000)+'만',font:{size:9}},grid:{display:false}}}};
   if(chart){chart.data={labels,datasets:ds};chart.options=opts;chart.update();}
   else chart=new Chart(F('chart'),{type:'bar',data:{labels,datasets:ds},options:opts});
 
-  F('legend').innerHTML = onItems.map(({it,idx})=>`<span><i class="dot" style="background:${itemColor(idx)}"></i>${it.label}</span>`).join('')
-    + (comm>0?`<span><i class="dot" style="background:#5B6068"></i>기본 수수료</span>`:'')
-    + `<span><i class="dot" style="background:#2C46B8;border-radius:50%"></i>누적(선)</span>`;
+  F('legend').innerHTML = `<span><i class="dot" style="background:#AEBEF5"></i>월 입금(막대)</span>`
+    + `<span><i class="dot" style="background:#3B5BDB;border-radius:50%"></i>누적 수령(면적)</span>`;
 
   // 계약 1건당 1회성 시상 (참고)
   const oneNext = items.filter(it=>it.on&&it.timing==='next_month').reduce((s,it)=>s+itemReward(it),0);
