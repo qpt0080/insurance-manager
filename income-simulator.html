@@ -5,14 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>예상수입 시뮬레이터</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
-    --ink:#1c1a17; --ink2:#5c554c; --ink3:#938b80;
-    --paper:#faf8f3; --card:#ffffff; --line:#ece6db; --line2:#ddd4c4;
-    --gold:#c8881d; --gold-deep:#9a6510; --gold-soft:#fdf3e0;
-    --green:#3f7d56; --blue:#3a5bb5; --rose:#b5563a;
+    --ink:#191A1D; --ink2:#5B6068; --ink3:#9AA0AA;
+    --paper:#F4F5F8; --card:#FFFFFF; --line:#E4E6EC; --line2:#D7DAE2;
+    --gold:#3B5BDB; --gold-deep:#2C46B8; --gold-soft:#EEF1FE;
+    --green:#1A7F4B; --blue:#3B5BDB; --rose:#5B6068;
     --shadow:0 1px 2px rgba(40,30,10,.04),0 8px 28px rgba(40,30,10,.06);
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -25,13 +24,13 @@
     color:var(--ink); line-height:1.5; padding:28px 18px 60px; -webkit-font-smoothing:antialiased;
   }
   .wrap{max-width:880px;margin:0 auto;}
-  .num{font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;}
+  .num{font-family:inherit;font-variant-numeric:tabular-nums;}
 
   header{margin-bottom:6px;}
   .eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
     color:var(--gold-deep);display:flex;align-items:center;gap:8px;margin-bottom:10px;}
   .eyebrow::before{content:"";width:26px;height:1.5px;background:var(--gold);}
-  h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(28px,5.5vw,42px);
+  h1{font-family:inherit;font-weight:600;font-size:clamp(28px,5.5vw,42px);
     line-height:1.08;letter-spacing:-.01em;}
   h1 em{font-style:italic;color:var(--gold-deep);}
 
@@ -53,7 +52,7 @@
   .bands{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
   .band{padding:13px 4px;border:1.5px solid var(--line2);border-radius:12px;background:var(--card);
     cursor:pointer;text-align:center;font-family:inherit;transition:.15s;}
-  .band b{display:block;font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--ink);}
+  .band b{display:block;font-family:inherit;font-size:18px;font-weight:600;color:var(--ink);}
   .band span{font-size:11px;color:var(--ink3);font-weight:600;}
   .band.on{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 2px 10px rgba(200,136,29,.15);}
   .band.on b{color:var(--gold-deep);}
@@ -66,14 +65,14 @@
   .ib .pre{font-size:13px;font-weight:700;color:var(--ink3);margin-right:4px;}
   .ib .unit{font-size:13px;font-weight:700;color:var(--ink3);margin-left:6px;}
   .ib input{flex:1;width:100%;background:none;border:none;outline:none;color:var(--ink);
-    font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;padding:11px 0;text-align:right;}
+    font-family:inherit;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;padding:11px 0;text-align:right;}
 
   /* 총 수령 카드 */
   .totals{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
     border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:18px;}
   .total-c{background:var(--card);padding:20px 18px;}
   .total-c .lbl{font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:8px;}
-  .total-c .val{font-family:'Fraunces',serif;font-weight:600;font-size:30px;line-height:1;letter-spacing:-.01em;color:var(--gold-deep);}
+  .total-c .val{font-family:inherit;font-weight:600;font-size:30px;line-height:1;letter-spacing:-.01em;color:var(--gold-deep);}
   .total-c .val .w{font-size:14px;font-weight:600;color:var(--ink2);margin-left:2px;}
   .total-c .foot{font-size:11px;color:var(--ink3);margin-top:7px;}
 
@@ -91,7 +90,7 @@
   .item .vbox{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
     border-radius:9px;padding:0 9px;width:104px;flex-shrink:0;}
   .item .vbox input{width:100%;background:none;border:none;outline:none;text-align:right;
-    font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:var(--ink);padding:8px 0;}
+    font-family:inherit;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:var(--ink);padding:8px 0;}
   .item .vbox .u{font-size:11px;color:var(--ink3);font-weight:700;margin-left:3px;}
   .item .pay{font-size:11px;font-weight:700;color:var(--ink2);border:1.5px solid var(--line2);
     border-radius:8px;padding:7px 6px;font-family:inherit;background:var(--card);flex-shrink:0;outline:none;cursor:pointer;}
@@ -104,7 +103,7 @@
   th,td{padding:9px 6px;text-align:right;border-bottom:1px solid var(--line);}
   th{font-size:11px;color:var(--ink3);font-weight:700;}
   td:first-child,th:first-child{text-align:left;font-weight:700;color:var(--ink);}
-  td.num,th.num{font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;}
+  td.num,th.num{font-family:inherit;font-variant-numeric:tabular-nums;}
   td.tot{font-weight:700;color:var(--gold-deep);}
   tr.jump td{background:var(--gold-soft);}
   tr.jump td:first-child::after{content:" ★";color:var(--blue);}
@@ -114,7 +113,7 @@
   .note b{color:var(--ink2);}
   .srow{display:flex;align-items:center;justify-content:space-between;margin:14px 0 9px;}
   .srow .lbl{font-size:12.5px;font-weight:700;color:var(--ink2);}
-  .srow .cv{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--gold-deep);}
+  .srow .cv{font-family:inherit;font-weight:600;font-size:15px;color:var(--gold-deep);}
   input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:5px;border-radius:5px;
     background:linear-gradient(var(--gold),var(--gold)) no-repeat,var(--line);background-size:50% 100%;cursor:pointer;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
@@ -231,7 +230,7 @@ const man = n => (n/10000).toLocaleString('ko-KR',{maximumFractionDigits:1});
 const F = id => document.getElementById(id);
 
 const BANDS = [100000,200000,300000,500000];
-const COLORS = ['#c8881d','#e3b35a','#d8a548','#3f7d56','#5a9e74','#3a5bb5','#6f86c9','#b5563a','#8a7a5a'];
+const COLORS = ['#3B5BDB','#6B85E8','#9AA0AA','#1A7F4B','#5AA37C','#2C46B8','#7E93D6','#5B6068','#B0B6C0'];
 
 // ── 예시 프리셋 (오프라인/데이터 없을 때 대비) ──
 function kbWeek1(){
@@ -447,8 +446,8 @@ function renderAll(){
   const labels=rows.map(r=>r.m);
   const ds=onItems.map(({it,idx})=>({label:it.label,data:rows.map(r=>r.per[it.id]||0),
     backgroundColor:itemColor(idx),stack:'s',order:2,yAxisID:'y',borderSkipped:false}));
-  if(comm>0) ds.push({label:'기본 수수료',data:rows.map(r=>r.commission),backgroundColor:'#b5563a',stack:'s',order:2,yAxisID:'y'});
-  ds.push({label:'누적',type:'line',data:rows.map(r=>r.cum),borderColor:'#9a6510',backgroundColor:'#9a6510',
+  if(comm>0) ds.push({label:'기본 수수료',data:rows.map(r=>r.commission),backgroundColor:'#5B6068',stack:'s',order:2,yAxisID:'y'});
+  ds.push({label:'누적',type:'line',data:rows.map(r=>r.cum),borderColor:'#2C46B8',backgroundColor:'#2C46B8',
     borderWidth:2.5,tension:.3,pointRadius:1.5,pointBackgroundColor:'#fff',pointBorderWidth:1.5,order:1,yAxisID:'y2'});
 
   const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -461,8 +460,8 @@ function renderAll(){
   else chart=new Chart(F('chart'),{type:'bar',data:{labels,datasets:ds},options:opts});
 
   F('legend').innerHTML = onItems.map(({it,idx})=>`<span><i class="dot" style="background:${itemColor(idx)}"></i>${it.label}</span>`).join('')
-    + (comm>0?`<span><i class="dot" style="background:#b5563a"></i>기본 수수료</span>`:'')
-    + `<span><i class="dot" style="background:#9a6510;border-radius:50%"></i>누적(선)</span>`;
+    + (comm>0?`<span><i class="dot" style="background:#5B6068"></i>기본 수수료</span>`:'')
+    + `<span><i class="dot" style="background:#2C46B8;border-radius:50%"></i>누적(선)</span>`;
 
   // 계약 1건당 1회성 시상 (참고)
   const oneNext = items.filter(it=>it.on&&it.timing==='next_month').reduce((s,it)=>s+itemReward(it),0);

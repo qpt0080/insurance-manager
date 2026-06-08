@@ -6,16 +6,17 @@
 <title>보험Manager · 관리자</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root {
-  --bg:#F0F2F8; --surface:#FFFFFF; --surface2:#E8EAF2; --border:#D8DAE8;
-  --text:#16151A; --text2:#5A5870; --text3:#9896A8;
-  --accent:#3B5BDB; --accent-light:#EDF2FF; --accent-dark:#2F4AC0;
+  --bg:#F4F5F8; --surface:#FFFFFF; --surface2:#EDEFF3; --border:#E4E6EC;
+  --text:#191A1D; --text2:#5B6068; --text3:#9AA0AA;
+  --accent:#3B5BDB; --accent-light:#EEF1FE; --accent-dark:#2C46B8;
   --green:#1A7F4B; --green-light:#E6F5EC;
   --amber:#B45309; --amber-light:#FEF3C7;
   --red:#B91C1C; --red-light:#FEE2E2;
   --purple:#6D28D9; --purple-light:#EDE9FE;
-  --radius:14px; --radius-sm:9px;
+  --radius:16px; --radius-sm:10px;
   --shadow:0 1px 3px rgba(59,91,219,.07),0 1px 2px rgba(0,0,0,.04);
   --shadow-md:0 4px 20px rgba(59,91,219,.12),0 2px 8px rgba(0,0,0,.06);
   /* 히어로 */
@@ -23,7 +24,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{overflow-x:clip;width:100%;overscroll-behavior-x:none;}body{overflow-x:clip;width:100%;max-width:100%;overscroll-behavior-x:none;position:relative;touch-action:pan-y;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
+body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
 
 /* ── 헤더 ── */
 .header{background:var(--surface);border-bottom:1.5px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:50;box-shadow:0 1px 0 var(--border),0 2px 12px rgba(59,91,219,.08);}
@@ -3361,6 +3362,7 @@ window.renderContractsList = function() {
         ct.company, ct.rawJson?.보험사,
         ct.product, ct.rawJson?.상품명,
         ct.rawJson?.계약자,
+        ct.rawJson?.피보험자,
         ct.memo, ct.rawJson?.특이사항
       ].concat(cvs.map(cv=>cv.담보명||cv.name||'')).filter(Boolean).join(' ');
       if (!window.InsSearch.matchAll(haystack, q)) return false;
