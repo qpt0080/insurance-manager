@@ -413,6 +413,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
@@ -424,6 +425,7 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 let agentsCache = [], customersCache = [], awardsCache = [];
 const NOW = new Date();
@@ -858,8 +860,20 @@ resize(); addEventListener('resize', resize);
   requestAnimationFrame(anim);
 })();
 
-loadAll();
-setInterval(loadAll, 5*60*1000);
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    loadAll();
+    setInterval(() => { if (auth.currentUser) loadAll(); }, 5*60*1000);
+  } else {
+    document.getElementById('loading').style.display = 'none';
+    const err = document.getElementById('error');
+    err.style.display = 'flex';
+    document.getElementById('error-msg').innerHTML =
+      '관리자 로그인이 필요해요.<br>먼저 <b>관리자</b>로 로그인한 뒤 다시 열어주세요.';
+    const btn = err.querySelector('button');
+    if (btn) { btn.textContent = '관리자 로그인'; btn.onclick = () => location.href = 'admin.html'; }
+  }
+});
 </script>
 </body>
 </html>

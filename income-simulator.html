@@ -200,7 +200,7 @@
 
   <!-- 표 -->
   <div class="card">
-    <div class="card-h">🗓️ 월별 상세 (받는 시점 기준)</div>
+    <div class="card-h">🗓️ 월별 상세 (받는 시점 기준) <span class="right" style="font-weight:700;color:var(--ink3);">단위: 만원</span></div>
     <div style="overflow-x:auto;"><table id="tbl"></table></div>
   </div>
 
@@ -473,12 +473,13 @@ function renderAll(){
     <th>입금 월</th><th class="num">시상 입금</th><th class="num">수수료</th><th class="num">월 합계</th><th class="num">누적</th>
     </tr></thead><tbody>${rows.map((r,i)=>{
       const jump = i>0 && r.total>rows[i-1].total+1;
+      const M = v => v ? man(v)+'만' : '–';
       return `<tr class="${jump?'jump':''}">
         <td>${r.m}개월</td>
-        <td class="num">${r.recv?KRW(r.recv):'–'}</td>
-        <td class="num">${r.commission?KRW(r.commission):'–'}</td>
-        <td class="num tot">${KRW(r.total)}</td>
-        <td class="num">${KRW(r.cum)}</td></tr>`;
+        <td class="num">${M(r.recv)}</td>
+        <td class="num">${M(r.commission)}</td>
+        <td class="num tot">${M(r.total)}</td>
+        <td class="num">${M(r.cum)}</td></tr>`;
     }).join('')}</tbody>`;
 }
 

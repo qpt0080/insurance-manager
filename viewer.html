@@ -381,6 +381,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 </style>
 <script src="search-engine.js"></script>
 <script>if(!window.InsSearch){window.InsSearch={matchAll:function(h,q){var t=(q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);var s=(h||"").toLowerCase();return t.every(function(x){return s.indexOf(x)!==-1;});},touches:function(t,q){return window.InsSearch.matchAll(t,q);},termsInText:function(){return[];},tokenize:function(q){return (q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);}};console.warn("search-engine.js가 로드되지 않아 기본 검색으로 동작합니다(동의어 미적용). 같은 폴더에 search-engine.js를 올려주세요.");}</script>
+<script src="coverage-summary.js"></script>
+<script>if(!window.CovAgg){window.CovAgg={renderHTML:function(){return'';},toggle:function(){},view:function(){}};console.warn("coverage-summary.js가 로드되지 않아 보장 합산이 표시되지 않습니다. 같은 폴더에 coverage-summary.js를 올려주세요.");}</script>
   <link rel="manifest" href="manifest-viewer.webmanifest">
   <meta name="theme-color" content="#3B5BDB">
   <link rel="icon" href="favicon.png">
@@ -430,6 +432,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     </div>
     <!-- 고객 목록 (검색 통합) -->
     <div id="screen-list" class="screen">
+      <!-- 보기 방식: 고객별 / 피보험자별 -->
+      <div class="search-mode-wrap" style="margin-bottom:10px;">
+        <button class="search-mode-btn active" id="lview-cust-btn" onclick="setListView('cust')">👥 고객별</button>
+        <button class="search-mode-btn" id="lview-insured-btn" onclick="setListView('insured')">👤 피보험자별</button>
+      </div>
       <!-- 검색 카드 -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);">
         <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.04em;margin-bottom:8px;">🔍 검색</div>
@@ -530,6 +537,7 @@ let currentSheetCustId = null;
 let currentSheetCtId = null;
 let agentInfo = null;
 let searchMode = 'name';
+let listView = 'cust'; // 'cust' | 'insured'
 let selYears = new Set();
 let selMonths = new Set();
 let awardsCache = [];
@@ -699,6 +707,16 @@ function matchesPeriod(c) {
 
 
 // ── 검색 모드 ──
+window.setListView = function(v) {
+  listView = v;
+  const cb = document.getElementById('lview-cust-btn'), ib = document.getElementById('lview-insured-btn');
+  if (cb) cb.classList.toggle('active', v === 'cust');
+  if (ib) ib.classList.toggle('active', v === 'insured');
+  const inp = document.getElementById('search-input');
+  if (inp && searchMode === 'name') inp.placeholder = v === 'insured' ? '피보험자 이름' : '고객 이름 또는 전화번호';
+  renderList();
+};
+
 window.setSearchMode = function(mode) {
   searchMode = mode;
   document.getElementById('mode-name-btn').classList.toggle('active', mode==='name');
@@ -815,10 +833,13 @@ window.renderList = function() {
   // 기간 필터
   if (selYears.size > 0 || selMonths.size > 0) list = list.filter(matchesPeriod);
 
-  // 검색어 필터
-  if (q) {
+  // 검색어 필터 (피보험자별 모드는 그룹 단위에서 따로 필터)
+  if (q && listView !== 'insured') {
     if (searchMode === 'name') {
-      list = list.filter(c => window.InsSearch.matchAll([c.name, c.phone].filter(Boolean).join(' '), q));
+      list = list.filter(c => {
+        const insured = (c.contracts||[]).map(ct => ct.rawJson?.피보험자).filter(Boolean);
+        return window.InsSearch.matchAll([c.name, c.phone].concat(insured).filter(Boolean).join(' '), q);
+      });
     } else {
       // 담보명 검색: 고객의 전체 담보명을 합쳐 다중키워드+동의어 매칭
       const covHay = c => (c.contracts||[]).reduce((s,ct)=>
@@ -867,10 +888,84 @@ window.renderList = function() {
     ? `<div class="empty"><div class="empty-icon">✅</div><p>모든 고객이 "${escHtml(q)}" 담보를 가지고 있어요</p></div>`
     : `<div class="empty"><div class="empty-icon">${q?'🔍':'📋'}</div><p>${q?'검색 결과 없음':'해당하는 고객이 없어요'}</p></div>`;
 
+  if (listView === 'insured') { renderInsuredCards(el, list, q); return; }
+
   if (!list.length) { el.innerHTML = emptyMsg; return; }
   const highlight = (searchMode === 'dambo' && damboMode === 'has' && q) ? q : null;
   el.innerHTML = list.map(c=>renderCustCard(c, highlight)).join('');
 };
+
+// ── 피보험자별 카드 렌더 (여러 계약자에 흩어진 같은 피보험자를 한 사람으로 묶음) ──
+function renderInsuredCards(el, custList, q) {
+  // 담당 고객 전체 계약을 피보험자명으로 그룹핑 (피보험자 없으면 계약자 본인)
+  const groups = {};
+  custList.forEach(c => (c.contracts||[]).forEach(ct => {
+    const nm = (ct.rawJson?.피보험자) || c.name || '(피보험자 미상)';
+    if (!groups[nm]) groups[nm] = { insured: nm, items: [] };
+    groups[nm].items.push({ ct, holder: c.name||'', custId: c._docId||c.id });
+  }));
+  let arr = Object.values(groups);
+
+  // 검색어 필터 (피보험자별 모드 전용)
+  if (q) {
+    if (searchMode === 'name') {
+      arr = arr.filter(g => window.InsSearch.matchAll(g.insured, q));
+    } else {
+      arr = arr.filter(g => {
+        const hay = g.items.map(x => getCoverages(x.ct).map(cv=>cv.name||cv.담보명||'').join(' ')).join(' ');
+        const hit = window.InsSearch.matchAll(hay, q);
+        return damboMode === 'not' ? !hit : hit;
+      });
+    }
+  }
+  // 계약 많은 순 → 이름순
+  arr.sort((a,b)=> b.items.length - a.items.length || a.insured.localeCompare(b.insured,'ko'));
+
+  if (!arr.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">${q?'🔍':'📋'}</div><p>${q?'검색 결과 없음':'표시할 피보험자가 없어요'}</p></div>`; return; }
+
+  el.innerHTML = arr.map((g, gi) => {
+    const cts = g.items.map(x=>x.ct);
+    const holders = [...new Set(g.items.map(x=>x.holder).filter(Boolean))];
+    const totalPrem = cts.reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+    const initials = (g.insured||'?').slice(0,1);
+    const bodyId = 'ins-body-'+gi;
+    // 출처 계약 목록 (탭하면 해당 계약 상세로)
+    const ctList = g.items.map(x=>{
+      const co = x.ct.company||getV(x.ct,'보험사');
+      const pr = x.ct.product||getV(x.ct,'상품명');
+      return `<div onclick="openContractScreen('${x.custId}','${x.ct.id}')" style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px dashed var(--border);cursor:pointer;font-size:12px;">
+        <div style="min-width:0;"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(co)} · ${escHtml(pr)}</div>
+        <div style="font-size:10px;color:var(--text3);">계약자 ${escHtml(x.holder)}</div></div>
+        <span style="color:var(--text3);flex-shrink:0;">›</span></div>`;
+    }).join('');
+    const synthetic = { name: g.insured, contracts: cts };
+    const covPanel = window.CovAgg ? window.CovAgg.renderHTML(synthetic) : '';
+    return `<div class="cust-card" style="cursor:default;">
+      <div class="cust-card-top">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <div style="width:38px;height:38px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;border:2px solid rgba(59,91,219,.12);">${escHtml(initials)}</div>
+          <div style="min-width:0;">
+            <div class="cust-name">${escHtml(g.insured)}<span style="font-size:11px;font-weight:600;color:var(--text3);margin-left:5px;">피보험자</span></div>
+            <div class="cust-phone">계약자 ${holders.map(h=>escHtml(h)).join(', ')||'-'}</div>
+          </div>
+        </div>
+        ${totalPrem>0?`<div class="cust-prem">${Math.round(totalPrem).toLocaleString()}원</div>`:''}
+      </div>
+      <div style="height:1px;background:var(--border);margin:10px 0 9px;"></div>
+      <div class="cust-meta">
+        <span class="chip blue">계약 ${cts.length}건</span>
+        ${holders.length>1?`<span class="chip amber">계약자 ${holders.length}명</span>`:''}
+      </div>
+      <button onclick="document.getElementById('${bodyId}').style.display=document.getElementById('${bodyId}').style.display==='none'?'block':'none';this.querySelector('span').textContent=document.getElementById('${bodyId}').style.display==='none'?'▼ 보장 합산·계약 보기':'▲ 접기';"
+        style="width:100%;margin-top:11px;padding:9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--accent);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;"><span>▼ 보장 합산·계약 보기</span></button>
+      <div id="${bodyId}" style="display:none;margin-top:11px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:2px;">📄 계약 ${cts.length}건</div>
+        ${ctList}
+        <div style="margin:12px 0 0;padding:13px;border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--accent-light);">${covPanel}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 function renderCustCard(c, highlight) {
   const contracts = c.contracts||[];
@@ -879,6 +974,8 @@ function renderCustCard(c, highlight) {
   const hasCard = contracts.some(ct=>(ct.payMethod||getV(ct,'납입방법')||'').includes('카드'));
   const hasRenew = contracts.some(ct=>getCoverages(ct).some(cv=>isRenew(cv)));
   const hasClaim = contracts.some(ct=>(ct.claims||[]).length>0);
+  // 계약자(고객)와 다른 피보험자들 (가족 계약 등)
+  const otherInsured = [...new Set(contracts.map(ct=>ct.rawJson?.피보험자).filter(Boolean).filter(n=>n!==(c.name||'')))];
   // 담보 하이라이트
   let hint = '';
   if (highlight) {
@@ -903,6 +1000,7 @@ function renderCustCard(c, highlight) {
     <div style="height:1px;background:var(--border);margin:10px 0 9px;"></div>
     <div class="cust-meta">
       <span class="chip blue">${contracts.length}건</span>
+      ${otherInsured.length?`<span class="chip" style="background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.2);">👤 피보험 ${otherInsured.slice(0,2).map(n=>escHtml(n)).join(', ')}${otherInsured.length>2?` 외 ${otherInsured.length-2}`:''}</span>`:''}
       ${dates.length?`<span class="chip">${dates[0]}</span>`:''}
       ${hasRenew?'<span class="chip amber">갱신형</span>':''}
       ${hasCard?'<span class="chip">💳 카드</span>':''}
@@ -1869,6 +1967,9 @@ window.showDetail = function(id, skipHistory) {
         ${memo?'':'style="display:none;"'}>📋 복사</button>
       <span class="cust-save-status" id="memo-status-${custDocId}"></span>
     </div>
+  </div>`;
+  html += `<div style="margin:6px 0 16px;padding:14px;border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--accent-light, rgba(59,91,219,.06));">
+    ${window.CovAgg ? window.CovAgg.renderHTML(c) : ''}
   </div>`;
   html+=`<div class="sec-label">보험 계약 (${contracts.length}건)</div>`;
   if (!contracts.length) html+='<div class="empty"><div class="empty-icon">📋</div><p>계약 없음</p></div>';
