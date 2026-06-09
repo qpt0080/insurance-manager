@@ -2286,6 +2286,23 @@ function parsePeriod(ct) {
   return y ? {year:parseInt(y[1]),month:null} : null;
 }
 
+// 주차 시상 매칭용 — 계약일 일(day) 파싱 + 기간 포함 여부
+function _parseFullDateAdmin(ct){
+  const d=ct.startDate||ct.rawJson?.계약일||'';
+  const m=String(d).match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+  return m?{year:+m[1],month:+m[2],day:+m[3]}:null;
+}
+function inWeeklyPeriodAdmin(ct,period,ay,am){
+  if(!period||!period.startDate||!period.endDate) return true; // 기간 없으면 전체 허용
+  const fd=_parseFullDateAdmin(ct);
+  if(!fd) return false; // 일자 모르면 주차 시상 매칭 불가 (안전하게 제외)
+  if(fd.year!==ay||fd.month!==am) return false;
+  const [sM,sD]=period.startDate.split('-').map(Number);
+  const [eM,eD]=period.endDate.split('-').map(Number);
+  if(fd.month===sM&&fd.month===eM) return fd.day>=sD&&fd.day<=eD;
+  return false;
+}
+
 function renderCommCalc(agentId,year,month,cts) {
   document.getElementById('comm-calc-area').style.display='block';
   let totalPrem=0,lifePrem=0,nonlifePrem=0;
@@ -2299,16 +2316,23 @@ function renderCommCalc(agentId,year,month,cts) {
   const nextMonthAwards=[],thirteenthAwards=[];
   awards.forEach(award=>{
     const co=award.company;
-    const prem=customersCache.filter(c=>c.agentId===agentId)
+    const coCts=customersCache.filter(c=>c.agentId===agentId)
       .flatMap(c=>c.contracts||[])
-      .filter(ct=>{const p=parsePeriod(ct);return p&&p.year===year&&p.month===month&&(ct.company||ct.rawJson?.보험사||'')===co;})
-      .reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+      .filter(ct=>{const p=parsePeriod(ct);return p&&p.year===year&&p.month===month&&(ct.company||ct.rawJson?.보험사||'')===co;});
+    const prem=coCts.reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
     if(!prem) return;
     (award.tiers||[]).forEach(tier=>{
       if(['consecutive','club'].includes(tier.type)||!tier.tiers?.length) return;
-      const best=[...tier.tiers].reverse().find(t=>prem>=t.threshold);
+      // 주차 가동시상이면 그 주차 기간(period) 계약만 합산 → 주차 문서가 여러 개여도 중복 없음
+      let usePrem=prem;
+      if(tier.period&&(tier.type==='weekly'||tier.type==='weekly_extra'||/주차/.test(tier.label||''))){
+        usePrem=coCts.filter(ct=>inWeeklyPeriodAdmin(ct,tier.period,year,month))
+          .reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+      }
+      if(!usePrem) return;
+      const best=[...tier.tiers].reverse().find(t=>usePrem>=t.threshold);
       if(!best||!best.reward) return;
-      const item={company:co,label:tier.label,type:tier.type,reward:best.reward,goldReward:best.goldReward||null,prem};
+      const item={company:co,label:tier.label,type:tier.type,reward:best.reward,goldReward:best.goldReward||null,prem:usePrem};
       tier.payTiming==='next_month'?nextMonthAwards.push(item):thirteenthAwards.push(item);
     });
   });

@@ -1090,6 +1090,12 @@ function calcAwardEstimate(cts) {
   const results = [];
   let totalEstimate = 0;
 
+  // 월 단위 시상(연속가동·클럽)은 같은 회사·같은 달이면 어느 주차 문서에서 와도 한 번만 계산
+  // (주차 가동시상은 period로 각 주차 계약만 잡으므로 중복 아님 → 제외 대상 아님)
+  const countedMonthly = new Set();
+  const monthlyKey = (co, tier) => co + '|' + tier.type + '|' + (tier.label||'') + '|' +
+    (tier.tiers||[]).map(t=>`${t.prevThreshold||t.threshold||0}:${t.currThreshold||0}:${t.reward||0}:${t.goldReward||''}`).join(',');
+
   matchedAwards.forEach(award => {
     const co   = award.company;
     const prem = companyPrem[co] || 0;
@@ -1162,6 +1168,11 @@ function calcAwardEstimate(cts) {
       if (tier.type === 'consecutive') {
         if (!tier.tiers?.length) return;
 
+        // 같은 달 다른 주차 문서에 동일 연속가동이 또 있으면 한 번만 계산
+        const _mk = monthlyKey(co, tier);
+        if (countedMonthly.has(_mk)) return;
+        countedMonthly.add(_mk);
+
         // 전월 데이터 없으면 "전월 실적 필요" 항목으로 표시
         if (!hasPrevData) {
           awardResults.push({
@@ -1199,6 +1210,11 @@ function calcAwardEstimate(cts) {
       // ── 클럽시상 (club) ──
       if (tier.type === 'club') {
         if (!tier.tiers?.length) return;
+
+        // 같은 달 다른 주차 문서에 동일 클럽시상이 또 있으면 한 번만 계산
+        const _mk = monthlyKey(co, tier);
+        if (countedMonthly.has(_mk)) return;
+        countedMonthly.add(_mk);
 
         // 전월 데이터 없으면 "전월 실적 필요" 표시
         if (!hasPrevData) {
