@@ -677,63 +677,41 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
         <div class="card" style="margin-bottom:0;">
           <div class="card-title">🏆 시상 정책 업로드</div>
 
-          <!-- 파일 선택 (이미지 + PDF + JSON) -->
-          <div style="margin-bottom:14px;">
-            <div class="form-label" style="margin-bottom:6px;">시상 파일 선택</div>
-            <input type="file" id="award-img-input" accept="image/*,application/pdf,.json,application/json"
-              multiple style="display:none;" onchange="onAwardImgSelect(event)"/>
-            <div id="award-img-drop"
-              ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
-              ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
-              ondrop="onAwardFileDrop(event)"
-              onclick="document.getElementById('award-img-input').click()"
-              style="border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);">
-              <div style="font-size:28px;margin-bottom:8px;">🏆</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text2);">시상 파일을 드래그하거나 탭해서 선택</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG · PNG · PDF · JSON · <b>여러 장 한 번에 선택 가능</b></div>
-            </div>
-            <div id="award-img-preview" style="display:none;margin-top:10px;">
-              <img id="award-img-thumb" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);display:none;"/>
-              <div id="award-pdf-badge" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600;color:var(--text2);">
-                📄 <span id="award-pdf-name"></span>
-              </div>
-            </div>
-            <!-- 여러 장 선택 시 배치 처리 UI -->
-            <div id="award-batch" style="display:none;margin-top:12px;">
-              <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">📚 선택한 시상 파일 <span id="award-batch-count" style="color:var(--accent);"></span></div>
-              <div id="award-batch-list" style="max-height:220px;overflow-y:auto;margin-bottom:10px;"></div>
-              <button onclick="processAwardBatch()" id="award-batch-btn" class="btn btn-primary btn-full" style="font-size:14px;padding:13px;">🤖 모두 추출하고 저장</button>
-              <button onclick="cancelAwardBatch()" class="btn btn-full" style="font-size:12px;padding:9px;margin-top:6px;color:var(--text3);">취소</button>
-              <div id="award-batch-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
-            </div>
+          <!-- 사용법 안내 -->
+          <div style="background:var(--accent-light);border:1px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.65;">
+            📸 시상 <b>이미지</b>는 <b>Claude 대화창</b>에 올려 JSON으로 변환한 뒤, 아래에 붙여넣어 저장하세요.<br>
+            <span style="color:var(--text3);">여러 보험사를 배열 <b>[ {…}, {…} ]</b> 로 한 번에 올릴 수 있어요.</span>
           </div>
 
-          <!-- 추출 버튼 -->
-          <button onclick="extractAwardJson()" id="award-extract-btn"
-            class="btn btn-primary btn-full" style="font-size:14px;padding:13px;margin-bottom:10px;" disabled>
-            🤖 AI로 추출하기
+          <!-- JSON 붙여넣기 (메인) -->
+          <div class="form-label" style="margin-bottom:6px;">시상 JSON 붙여넣기</div>
+          <textarea id="award-paste-input" class="form-textarea"
+            placeholder='Claude가 추출한 시상 JSON을 붙여넣으세요&#10;&#10;단일 객체 {…} 또는 여러 개 배열 [ {…}, {…} ] 모두 지원'
+            style="min-height:170px;font-size:12px;font-family:monospace;"></textarea>
+          <button onclick="applyAwardPasteJson()" class="btn btn-primary btn-full" style="margin-top:8px;font-size:14px;padding:13px;">
+            ✅ 적용하기
           </button>
-          <div id="award-extract-status" style="display:none;font-size:12px;color:var(--text3);margin-bottom:10px;text-align:center;"></div>
+          <div id="award-paste-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
 
-          <!-- JSON 직접 붙여넣기 -->
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <!-- 또는 JSON 파일 -->
+          <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px;">
             <div style="flex:1;height:1px;background:var(--border);"></div>
-            <span style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap;">또는</span>
+            <span style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap;">또는 JSON 파일</span>
             <div style="flex:1;height:1px;background:var(--border);"></div>
           </div>
-          <button onclick="toggleAwardJsonPaste()" id="award-paste-toggle-btn"
-            class="btn btn-full" style="font-size:13px;padding:11px;margin-bottom:0;">
-            📋 JSON 직접 붙여넣기
-          </button>
-          <div id="award-paste-area" style="display:none;margin-top:10px;">
-            <textarea id="award-paste-input" class="form-textarea"
-              placeholder='Claude가 추출한 시상 JSON을 붙여넣으세요&#10;&#10;단일 객체 ({...}) 또는 배열 ([...]) 모두 지원합니다.'
-              style="min-height:140px;font-size:12px;font-family:monospace;"></textarea>
-            <button onclick="applyAwardPasteJson()" class="btn btn-primary btn-full" style="margin-top:8px;font-size:13px;padding:11px;">
-              ✅ 적용하기
-            </button>
-            <div id="award-paste-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
+          <input type="file" id="award-json-file" accept=".json,application/json" multiple
+            style="display:none;" onchange="onAwardJsonFiles(event)"/>
+          <div id="award-json-drop"
+            ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
+            ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
+            ondrop="onAwardFileDrop(event)"
+            onclick="document.getElementById('award-json-file').click()"
+            style="border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);">
+            <div style="font-size:24px;margin-bottom:6px;">🔧</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text2);">.json 파일을 드래그하거나 탭해서 선택</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">여러 개 한 번에 가능</div>
           </div>
+          <div id="award-json-file-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
 
           <!-- 추출 결과 미리보기 -->
           <div id="award-json-preview" style="display:none;">
@@ -2542,55 +2520,42 @@ window.onContractFileDrop = function(e) {
   );
 };
 
-// ── ② 시상: JSON 파일 드롭 (이미지/PDF는 기존 onAwardImgSelect로) ──
+// ── ② 시상: JSON 파일 처리 (드래그/선택, 여러 개 가능) ──
+async function handleAwardJsonFiles(fileList){
+  const arr = Array.from(fileList||[]);
+  if(!arr.length) return;
+  const jsons = arr.filter(f => f.type==='application/json' || f.name.toLowerCase().endsWith('.json'));
+  const nonJson = arr.length - jsons.length;
+  const st = document.getElementById('award-json-file-status');
+  st.style.display='block';
+  if(!jsons.length){
+    st.style.color='var(--red)';
+    st.innerHTML = nonJson
+      ? '⚠️ 이미지는 여기서 못 읽어요. <b>Claude 대화창에서 JSON으로 변환</b>해 위 칸에 붙여넣어 주세요.'
+      : '❌ JSON 파일이 없어요.';
+    return;
+  }
+  st.style.color='var(--text3)'; st.textContent='⏳ 저장 중...';
+  let saved=0, failed=0;
+  for(const f of jsons){
+    try{
+      const parsed = JSON.parse(await readTextAsync(f));
+      const r = await saveAwardObjects(parsed); saved+=r.saved; failed+=r.failed;
+    }catch(e){ failed++; console.error('award json file error:', e); }
+  }
+  st.style.color = (failed&&!saved)?'var(--red)':failed?'var(--amber)':'var(--green)';
+  st.textContent = `${saved>0?'✅':'❌'} ${saved}건 저장${failed?` · ${failed}건 실패`:''}${nonJson?` (이미지 ${nonJson}개 제외)`:''}`;
+  if(saved>0){
+    showToast(`✅ 시상 ${saved}건 저장됐어요!`);
+    await loadAdminAwards(); renderAwardBanner(); renderAwardStatusCard(); loadAwardList();
+  }
+}
+window.onAwardJsonFiles = function(e){ handleAwardJsonFiles(e.target.files); };
 window.onAwardFileDrop = function(e) {
   e.preventDefault();
   const drop = e.currentTarget;
   drop.style.borderColor = 'var(--border)'; drop.style.background = 'var(--bg)';
-  const files = Array.from(e.dataTransfer.files || []);
-  if (!files.length) return;
-  if (files.length > 1) { enterAwardBatch(files); return; }  // 여러 장 → 배치 모드
-  const file = files[0];
-  const isJson = file.type === 'application/json' || file.name.endsWith('.json');
-  if (isJson) {
-    readJsonFile(file,
-      async data => {
-        drop.style.borderColor = 'var(--green)'; drop.style.background = 'var(--green-light)';
-        // 배열이면 일괄저장, 단일 객체면 preview
-        if (Array.isArray(data)) {
-          const status = document.getElementById('award-extract-status');
-          status.style.display = 'block'; status.style.color = 'var(--text3)';
-          status.textContent = `⏳ ${data.length}개 보험사 저장 중...`;
-          let saved = 0, failed = 0, lastErr = '';
-          for (const item of data) {
-            if (!item.company || !item.year || !item.month) { failed++; lastErr='company/year/month 누락'; continue; }
-            const docId = awardDocId(item.year, item.month, item.company, item.week);
-            try {
-              await setDoc(doc(db,'awards',docId), {...item, uploadedAt:new Date().toISOString(), uploadedBy:currentAdmin?.uid||'admin'});
-              saved++;
-            } catch(err) { failed++; lastErr = err.message; console.error('award save error:', err); }
-          }
-          status.textContent = `${saved>0?'✅':'❌'} ${saved}개 저장 완료${failed?` (${failed}개 실패: ${lastErr})`:''}`;
-          status.style.color = failed && saved===0 ? 'var(--red)' : failed ? 'var(--amber)' : 'var(--green)';
-          showToast(`✅ 시상 ${saved}개사 저장됐어요!`);
-          await loadAdminAwards(); renderAwardBanner(); renderAwardStatusCard(); loadAwardList();
-        } else {
-          if (!data.company || !data.year || !data.month) { showToast('❌ company·year·month 필드가 없어요.'); return; }
-          awardExtracted = data;
-          renderAwardPreview(data);
-          document.getElementById('award-extract-status').style.display = 'block';
-          document.getElementById('award-extract-status').textContent = `✅ ${file.name} 로드 완료! 아래에서 저장해주세요.`;
-          document.getElementById('award-extract-status').style.color = 'var(--green)';
-        }
-      },
-      err => showToast('❌ ' + err)
-    );
-  } else {
-    // 이미지/PDF는 기존 로직으로 위임
-    const dt = new DataTransfer(); dt.items.add(file);
-    const fakeEvt = { target: { files: dt.files } };
-    onAwardImgSelect(fakeEvt);
-  }
+  handleAwardJsonFiles(e.dataTransfer.files);
 };
 
 // ── ③ 고지의무: JSON 파일 드롭 ──
@@ -3224,9 +3189,6 @@ window.applyAwardPasteJson = async function() {
       renderAwardPreview(parsed);
       // JSON 원문 textarea도 채워둠
       document.getElementById('award-json-textarea').value = JSON.stringify(parsed, null, 2);
-      // paste area 숨기고 preview 보여줌
-      document.getElementById('award-paste-area').style.display = 'none';
-      document.getElementById('award-paste-toggle-btn').textContent = '📋 JSON 직접 붙여넣기';
       status.textContent = '✅ 미리보기 완료! 아래 저장 버튼을 눌러주세요.'; status.style.color = 'var(--green)';
     }
   } catch(e) {
