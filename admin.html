@@ -681,7 +681,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
           <div style="margin-bottom:14px;">
             <div class="form-label" style="margin-bottom:6px;">시상 파일 선택</div>
             <input type="file" id="award-img-input" accept="image/*,application/pdf,.json,application/json"
-              style="display:none;" onchange="onAwardImgSelect(event)"/>
+              multiple style="display:none;" onchange="onAwardImgSelect(event)"/>
             <div id="award-img-drop"
               ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
               ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
@@ -690,13 +690,21 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
               style="border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);">
               <div style="font-size:28px;margin-bottom:8px;">🏆</div>
               <div style="font-size:13px;font-weight:600;color:var(--text2);">시상 파일을 드래그하거나 탭해서 선택</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG · PNG · PDF · JSON 지원</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG · PNG · PDF · JSON · <b>여러 장 한 번에 선택 가능</b></div>
             </div>
             <div id="award-img-preview" style="display:none;margin-top:10px;">
               <img id="award-img-thumb" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);display:none;"/>
               <div id="award-pdf-badge" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600;color:var(--text2);">
                 📄 <span id="award-pdf-name"></span>
               </div>
+            </div>
+            <!-- 여러 장 선택 시 배치 처리 UI -->
+            <div id="award-batch" style="display:none;margin-top:12px;">
+              <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">📚 선택한 시상 파일 <span id="award-batch-count" style="color:var(--accent);"></span></div>
+              <div id="award-batch-list" style="max-height:220px;overflow-y:auto;margin-bottom:10px;"></div>
+              <button onclick="processAwardBatch()" id="award-batch-btn" class="btn btn-primary btn-full" style="font-size:14px;padding:13px;">🤖 모두 추출하고 저장</button>
+              <button onclick="cancelAwardBatch()" class="btn btn-full" style="font-size:12px;padding:9px;margin-top:6px;color:var(--text3);">취소</button>
+              <div id="award-batch-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
             </div>
           </div>
 
@@ -2539,7 +2547,10 @@ window.onAwardFileDrop = function(e) {
   e.preventDefault();
   const drop = e.currentTarget;
   drop.style.borderColor = 'var(--border)'; drop.style.background = 'var(--bg)';
-  const file = e.dataTransfer.files[0]; if (!file) return;
+  const files = Array.from(e.dataTransfer.files || []);
+  if (!files.length) return;
+  if (files.length > 1) { enterAwardBatch(files); return; }  // 여러 장 → 배치 모드
+  const file = files[0];
   const isJson = file.type === 'application/json' || file.name.endsWith('.json');
   if (isJson) {
     readJsonFile(file,
@@ -2829,10 +2840,137 @@ window.deletePoolItem = async function(idx){
 let awardImgBase64 = null;
 let awardImgMime   = null;
 let awardExtracted = null;
+let awardBatchFiles = [];
+
+function readDataUrlAsync(file){
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('파일 읽기 실패')); r.readAsDataURL(file); });
+}
+function readTextAsync(file){
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('파일 읽기 실패')); r.readAsText(file); });
+}
+
+// 시상 객체(또는 배열) 저장 — 유효성 체크 후 Firestore에 저장, {saved, failed} 반환
+async function saveAwardObjects(objs){
+  let saved=0, failed=0, firstSaved=null;
+  for(const obj of (Array.isArray(objs)?objs:[objs])){
+    if(!obj || !obj.company || !obj.year || !obj.month){ failed++; continue; }
+    try{
+      const docId = awardDocId(obj.year, obj.month, obj.company, obj.week);
+      await setDoc(doc(db,'awards',docId), {...obj, uploadedAt:new Date().toISOString(), uploadedBy:currentAdmin?.uid||'admin'});
+      saved++; if(!firstSaved) firstSaved=obj;
+    }catch(e){ failed++; console.error('award save error:', e); }
+  }
+  return { saved, failed, firstSaved };
+}
+
+// 단일 JSON 파일: 배열이면 바로 저장, 객체면 미리보기
+function loadSingleAwardJsonFile(file){
+  readTextAsync(file).then(async txt=>{
+    let parsed; try{ parsed=JSON.parse(txt); }catch(e){ showToast('❌ JSON 파싱 오류'); return; }
+    const st=document.getElementById('award-extract-status'); st.style.display='block';
+    if(Array.isArray(parsed)){
+      st.style.color='var(--text3)'; st.textContent=`⏳ ${parsed.length}개 저장 중...`;
+      const {saved,failed}=await saveAwardObjects(parsed);
+      st.style.color = failed&&!saved?'var(--red)':failed?'var(--amber)':'var(--green)';
+      st.textContent=`${saved>0?'✅':'❌'} ${saved}건 저장${failed?` · ${failed}건 실패`:''}`;
+      if(saved>0) showToast(`✅ 시상 ${saved}건 저장됐어요!`);
+      await loadAdminAwards(); renderAwardBanner(); renderAwardStatusCard(); loadAwardList();
+    } else {
+      if(!parsed.company||!parsed.year||!parsed.month){ showToast('❌ company·year·month 필드가 없어요.'); return; }
+      awardExtracted=parsed; renderAwardPreview(parsed);
+      st.style.color='var(--green)'; st.textContent=`✅ ${file.name} 로드 완료! 아래에서 저장해주세요.`;
+    }
+  }).catch(()=>showToast('❌ 파일 읽기 실패'));
+}
+
+// ── 여러 장 배치 모드 ──
+window.enterAwardBatch = function(files){
+  awardBatchFiles = Array.from(files);
+  // 단일 미리보기/추출 UI 숨기고 배치 UI 표시
+  document.getElementById('award-img-preview').style.display='none';
+  document.getElementById('award-json-preview').style.display='none';
+  document.getElementById('award-extract-btn').style.display='none';
+  document.getElementById('award-extract-status').style.display='none';
+  document.getElementById('award-img-drop').style.borderColor='var(--accent)';
+  const btn=document.getElementById('award-batch-btn');
+  btn.disabled=false; btn.textContent=`🤖 ${awardBatchFiles.length}장 모두 추출하고 저장`;
+  document.getElementById('award-batch-status').style.display='none';
+  document.getElementById('award-batch-count').textContent=`${awardBatchFiles.length}장`;
+  document.getElementById('award-batch').style.display='block';
+  renderAwardBatchList();
+};
+
+function fileIcon(f){ return f.type==='application/pdf'?'📄':(f.name.toLowerCase().endsWith('.json')?'🔧':'🖼️'); }
+function renderAwardBatchList(){
+  document.getElementById('award-batch-list').innerHTML = awardBatchFiles.map((f,i)=>`
+    <div id="award-batch-item-${i}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
+      <span style="font-size:15px;flex-shrink:0;">${fileIcon(f)}</span>
+      <span style="flex:1;min-width:0;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(f.name)}</span>
+      <span class="award-batch-state" style="font-size:11px;color:var(--text3);font-weight:700;white-space:nowrap;flex-shrink:0;">대기</span>
+    </div>`).join('');
+}
+function setBatchItemState(i, text, color){
+  const item=document.getElementById('award-batch-item-'+i); if(!item) return;
+  const s=item.querySelector('.award-batch-state'); s.textContent=text; s.style.color=color||'var(--text3)';
+}
+
+window.cancelAwardBatch = function(){
+  awardBatchFiles=[];
+  document.getElementById('award-batch').style.display='none';
+  document.getElementById('award-extract-btn').style.display='';
+  document.getElementById('award-img-drop').style.borderColor='var(--border)';
+  const inp=document.getElementById('award-img-input'); if(inp) inp.value='';
+};
+
+window.processAwardBatch = async function(){
+  if(!awardBatchFiles.length) return;
+  const btn=document.getElementById('award-batch-btn');
+  const status=document.getElementById('award-batch-status');
+  btn.disabled=true;
+  status.style.display='block'; status.style.color='var(--text3)';
+  let totalSaved=0, totalFailed=0;
+  for(let i=0;i<awardBatchFiles.length;i++){
+    const f=awardBatchFiles[i];
+    status.textContent=`⏳ ${i+1}/${awardBatchFiles.length} 처리 중...`;
+    setBatchItemState(i,'처리 중...','var(--accent)');
+    try{
+      const isJson = f.type==='application/json' || f.name.toLowerCase().endsWith('.json');
+      let parsed;
+      if(isJson){
+        parsed = JSON.parse(await readTextAsync(f));
+      } else {
+        const dataUrl = await readDataUrlAsync(f);
+        parsed = await extractAwardFromImage(dataUrl.split(',')[1], f.type || 'image/jpeg');
+      }
+      const {saved,failed,firstSaved}=await saveAwardObjects(parsed);
+      totalSaved+=saved; totalFailed+=failed;
+      if(saved>0){
+        const lbl = firstSaved ? `${escHtml(firstSaved.company)} ${firstSaved.month}월${firstSaved.week?` ${firstSaved.week}주차`:''}` : '저장';
+        setBatchItemState(i, `✅ ${lbl}`, 'var(--green)');
+      } else {
+        setBatchItemState(i, '❌ 필드 누락', 'var(--red)');
+      }
+    }catch(e){
+      totalFailed++; setBatchItemState(i, '❌ 실패', 'var(--red)');
+      console.error('award batch error:', e);
+    }
+  }
+  status.textContent=`${totalSaved>0?'✅':'❌'} ${totalSaved}건 저장${totalFailed?` · ${totalFailed}건 실패`:''} 완료!`;
+  status.style.color= totalFailed&&!totalSaved?'var(--red)':totalFailed?'var(--amber)':'var(--green)';
+  if(totalSaved>0) showToast(`✅ 시상 ${totalSaved}건 저장됐어요!`);
+  await loadAdminAwards(); renderAwardBanner(); renderAwardStatusCard(); loadAwardList();
+  btn.disabled=false;
+};
 
 window.onAwardImgSelect = function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  if (files.length > 1) { enterAwardBatch(files); return; }  // 여러 장 → 배치 모드
+
+  const file = files[0];
+  const isJson = file.type === 'application/json' || file.name.toLowerCase().endsWith('.json');
+  if (isJson) { loadSingleAwardJsonFile(file); return; }  // 단일 JSON은 바로 파싱
+
   awardImgMime = file.type;
   const isPdf = file.type === 'application/pdf';
   const reader = new FileReader();
@@ -2857,6 +2995,63 @@ window.onAwardImgSelect = function(e) {
   };
   reader.readAsDataURL(file);
 };
+
+// 이미지/PDF 1장 → 시상 JSON 추출 (단일·배치 공용)
+async function extractAwardFromImage(base64, mime){
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      system: `당신은 보험사 시상 정책 전문 분석 AI입니다.
+이미지에서 시상 정보를 추출해 아래 JSON 스키마로만 응답하세요. 설명·마크다운 없이 순수 JSON만 출력.
+
+스키마:
+{
+  "company": "보험사명",
+  "companyType": "손해보험|생명보험",
+  "year": 연도숫자,
+  "month": 월숫자,
+  "week": 주차숫자,
+  "issuer": "발행사명",
+  "payDay": "next_month_end",
+  "commonNotes": ["공통조건1","공통조건2"],
+  "tiers": [
+    {
+      "id": "고유ID_영문",
+      "type": "basic|weekly|weekly_extra|consecutive|club|flagship|membership",
+      "label": "시상명",
+      "payTiming": "next_month|13th_payment|quarterly",
+      "retention": null또는13,
+      "period": {"startDate":"MM-DD","endDate":"MM-DD"},
+      "tiers": [
+        {"threshold":원단위숫자, "reward":원단위숫자, "goldReward":null또는"N돈", "formula":"계산식설명"}
+      ],
+      "formula": "전체계산식",
+      "notes": "비고"
+    }
+  ],
+  "rawText": "원문텍스트요약"
+}
+
+규칙: 금액은 원 단위(10만→100000), 비율은 숫자(380%→380), 날짜는 MM-DD.`,
+      messages: [{
+        role: 'user',
+        content: [
+          mime === 'application/pdf'
+            ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+            : { type: 'image',    source: { type: 'base64', media_type: mime,              data: base64 } },
+          { type: 'text', text: '이 시상 정책 파일을 분석해서 JSON으로 추출해주세요.' }
+        ]
+      }]
+    })
+  });
+  const data  = await resp.json();
+  const raw   = data.content?.map(i=>i.text||'').join('').trim();
+  const clean = raw.replace(/^```json\n?|^```\n?|```$/gm,'').trim();
+  return JSON.parse(clean);
+}
 
 window.extractAwardJson = async function() {
   if (!awardImgBase64) return;
