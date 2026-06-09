@@ -167,8 +167,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 /* ── 업로드 탭 레이아웃 ── */
 .upload-layout{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;}
-@media (max-width:720px){.upload-layout{grid-template-columns:1fr;}.upload-tip-box{position:static;top:auto;}}
-.upload-tip-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:sticky;top:90px;}
+@media (max-width:720px){.upload-layout{grid-template-columns:1fr;}}
+.upload-tip-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
 .upload-tip-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
 .upload-tip-step{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;}
 .upload-tip-step:last-child{margin-bottom:0;}
@@ -1583,7 +1583,8 @@ function renderLinks() {
       <div class="link-url-wrap">
         ${token
           ? `<div class="link-url" title="${linkUrl}">${linkUrl}</div>
-             <button class="btn btn-sm" onclick="copyLink('${linkUrl}')">📋 복사</button>
+             <button class="btn btn-sm" onclick="copyLink('${linkUrl}')">📋 링크 복사</button>
+             <button class="btn btn-sm" onclick="copyToken('${token}')">🔑 코드 복사</button>
              <button class="btn btn-sm btn-danger" onclick="regenToken('${a.uid}')">🔄 재발급</button>
              <button class="btn btn-sm" onclick="revokeToken('${a.uid}','${escHtml(a.name||'')}')" style="color:var(--red);border-color:var(--red);">🚫 링크 삭제</button>`
           : `<div class="link-url" style="color:var(--text3);font-family:inherit;">링크 미발급</div>
@@ -2018,6 +2019,11 @@ window.revokeToken = async function(uid, name) {
 window.copyLink = function(url) {
   navigator.clipboard.writeText(url)
     .then(() => showToast('📋 링크가 복사됐어요!'))
+    .catch(() => showToast('❌ 복사 실패'));
+};
+window.copyToken = function(token) {
+  navigator.clipboard.writeText(token)
+    .then(() => showToast('🔑 코드가 복사됐어요!'))
     .catch(() => showToast('❌ 복사 실패'));
 };
 

@@ -88,10 +88,10 @@
     <div class="code-panel" id="codePanel">
       <div class="code-panel-label">🔑 접근 코드 입력</div>
       <input class="code-input" id="codeInput" type="text" inputmode="text" autocomplete="off"
-        placeholder="담당자에게 받은 코드" onkeydown="if(event.key==='Enter')goAgent()"/>
+        placeholder="받은 코드 또는 링크를 붙여넣기" onkeydown="if(event.key==='Enter')goAgent()"/>
       <button class="code-go" onclick="goAgent()">입장하기</button>
       <div class="code-err" id="codeErr"></div>
-      <div class="code-hint">코드는 담당 관리자가 발급한 개인 링크의 코드입니다. 한 번 입장하면 이 기기에 저장되어 다음부턴 바로 입장돼요.</div>
+      <div class="code-hint">담당 관리자가 발급한 코드(또는 링크 전체)를 붙여넣으면 돼요. 링크를 통째로 붙여넣어도 자동으로 코드만 인식합니다. 한 번 입장하면 이 기기에 저장되어 다음부턴 바로 입장돼요.</div>
     </div>
 
     <div class="foot">무진 보험관리 시스템</div>
@@ -114,14 +114,31 @@
       }
     }
 
+    // 붙여넣은 값에서 실제 토큰만 뽑아냄
+    // - 토큰만 붙여넣은 경우         → 그대로 사용
+    // - 전체 링크(...?token=xxx)     → token 값만 추출
+    function extractToken(raw){
+      raw = (raw || '').trim();
+      if (!raw) return '';
+      // 1) token= 파라미터가 들어있으면 그 값 사용
+      var m = raw.match(/[?&#]token=([^&\s#]+)/i) || raw.match(/token=([^&\s#]+)/i);
+      if (m){
+        try { return decodeURIComponent(m[1]).trim(); } catch(e){ return m[1].trim(); }
+      }
+      // 2) 그 외에는 공백/줄바꿈만 제거한 순수 코드로 취급
+      return raw.replace(/\s+/g, '');
+    }
+
     function goAgent(){
-      var code = (document.getElementById('codeInput').value || '').trim();
+      var raw = document.getElementById('codeInput').value || '';
       var err = document.getElementById('codeErr');
+      var code = extractToken(raw);
       if (!code){
         err.textContent = '접근 코드를 입력해 주세요.';
         err.style.display = 'block';
         return;
       }
+      err.style.display = 'none';
       // viewer로 토큰 전달 (viewer가 검증 후 저장)
       location.href = 'viewer.html?token=' + encodeURIComponent(code);
     }
