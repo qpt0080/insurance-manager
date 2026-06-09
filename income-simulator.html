@@ -252,19 +252,48 @@ function kbWeek1(){
 }
 
 // ── 저장된 시상 문서(award-extract 스키마)의 tiers[] → 시뮬레이터 항목 변환 ──
+// ⚠️ 가동/연속가동/클럽 등은 "보험료 구간별 현금 지급"이라 %가 아니라
+//    구간(band)별 현금 금액으로 다뤄야 함. (예전엔 현금÷구간×100으로 %를 만들어
+//    10만 구간에 300만 현금이면 3000% 같은 엉뚱한 값이 나왔음)
+const BAND_KEYS=[100000,200000,300000,500000];
+
+// 단일 threshold형(weekly/flagship/club 등): 구간별 현금. 빈 구간은 직전 구간 금액 이월.
 function bandsFromTiers(arr, keys){
-  const bands={100000:0,200000:0,300000:0,500000:0};
+  const raw={100000:0,200000:0,300000:0,500000:0};
   (arr||[]).forEach(t=>{
-    let th=null; for(const k of keys){ if(t[k]!=null){ th=t[k]; break; } }
-    if(th!=null && bands[th]!==undefined && (+t.reward)>0) bands[th]=+t.reward;
+    let th=null; for(const k of keys){ if(t[k]!=null){ th=+t[k]; break; } }
+    if(th!=null && raw[th]!==undefined && (+t.reward)>0) raw[th]=Math.max(raw[th],+t.reward);
+  });
+  let carry=0; const bands={};
+  for(const b of BAND_KEYS){ if(raw[b]>0) carry=raw[b]; bands[b]=carry; } // 구간 미달 시 직전 구간 적용
+  return bands;
+}
+
+// 연속가동형: 전월·당월 둘 다 충족해야 지급. 매월 같은 실적 가정이므로
+// 각 구간 B에서 prev·curr 둘 다 B 이하인 tier의 최대 현금을 적용.
+function bandsFromConsecutive(arr){
+  const bands={100000:0,200000:0,300000:0,500000:0};
+  BAND_KEYS.forEach(B=>{
+    let best=0;
+    (arr||[]).forEach(t=>{
+      const pv=+(t.prevThreshold??t.threshold??0);
+      const cv=+(t.currThreshold??t.threshold??0);
+      const rw=+(t.reward||0);
+      if(rw>0 && pv<=B && cv<=B) best=Math.max(best,rw);
+    });
+    bands[B]=best;
   });
   return bands;
 }
-// 금액 구간(bands)을 대표 %로 환산 (10만 기준 우선)
-function rateFromBands(b){
-  for(const k of [100000,200000,300000,500000]){ if(b[k]>0) return Math.round(b[k]/k*100); }
-  return 0;
+
+function bandsAllZero(b){ return BAND_KEYS.every(k=>!b[k]); }
+// 구간별 현금을 사람이 읽는 요약으로 (예: "10만→20만 · 20만→60만")
+function bandSub(b){
+  const out=[]; let last=null;
+  for(const k of BAND_KEYS){ if(b[k]>0 && b[k]!==last){ out.push(`${man(k)}만→${man(b[k])}만`); last=b[k]; } }
+  return out.join(' · ');
 }
+
 function itemsFromDoc(d){
   const out=[];
   (d.tiers||[]).forEach((t,i)=>{
@@ -273,11 +302,13 @@ function itemsFromDoc(d){
       const p=(t.periods&&t.periods[0])||{}; const rate=(p.totalRate??p.ownRate??0);
       out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true});
     } else if(t.type==='consecutive'){
-      const rate=rateFromBands(bandsFromTiers(t.tiers,['currThreshold','threshold','prevThreshold']));
-      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:rate?rate+'%':'', mode:'rate', rate, timing, on:true});
+      const bands=bandsFromConsecutive(t.tiers);
+      if(bandsAllZero(bands)) return; // 금시상 등 현금 0 → 제외
+      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true});
     } else if(['weekly','weekly_extra','flagship','club','membership'].includes(t.type)){
-      const rate=rateFromBands(bandsFromTiers(t.tiers,['threshold']));
-      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:rate?rate+'%':'', mode:'rate', rate, timing, on:true});
+      const bands=bandsFromTiers(t.tiers,['threshold']);
+      if(bandsAllZero(bands)) return;
+      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true});
     }
     // gift(물품) 등 현금 아님 → 제외
   });
@@ -399,8 +430,14 @@ function renderBands(){
 
 // ── 시상 항목 UI ──
 function renderItems(){
+  const curBand = matchBand(perf);
   F('items').innerHTML = items.map((it,idx)=>{
     const c=itemColor(idx);
+    const isBand = it.mode==='band';
+    const curAmt = isBand ? (curBand?(it.bands?.[curBand]||0):0) : 0;
+    const valBox = isBand
+      ? `<div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="band" value="${man(curAmt)}" ${curBand?'':'disabled'}><span class="u">만</span></div>`
+      : `<div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="rate" value="${comma(it.rate||0)}"><span class="u">%</span></div>`;
     return `<div class="item ${it.on?'':'off'}">
       <input type="checkbox" class="chk" data-i="${idx}" ${it.on?'checked':''}>
       <div class="tag" style="background:${c}"></div>
@@ -408,7 +445,7 @@ function renderItems(){
         <input class="nm-edit" data-i="${idx}" value="${(it.label||'').replace(/"/g,'&quot;')}" placeholder="시상 항목명">
         <small>${it.sub||''}</small>
       </div>
-      <div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="rate" value="${comma(it.rate||0)}"><span class="u">%</span></div>
+      ${valBox}
       <select class="pay" data-i="${idx}">
         <option value="next_month" ${it.timing==='next_month'?'selected':''}>익월</option>
         <option value="13th" ${it.timing==='13th'?'selected':''}>13회차</option>
@@ -424,7 +461,10 @@ function renderItems(){
     items[+el.dataset.i].label=el.value;
   }));
   F('items').querySelectorAll('.vbox input').forEach(el=>el.addEventListener('input',()=>{
-    items[+el.dataset.i].rate=+onlyDigits(el.value)||0; renderAll();
+    const it=items[+el.dataset.i]; const val=+onlyDigits(el.value)||0;
+    if(el.dataset.f==='band'){ const b=matchBand(perf); if(b){ it.bands=it.bands||{}; it.bands[b]=val*10000; } }
+    else { it.rate=val; }
+    renderAll();
   }));
   F('items').querySelectorAll('select.pay').forEach(el=>el.addEventListener('change',()=>{
     items[+el.dataset.i].timing=el.value; renderAll();
@@ -451,26 +491,48 @@ function renderAll(){
   F('t24').innerHTML=`${man(t24)}<span class="w">만원</span>`; F('t24f').textContent=KRW(t24);
 
   const labels=rows.map(r=>r.m+'월');
+
+  // 그라데이션 (캔버스 컨텍스트 기반)
+  const cv=F('chart'); const ctx=cv.getContext('2d');
+  const H=cv.height||320;
+  const barGrad=ctx.createLinearGradient(0,0,0,H);
+  barGrad.addColorStop(0,'#4E6EF2'); barGrad.addColorStop(1,'#CBD6FA');
+  const barHover=ctx.createLinearGradient(0,0,0,H);
+  barHover.addColorStop(0,'#2C46B8'); barHover.addColorStop(1,'#7E93D6');
+  const areaGrad=ctx.createLinearGradient(0,0,0,H);
+  areaGrad.addColorStop(0,'rgba(59,91,219,.30)'); areaGrad.addColorStop(.85,'rgba(59,91,219,.02)'); areaGrad.addColorStop(1,'rgba(59,91,219,0)');
+
   const ds=[
     {label:'월 입금', type:'bar', data:rows.map(r=>r.total),
-      backgroundColor:'#AEBEF5', hoverBackgroundColor:'#3B5BDB', borderRadius:6, borderSkipped:false,
-      yAxisID:'y', order:2, barPercentage:.8, categoryPercentage:.84},
+      backgroundColor:barGrad, hoverBackgroundColor:barHover, borderRadius:7, borderSkipped:false,
+      yAxisID:'y', order:2, barPercentage:.66, categoryPercentage:.86, maxBarThickness:26},
     {label:'누적 수령', type:'line', data:rows.map(r=>r.cum),
-      borderColor:'#3B5BDB', backgroundColor:'rgba(59,91,219,.13)', borderWidth:2.5, fill:true,
-      tension:.35, pointRadius:0, pointHoverRadius:4, pointBackgroundColor:'#3B5BDB', yAxisID:'y2', order:1}
+      borderColor:'#2C46B8', backgroundColor:areaGrad, borderWidth:3, fill:true,
+      tension:.4, pointRadius:0, pointHoverRadius:5, pointBackgroundColor:'#2C46B8',
+      pointBorderColor:'#fff', pointBorderWidth:2, yAxisID:'y2', order:1}
   ];
 
   const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{display:false},tooltip:{callbacks:{
-      title:i=>i[0].label+' 입금', label:c=>`${c.dataset.label}: ${KRW(c.parsed.y)}`}}},
-    scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:0,autoSkip:true,maxTicksLimit:8}},
-      y:{position:'left',beginAtZero:true,title:{display:true,text:'월 입금',font:{size:9}},ticks:{callback:v=>v/10000+'만',font:{size:9}},grid:{color:'#EEF0F4'}},
-      y2:{position:'right',beginAtZero:true,title:{display:true,text:'누적',font:{size:9}},ticks:{callback:v=>Math.round(v/10000)+'만',font:{size:9}},grid:{display:false}}}};
+    layout:{padding:{top:8}},
+    plugins:{legend:{display:false},tooltip:{
+      backgroundColor:'rgba(25,26,29,.92)', titleColor:'#fff', bodyColor:'#E4E6EC',
+      padding:12, cornerRadius:12, displayColors:true, boxPadding:4, usePointStyle:true,
+      titleFont:{size:12,weight:'700'}, bodyFont:{size:12},
+      callbacks:{ title:i=>i[0].label+' 입금', label:c=>` ${c.dataset.label}: ${KRW(c.parsed.y)}` }}},
+    scales:{
+      x:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#9AA0AA',maxRotation:0,autoSkip:true,maxTicksLimit:8}},
+      y:{position:'left',beginAtZero:true,border:{display:false},
+        title:{display:true,text:'월 입금',font:{size:9},color:'#9AA0AA'},
+        ticks:{callback:v=>v/10000+'만',font:{size:9},color:'#9AA0AA'},
+        grid:{color:'rgba(228,230,236,.7)',drawTicks:false}},
+      y2:{position:'right',beginAtZero:true,border:{display:false},
+        title:{display:true,text:'누적',font:{size:9},color:'#9AA0AA'},
+        ticks:{callback:v=>Math.round(v/10000)+'만',font:{size:9},color:'#9AA0AA'},grid:{display:false}}}};
   if(chart){chart.data={labels,datasets:ds};chart.options=opts;chart.update();}
-  else chart=new Chart(F('chart'),{type:'bar',data:{labels,datasets:ds},options:opts});
+  else chart=new Chart(cv,{type:'bar',data:{labels,datasets:ds},options:opts});
 
-  F('legend').innerHTML = `<span><i class="dot" style="background:#AEBEF5"></i>월 입금(막대)</span>`
-    + `<span><i class="dot" style="background:#3B5BDB;border-radius:50%"></i>누적 수령(면적)</span>`;
+  F('legend').innerHTML = `<span><i class="dot" style="background:linear-gradient(180deg,#4E6EF2,#CBD6FA)"></i>월 입금(막대)</span>`
+    + `<span><i class="dot" style="background:#2C46B8;border-radius:50%"></i>누적 수령(면적)</span>`;
 
   // 계약 1건당 1회성 시상 (참고)
   const oneNext = items.filter(it=>it.on&&it.timing==='next_month').reduce((s,it)=>s+itemReward(it),0);
