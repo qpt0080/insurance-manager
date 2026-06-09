@@ -2928,7 +2928,7 @@ window.processAwardBatch = async function(){
   const status=document.getElementById('award-batch-status');
   btn.disabled=true;
   status.style.display='block'; status.style.color='var(--text3)';
-  let totalSaved=0, totalFailed=0;
+  let totalSaved=0, totalFailed=0, apiBlocked=false;
   for(let i=0;i<awardBatchFiles.length;i++){
     const f=awardBatchFiles[i];
     status.textContent=`⏳ ${i+1}/${awardBatchFiles.length} 처리 중...`;
@@ -2951,9 +2951,18 @@ window.processAwardBatch = async function(){
         setBatchItemState(i, '❌ 필드 누락', 'var(--red)');
       }
     }catch(e){
-      totalFailed++; setBatchItemState(i, '❌ 실패', 'var(--red)');
+      totalFailed++;
+      const net = /AI_UNAVAILABLE|fetch|load failed|networkerror|failed to/i.test(e.message||'');
+      if(net) apiBlocked=true;
+      setBatchItemState(i, net ? '❌ AI추출 불가' : '❌ 실패', 'var(--red)');
       console.error('award batch error:', e);
     }
+  }
+  if(apiBlocked && totalSaved===0){
+    status.style.color='var(--red)';
+    status.innerHTML='⚠️ 이 사이트에서는 <b>AI 자동추출</b>이 막혀 있어요.<br>이미지는 Claude 대화창에서 JSON으로 받아 아래 <b>📋 JSON 직접 붙여넣기</b>로 올려주세요.';
+    btn.disabled=false;
+    return;
   }
   status.textContent=`${totalSaved>0?'✅':'❌'} ${totalSaved}건 저장${totalFailed?` · ${totalFailed}건 실패`:''} 완료!`;
   status.style.color= totalFailed&&!totalSaved?'var(--red)':totalFailed?'var(--amber)':'var(--green)';
@@ -3047,8 +3056,11 @@ async function extractAwardFromImage(base64, mime){
       }]
     })
   });
-  const data  = await resp.json();
-  const raw   = data.content?.map(i=>i.text||'').join('').trim();
+  const data  = await resp.json().catch(()=>null);
+  if (!resp.ok || !data || !Array.isArray(data.content)) {
+    throw new Error('AI_UNAVAILABLE'); // 게시 사이트에서 브라우저 직접 API 호출이 막힘 / 인증 없음
+  }
+  const raw   = data.content.map(i=>i.text||'').join('').trim();
   const clean = raw.replace(/^```json\n?|^```\n?|```$/gm,'').trim();
   return JSON.parse(clean);
 }
