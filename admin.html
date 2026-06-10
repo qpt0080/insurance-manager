@@ -587,6 +587,12 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
             <div class="preview-box">
               <div class="preview-title">📝 계약 미리보기</div>
               <div class="preview-grid" id="preview-info-grid"></div>
+              <div style="margin:4px 0 14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">📅 계약일 <span id="upload-date-hint" style="font-weight:600;text-transform:none;letter-spacing:0;"></span></div>
+                <input type="date" id="upload-date-input"
+                  onchange="document.getElementById('upload-date-hint').textContent='';"
+                  style="width:100%;max-width:220px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;">
+              </div>
               <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">담보 목록</div>
               <div class="preview-dambo-list" id="preview-dambo-list"></div>
             </div>
@@ -1577,13 +1583,13 @@ function renderLinks() {
         <div class="link-stat">고객 <span>${custCount}명</span></div>
         <div class="link-stat">계약 <span>${contractCount}건</span></div>
       </div>
-      <div class="link-url-wrap">
+      <div class="link-url-wrap" style="flex-wrap:wrap;">
         ${token
-          ? `<div class="link-url" title="${linkUrl}">${linkUrl}</div>
+          ? `<div class="link-url" title="${linkUrl}" style="flex:1 1 100%;min-width:0;">${linkUrl}</div>
              <button class="btn btn-sm" onclick="copyLink('${linkUrl}')">📋 링크 복사</button>
              <button class="btn btn-sm" onclick="copyToken('${token}')">🔑 코드 복사</button>
              <button class="btn btn-sm btn-danger" onclick="regenToken('${a.uid}')">🔄 재발급</button>
-             <button class="btn btn-sm" onclick="revokeToken('${a.uid}','${escHtml(a.name||'')}')" style="color:var(--red);border-color:var(--red);">🚫 링크 삭제</button>`
+             <button class="btn btn-sm" onclick="revokeToken('${a.uid}','${escHtml(a.name||'')}')" style="color:var(--red);border-color:var(--red);">🚫 삭제</button>`
           : `<div class="link-url" style="color:var(--text3);font-family:inherit;">링크 미발급</div>
              <button class="btn btn-sm btn-primary" onclick="genToken('${a.uid}')">🔗 링크 발급</button>`
         }
@@ -1642,9 +1648,9 @@ window.applyUploadJson = async function() {
   }
 };
 
+let uploadDateWasEstimated = false;
 function renderUploadPreview(data) {
-  const preview = document.getElementById('upload-preview');
-  preview.style.display = 'block';
+  const preview = document.getElementById('upload-preview');  preview.style.display = 'block';
   selectedCustomerId = null;
 
   // 정보 그리드
@@ -1655,7 +1661,6 @@ function renderUploadPreview(data) {
     ['보험사', data.보험사],
     ['상품명', data.상품명],
     ['월 보험료', data.월보험료],
-    ['계약일', data.계약일],
     ['보험기간', data.보험기간],
     ['납입기간', data.납입기간],
   ];
@@ -1664,6 +1669,20 @@ function renderUploadPreview(data) {
       <div class="preview-key">${k}</div>
       <div class="preview-val">${escHtml(String(v))}</div>
     </div>` : '').join('');
+
+  // 계약일 입력칸 prefill (계약일 → 없으면 발행일로 추정)
+  const dateInp = document.getElementById('upload-date-input');
+  const dateHint = document.getElementById('upload-date-hint');
+  if (dateInp) {
+    const 발행일p = data.발행일 || data.발행일자 || '';
+    const rawDate = data.계약일 || 발행일p || '';
+    const dmU = String(rawDate).match(/(\d{4})[.\-\/](\d{1,2})[.\-\/]?(\d{1,2})?/);
+    dateInp.value = dmU ? `${dmU[1]}-${String(dmU[2]).padStart(2,'0')}-${String(dmU[3]||'01').padStart(2,'0')}` : '';
+    uploadDateWasEstimated = !data.계약일 && !!발행일p;
+    dateHint.textContent = !rawDate ? '(추출 안 됨 — 직접 선택해주세요)'
+      : uploadDateWasEstimated ? '(발행일로 추정 — 다르면 수정해주세요)' : '';
+    dateHint.style.color = uploadDateWasEstimated || !rawDate ? 'var(--amber, #D97706)' : '';
+  }
 
   // 담보 목록
   const damboEl = document.getElementById('preview-dambo-list');
@@ -1842,11 +1861,19 @@ window.saveUploadContract = async function() {
     // 계약 데이터 변환
     const d = parsedContractData;
     const premiumRaw = parseFloat(String(d.월보험료||'').replace(/[^0-9.]/g,'')) || 0;
-    // 계약일이 없으면 발행일을 계약일로 자동 인식 (추정 표시 남김 — 나중에 수정 가능)
+    // 계약일: 업로드 화면에서 직접 지정한 값 우선 → 없으면 추출값(계약일→발행일 추정)
     const 발행일 = d.발행일 || d.발행일자 || d.rawJson?.발행일 || '';
     const 계약일실제 = d.계약일 || '';
-    const startDateVal = 계약일실제 || 발행일 || '';
-    const dateEstimated = !계약일실제 && !!발행일; // 발행일로 추정한 경우 true
+    const userDateVal = (document.getElementById('upload-date-input')?.value || '').trim();
+    let startDateVal, dateEstimated;
+    if (userDateVal) {
+      startDateVal = userDateVal;
+      // 사용자가 손대지 않은 '발행일 추정' prefill 그대로면 추정 표시 유지
+      dateEstimated = uploadDateWasEstimated && document.getElementById('upload-date-hint')?.textContent !== '';
+    } else {
+      startDateVal = 계약일실제 || 발행일 || '';
+      dateEstimated = !계약일실제 && !!발행일;
+    }
     const newContract = {
       id: 'ct_' + Date.now(),
       company: d.보험사 || '',
@@ -1973,6 +2000,7 @@ window.saveUploadContract = async function() {
 
     // 초기화
     document.getElementById('upload-json-input').value = '';
+    const _udi = document.getElementById('upload-date-input'); if (_udi) _udi.value = '';
     document.getElementById('upload-json-status').style.display = 'none';
     document.getElementById('upload-preview').style.display = 'none';
     parsedContractData = null;
@@ -1989,13 +2017,20 @@ window.saveUploadContract = async function() {
 
 // ── 뷰어 토큰 ──
 window.genToken = async function(uid) {
+  if (!uid) { showToast('❌ 이 설계사는 계정(uid)이 없어 발급할 수 없어요.'); return; }
   const token = Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,10);
   try {
     await updateDoc(doc(db,'agents',uid), {viewerToken: token});
     showToast('✅ 링크가 발급됐어요!');
     await loadAgents();
     renderLinks();
-  } catch(e) { showToast('❌ 발급 실패: ' + e.message); }
+  } catch(e) {
+    if (String(e.code||e.message).includes('permission')) {
+      showToast('❌ 발급 실패: Firestore 보안 규칙이 관리자의 agents 문서 수정을 막고 있어요. 규칙 업데이트가 필요합니다.');
+    } else {
+      showToast('❌ 발급 실패: ' + e.message);
+    }
+  }
 };
 
 window.regenToken = async function(uid) {
@@ -3168,7 +3203,7 @@ window.setCmScopeCustomer = function(docId) {
   renderCmScopeBanner();
   renderContractsList();
   const inp = document.getElementById('contracts-search');
-  if (inp) inp.focus();
+  if (inp) { inp.scrollIntoView({behavior:'smooth', block:'center'}); inp.focus({preventScroll:true}); }
 };
 window.clearCmScopeCustomer = function() {
   cmScopeCustomer = null;
@@ -3377,7 +3412,6 @@ window.renderContractsList = function() {
         <div class="cm-cust-menu-wrap">
           <button class="cm-cust-menu-btn" onclick="event.stopPropagation();toggleCustMenu('${c._docId}')" title="메뉴">⋯</button>
           <div class="cm-cust-dropdown" id="cust-menu-${c._docId}">
-            <button class="cm-cust-dropdown-item" onclick="event.stopPropagation();closeCustMenus();setCmScopeCustomer('${c._docId}')">🔎 이 고객 안에서 검색</button>
             <button class="cm-cust-dropdown-item" onclick="event.stopPropagation();closeCustMenus();openCustDetail('${c._docId}')">👤 고객 상세</button>
             <div class="cm-cust-dropdown-divider"></div>
             <button class="cm-cust-dropdown-item danger" onclick="event.stopPropagation();closeCustMenus();deleteCustomer('${c._docId}','${escHtml(c.name||'')}',${c.contracts?.length||0})">🗑 고객 삭제</button>
@@ -3388,6 +3422,11 @@ window.renderContractsList = function() {
         ${contracts.length===0
           ? '<div style="font-size:12px;color:var(--text3);padding:6px 2px;">이 조건에 맞는 계약 없음</div>'
           : ctRows}
+        ${contracts.length>0 && cmScopeCustomer!==c._docId ? `
+        <button onclick="event.stopPropagation();setCmScopeCustomer('${c._docId}')"
+          style="width:100%;margin-top:6px;padding:9px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);background:none;color:var(--text2);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">
+          🔎 이 고객 안에서 검색
+        </button>` : ''}
       </div>
     </div>`;
   }).filter(Boolean).join('');
