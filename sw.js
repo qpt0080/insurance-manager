@@ -2,7 +2,7 @@
    전략: 같은 출처(앱 셸) = 네트워크 우선 + 오프라인 시 캐시 폴백
         → 온라인이면 항상 최신(자동 업데이트 유지), 잠깐 끊겨도 화면은 뜸
    Firebase/gstatic 등 외부 출처는 가로채지 않고 그대로 네트워크로 보냄 */
-const CACHE = 'mujin-shell-v13';
+const CACHE = 'mujin-shell-v15';
 const SHELL = [
   'index.html','admin.html','viewer.html','dashboard.html','income-simulator.html',
   'search-engine.js','coverage-summary.js',
