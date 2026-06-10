@@ -37,6 +37,16 @@
 
   .state{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
     padding:44px 24px;text-align:center;color:var(--text2);margin-top:20px}
+
+  .pushbar{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--accent-light);border:1.5px solid rgba(59,91,219,.22);border-radius:var(--radius);
+    padding:13px 16px;margin-bottom:16px}
+  .pushbar-tx{display:flex;flex-direction:column;min-width:0}
+  .pushbar-tx b{font-size:13.5px;font-weight:700;color:var(--accent-dark)}
+  .pushbar-tx span{font-size:12px;color:var(--text2);margin-top:1px}
+  .pushbar .btn{flex:0 0 auto}
+  .pushbar.muted{background:var(--surface2);border-color:var(--border)}
+  .pushbar.muted b{color:var(--text2)}
   .state b{display:block;color:var(--text);font-size:16px;margin-bottom:6px;font-weight:700}
   .state .btn{margin-top:18px}
 
@@ -154,6 +164,11 @@
     <div class="me" id="me"></div>
   </header>
 
+  <div id="pushBar" class="pushbar" style="display:none">
+    <div class="pushbar-tx"><b id="pushTitle">🔔 새 공지를 알림으로 받기</b><span id="pushDesc">켜두면 새 공지·투표가 올라올 때 알려드려요.</span></div>
+    <button class="btn tiny" id="pushBtn">알림 켜기</button>
+  </div>
+
   <div id="gate" class="state" style="display:none">
     <b>입장 정보를 확인할 수 없어요</b>
     <span id="gateMsg">로그인 후 다시 들어와 주세요.</span>
@@ -209,6 +224,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 import {
   getFirestore, collection, doc, addDoc, setDoc, deleteDoc, updateDoc,
   getDoc, getDocs, onSnapshot, query, where, orderBy, serverTimestamp, Timestamp
@@ -229,6 +245,9 @@ const db = getFirestore(app);
 
 // 공지/투표 전용 컬렉션. (기존 notices 컬렉션은 고지의무 용도라 분리)
 const COL = 'announcements';
+
+// 웹 푸시 인증서(VAPID) 공개키
+const VAPID_KEY = "BOuWdcJswmFRvepEKfEdDbnnb76Bg_4Nmd5Hi3blPugIx4wa-b1O-HsOwMPTjNbzVkAY5dYeOu27tqR6IKJfrls";
 
 const $ = s => document.querySelector(s);
 const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -269,6 +288,7 @@ onAuthStateChanged(auth, async user => {
   await countActiveAgents();
   if (me.role === 'admin') initCompose();
   subscribeList();
+  setupPush();
 });
 
 // 익명(설계사)·이메일(관리자) 분기로 본인 식별
@@ -542,6 +562,66 @@ $('#feed').addEventListener('click', async e=>{
     }
   }catch(err){ alert('처리 실패: ' + (err.code||err.message)); }
 });
+
+// ── 푸시 알림 ──────────────────────────────────────────
+function setupPush(){
+  const bar = $('#pushBar');
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return; // 미지원
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const perm = Notification.permission;
+
+  if (perm === 'granted'){ registerToken().catch(()=>{}); return; } // 이미 켜짐
+
+  if (perm === 'denied'){
+    bar.classList.add('muted');
+    $('#pushTitle').textContent = '🔕 알림이 차단돼 있어요';
+    $('#pushDesc').textContent = '브라우저(또는 폰) 설정에서 이 사이트 알림을 허용해 주세요.';
+    $('#pushBtn').style.display = 'none';
+    bar.style.display = 'flex';
+    return;
+  }
+
+  // 권한 아직 안 물어봄(default)
+  if (isIOS && !standalone){
+    bar.classList.add('muted');
+    $('#pushTitle').textContent = '🔔 알림은 홈 화면 추가 후 켤 수 있어요';
+    $('#pushDesc').textContent = '공유 → "홈 화면에 추가" 한 뒤, 아이콘으로 열어서 켜주세요.';
+    $('#pushBtn').style.display = 'none';
+    bar.style.display = 'flex';
+    return;
+  }
+
+  $('#pushBtn').onclick = enablePush;
+  bar.style.display = 'flex';
+}
+
+async function enablePush(){
+  const btn = $('#pushBtn');
+  btn.disabled = true; btn.textContent = '설정 중…';
+  try{
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted'){
+      btn.disabled = false; btn.textContent = '알림 켜기';
+      alert('알림 권한이 허용되지 않았어요. 폰/브라우저 설정에서 허용할 수 있어요.');
+      return;
+    }
+    await registerToken();
+    $('#pushBar').style.display = 'none';
+  }catch(e){
+    btn.disabled = false; btn.textContent = '알림 켜기';
+    alert('알림 설정에 실패했어요: ' + (e.message || e));
+  }
+}
+
+async function registerToken(){
+  const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+  const messaging = getMessaging(app);
+  // getToken 호출 시점에 이 기기가 FCM에 등록됩니다.
+  // 콘솔에서 '앱 전체'로 보내면 등록된 모든 기기에 도착하므로 토큰을 따로 저장하지 않습니다.
+  return await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+}
 
 // 서비스워커 (다른 페이지와 동일)
 if ('serviceWorker' in navigator){
