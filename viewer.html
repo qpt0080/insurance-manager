@@ -511,7 +511,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
@@ -546,22 +546,39 @@ let awardsCache = [];
 let commissionsCache = [];
 let noticesCache = []; // 고지의무 캐시
 
+// 토큰 = base64url(email:password). 디코드 실패 시 null (구버전 토큰 포함).
+function decodeToken(t){
+  try {
+    t = String(t||'').replace(/-/g,'+').replace(/_/g,'/');
+    while (t.length % 4) t += '=';
+    const s = atob(t);
+    const i = s.indexOf(':');
+    if (i < 1) return null;
+    return { email: s.slice(0, i), pw: s.slice(i + 1) };
+  } catch(e) { return null; }
+}
+
 // ── 초기화 ──
 async function init() {
   if (!token) { showError('링크에 접근 코드가 없습니다.\n담당자에게 링크를 다시 받아주세요.'); return; }
-  // 익명 로그인: 저장(update) 권한 확보용. 실패해도 조회는 가능하도록 진행.
+  const cred = decodeToken(token);
+  if (!cred) {
+    try { localStorage.removeItem('mujinViewerToken'); } catch(e){}
+    showError('사용할 수 없는 코드입니다.\n(보안 업데이트로 기존 코드는 만료됐어요)\n담당자에게 새 링크를 받아주세요.');
+    return;
+  }
+  // 설계사 계정으로 로그인 — 로그인 성공 = 토큰 유효
   try {
-    await signInAnonymously(auth);
+    await signInWithEmailAndPassword(auth, cred.email, cred.pw);
   } catch(e) {
-    console.warn('익명 로그인 실패 (조회는 가능, 저장은 제한될 수 있음):', e.message);
+    try { localStorage.removeItem('mujinViewerToken'); } catch(e2){} // 무효 코드는 저장 안 남김
+    showError('유효하지 않은 링크입니다.\n담당자에게 링크를 다시 받아주세요.');
+    return;
   }
   try {
-    const snap = await getDocs(query(collection(db,'agents'), where('viewerToken','==',token)));
-    if (snap.empty) {
-      try { localStorage.removeItem('mujinViewerToken'); } catch(e){} // 무효 코드는 저장 안 남김
-      showError('유효하지 않은 링크입니다.\n담당자에게 링크를 다시 받아주세요.'); return;
-    }
-    snap.forEach(d => agentInfo = d.data());
+    const meSnap = await getDoc(doc(db, 'agents', auth.currentUser.uid));
+    if (!meSnap.exists()) { showError('설계사 정보를 찾을 수 없습니다.\n담당자에게 문의해주세요.'); return; }
+    agentInfo = meSnap.data();
     if (agentInfo.disabled) { showError('비활성화된 계정입니다.'); return; }
     try { localStorage.setItem('mujinViewerToken', token); } catch(e){} // 검증 성공 → 이 기기에 저장
     document.getElementById('agent-badge').textContent = agentInfo.name || agentInfo.email;

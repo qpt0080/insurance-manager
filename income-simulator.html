@@ -215,7 +215,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
@@ -371,12 +371,29 @@ async function loadAwards(){
   rebuildCompanySelect(); renderItems(); renderAll();
 }
 
-// 인증 후 로드 (admin 세션 있으면 그대로 사용, 없으면 익명 로그인)
+// 인증 후 로드 (admin/viewer 세션 있으면 그대로 사용, 없으면 저장된 설계사 코드로 로그인)
+function decodeToken(t){
+  try {
+    t = String(t||'').replace(/-/g,'+').replace(/_/g,'/');
+    while (t.length % 4) t += '=';
+    const s = atob(t);
+    const i = s.indexOf(':');
+    if (i < 1) return null;
+    return { email: s.slice(0, i), pw: s.slice(i + 1) };
+  } catch(e) { return null; }
+}
 let _started=false;
 onAuthStateChanged(auth, async(user)=>{
   if(_started) return;
-  if(user){ _started=true; await loadAwards(); }
-  else { try{ await signInAnonymously(auth); }catch(e){ _started=true; await loadAwards(); } }
+  if(user){ _started=true; await loadAwards(); return; }
+  let token=null;
+  try{ token = localStorage.getItem('mujinViewerToken'); }catch(e){}
+  const cred = token ? decodeToken(token) : null;
+  if(cred){
+    try{ await signInWithEmailAndPassword(auth, cred.email, cred.pw); return; }catch(e){}
+  }
+  // 로그인 불가 → 저장된 시상은 못 불러오지만 예시 프리셋으로는 동작
+  _started=true; await loadAwards();
 });
 
 function matchBand(P){ let b=null; for(const t of BANDS){ if(P>=t) b=t; } return b; }

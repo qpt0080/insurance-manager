@@ -223,7 +223,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 import {
   getFirestore, collection, doc, addDoc, setDoc, deleteDoc, updateDoc,
@@ -264,13 +264,27 @@ function showGate(msg){
   if (msg) $('#gateMsg').textContent = msg;
 }
 
+// 토큰 = base64url(email:password) — viewer.html과 동일 규칙
+function decodeToken(t){
+  try {
+    t = String(t||'').replace(/-/g,'+').replace(/_/g,'/');
+    while (t.length % 4) t += '=';
+    const s = atob(t);
+    const i = s.indexOf(':');
+    if (i < 1) return null;
+    return { email: s.slice(0, i), pw: s.slice(i + 1) };
+  } catch(e) { return null; }
+}
+
 onAuthStateChanged(auth, async user => {
   if (!user){
-    // 아직 미로그인. 설계사 토큰이 있으면 익명 로그인 시도.
+    // 미로그인. 저장된 설계사 코드가 있으면 그 계정으로 로그인 시도.
     let token = null;
     try { token = localStorage.getItem('mujinViewerToken'); } catch(e){}
-    if (token){
-      try { await signInAnonymously(auth); } catch(e){ showGate('로그인에 실패했어요. 네트워크를 확인해 주세요.'); }
+    const cred = token ? decodeToken(token) : null;
+    if (cred){
+      try { await signInWithEmailAndPassword(auth, cred.email, cred.pw); }
+      catch(e){ showGate('로그인에 실패했어요. 처음 화면에서 코드로 다시 입장해 주세요.'); }
       return; // 성공 시 이 콜백이 다시 호출됨
     }
     showGate('로그인 후 다시 들어와 주세요.');
@@ -291,22 +305,13 @@ onAuthStateChanged(auth, async user => {
   setupPush();
 });
 
-// 익명(설계사)·이메일(관리자) 분기로 본인 식별
+// 본인 식별: agents/{uid} 문서 조회 (설계사·관리자 공통)
 async function resolveMe(user){
-  if (user.isAnonymous){
-    let token = null;
-    try { token = localStorage.getItem('mujinViewerToken'); } catch(e){}
-    if (!token){ showGate('설계사 코드가 없어요. 처음 화면에서 코드로 입장해 주세요.'); return null; }
-    const qs = await getDocs(query(collection(db,'agents'), where('viewerToken','==',token)));
-    if (qs.empty){ showGate('유효하지 않은 코드예요. 담당자에게 링크를 다시 받아주세요.'); return null; }
-    let a; qs.forEach(d => a = d.data());
-    if (a.disabled){ showGate('비활성화된 계정이에요.'); return null; }
-    return { uid: a.uid, name: a.name || a.email || '설계사', role: a.role || 'agent' };
-  } else {
-    const snap = await getDoc(doc(db,'agents',user.uid));
-    const d = snap.exists() ? snap.data() : {};
-    return { uid: user.uid, name: d.name || '관리자', role: d.role || 'agent' };
-  }
+  const snap = await getDoc(doc(db,'agents',user.uid));
+  if (!snap.exists()){ showGate('설계사 정보를 찾을 수 없어요. 담당자에게 문의해 주세요.'); return null; }
+  const d = snap.data();
+  if (d.disabled){ showGate('비활성화된 계정이에요.'); return null; }
+  return { uid: user.uid, name: d.name || d.email || '설계사', role: d.role || 'agent' };
 }
 
 async function countActiveAgents(){
@@ -616,7 +621,10 @@ async function enablePush(){
 }
 
 async function registerToken(){
-  const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+  // FCM 핸들러가 sw.js에 통합됨 (별도 firebase-messaging-sw.js를 같은 스코프에
+  // 등록하면 PWA 서비스워커와 서로를 밀어내 푸시가 깨지므로 하나로 합침)
+  const reg = await navigator.serviceWorker.register('sw.js');
+  await navigator.serviceWorker.ready;
   const messaging = getMessaging(app);
   // getToken 호출 시점에 이 기기가 FCM에 등록됩니다.
   // 콘솔에서 '앱 전체'로 보내면 등록된 모든 기기에 도착하므로 토큰을 따로 저장하지 않습니다.

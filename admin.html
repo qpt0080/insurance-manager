@@ -1089,7 +1089,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-  sendPasswordResetEmail, createUserWithEmailAndPassword
+  sendPasswordResetEmail, createUserWithEmailAndPassword, updatePassword
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1109,6 +1109,7 @@ const subApp = initializeApp(firebaseConfig, "sub");
 const subAuth = getAuth(subApp);
 
 let agentsCache = [];
+let secretsCache = {}; // uid → {email, password} (agentSecrets, 관리자 전용)
 let customersCache = [];
 let awardsCache = []; // 시상 정책 캐시
 let currentAdmin = null;
@@ -1171,6 +1172,12 @@ async function loadAgents() {
     if (b.role==='admin' && a.role!=='admin') return 1;
     return (a.name||'').localeCompare(b.name||'');
   });
+  // 토큰(자격증명) 비밀정보 — 규칙상 관리자만 읽기 가능
+  secretsCache = {};
+  try {
+    const sec = await getDocs(collection(db,'agentSecrets'));
+    sec.forEach(d => secretsCache[d.id] = d.data());
+  } catch(e) {}
 }
 
 async function loadCustomers() {
@@ -1568,7 +1575,7 @@ function renderLinks() {
   const base = location.href.replace('admin.html','viewer.html');
 
   el.innerHTML = agentsCache.map(a => {
-    const token = a.viewerToken || null;
+    const token = tokenFor(a.uid);
     const custCount = customersCache.filter(c => c.agentId === a.uid).length;
     const contractCount = customersCache
       .filter(c => c.agentId === a.uid)
@@ -1585,7 +1592,9 @@ function renderLinks() {
         <div class="link-stat">계약 <span>${contractCount}건</span></div>
       </div>
       <div class="link-url-wrap" style="flex-wrap:wrap;">
-        ${token
+        ${a.role==='admin'
+          ? `<div class="link-url" style="color:var(--text3);font-family:inherit;">관리자는 로그인으로 입장 (뷰어 링크 없음)</div>`
+          : token
           ? `<div class="link-url" title="${linkUrl}" style="flex:1 1 100%;min-width:0;">${linkUrl}</div>
              <button class="btn btn-sm" onclick="copyLink('${linkUrl}')">📋 링크 복사</button>
              <button class="btn btn-sm" onclick="copyToken('${token}')">🔑 코드 복사</button>
@@ -2017,32 +2026,109 @@ window.saveUploadContract = async function() {
 };
 
 // ── 뷰어 토큰 ──
+// 새 방식: 토큰 = base64url(이메일:비밀번호).
+// 설계사는 이 코드로 자기 계정에 실제 로그인하므로,
+// Firestore 규칙이 "본인 고객만" 읽기를 서버 차원에서 강제할 수 있음.
+function encodeToken(email, pw) {
+  return btoa(email + ':' + pw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function randomPw() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const a = crypto.getRandomValues(new Uint8Array(20));
+  return Array.from(a, b => chars[b % chars.length]).join('') + 'Aa1!';
+}
+function tokenFor(uid) {
+  const s = secretsCache[uid];
+  return (s && s.email && s.password) ? encodeToken(s.email, s.password) : null;
+}
+
 window.genToken = async function(uid) {
   if (!uid) { showToast('❌ 이 설계사는 계정(uid)이 없어 발급할 수 없어요.'); return; }
-  const token = Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,10);
+  const target = agentsCache.find(a => a.uid === uid);
+  if (target && target.role === 'admin') {
+    showToast('❌ 관리자 계정에는 뷰어 링크를 발급할 수 없어요. (관리자는 로그인으로 입장)');
+    return;
+  }
+  const btnGuard = `토큰 발급 중...`;
   try {
-    await updateDoc(doc(db,'agents',uid), {viewerToken: token});
-    showToast('✅ 링크가 발급됐어요!');
-    await loadAgents();
+    const secSnap = await getDoc(doc(db,'agentSecrets',uid));
+    if (secSnap.exists()) {
+      // 비밀번호 회전 → 기존 링크는 즉시 무효, 새 링크 발급
+      const sec = secSnap.data();
+      showToast('🔄 ' + btnGuard);
+      await signInWithEmailAndPassword(subAuth, sec.email, sec.password);
+      const newPw = randomPw();
+      await updatePassword(subAuth.currentUser, newPw);
+      await subAuth.signOut();
+      await setDoc(doc(db,'agentSecrets',uid), {email: sec.email, password: newPw, updatedAt: new Date().toISOString()});
+      showToast('✅ 링크가 발급됐어요!');
+    } else {
+      // 비밀정보가 없는 기존 계정(구버전 토큰 시절) → 새 계정으로 재생성 + 데이터 이전
+      showToast('🔄 계정 재생성 및 데이터 이전 중...');
+      await recreateAgentAccount(uid);
+      showToast('✅ 새 계정으로 전환하고 링크를 발급했어요!');
+    }
+    await loadAll();
     renderLinks();
   } catch(e) {
+    try { await subAuth.signOut(); } catch(e2){}
     if (String(e.code||e.message).includes('permission')) {
-      showToast('❌ 발급 실패: Firestore 보안 규칙이 관리자의 agents 문서 수정을 막고 있어요. 규칙 업데이트가 필요합니다.');
+      showToast('❌ 발급 실패: Firestore 보안 규칙 업데이트가 필요합니다. (agentSecrets 권한)');
     } else {
-      showToast('❌ 발급 실패: ' + e.message);
+      showToast('❌ 발급 실패: ' + (e.message||e));
     }
   }
 };
 
+// 구버전 계정 전환: 새 Auth 계정 생성 → agents 문서 이전 → customers/commissions의 agentId 일괄 변경
+async function recreateAgentAccount(oldUid) {
+  const old = agentsCache.find(a => a.uid === oldUid) || {};
+  const name = old.name || '설계사';
+  const slug = name.replace(/\s+/g,'').toLowerCase() + '_' + Date.now();
+  const email = `${slug}@agent.insuremgr.com`;
+  const password = randomPw();
+
+  const cred = await createUserWithEmailAndPassword(subAuth, email, password);
+  const newUid = cred.user.uid;
+  await subAuth.signOut();
+
+  // 새 agents 문서 (구버전 viewerToken 필드는 옮기지 않음)
+  await setDoc(doc(db,'agents',newUid), {
+    uid: newUid, name, email, role: old.role || 'agent',
+    disabled: !!old.disabled, createdAt: old.createdAt || new Date().toISOString()
+  });
+  await setDoc(doc(db,'agentSecrets',newUid), {email, password, updatedAt: new Date().toISOString()});
+
+  // 담당 데이터 이전
+  const custs = await getDocs(query(collection(db,'customers'), where('agentId','==',oldUid)));
+  for (const d of custs.docs) await updateDoc(doc(db,'customers',d.id), {agentId: newUid});
+  const comms = await getDocs(query(collection(db,'commissions'), where('agentId','==',oldUid)));
+  for (const d of comms.docs) await updateDoc(doc(db,'commissions',d.id), {agentId: newUid});
+
+  // 옛 문서 제거 (옛 Auth 계정은 비번을 몰라 클라이언트에서 삭제 불가 →
+  // Firebase 콘솔 > Authentication에서 수동 삭제 권장. 문서가 없으니 접근은 이미 차단됨)
+  await deleteDoc(doc(db,'agents',oldUid));
+}
+
 window.regenToken = async function(uid) {
-  if (!confirm('링크를 재발급하면 기존 링크는 사용 불가합니다. 계속할까요?')) return;
+  if (!confirm('링크를 재발급하면 기존 링크는 즉시 사용 불가합니다. 계속할까요?')) return;
   await genToken(uid);
 };
 
 window.revokeToken = async function(uid, name) {
   if (!confirm(`"${name}" 링크를 삭제할까요?\n삭제하면 해당 설계사는 뷰어에 접속할 수 없어요.`)) return;
   try {
-    await updateDoc(doc(db,'agents',uid), {viewerToken: null});
+    const secSnap = await getDoc(doc(db,'agentSecrets',uid));
+    if (secSnap.exists()) {
+      const sec = secSnap.data();
+      try {
+        // 비밀번호를 아무도 모르는 값으로 회전 → 떠도는 링크도 즉시 무효
+        await signInWithEmailAndPassword(subAuth, sec.email, sec.password);
+        await updatePassword(subAuth.currentUser, randomPw());
+        await subAuth.signOut();
+      } catch(e) { try { await subAuth.signOut(); } catch(e2){} }
+      await deleteDoc(doc(db,'agentSecrets',uid));
+    }
     showToast(`✅ "${name}" 링크가 삭제됐어요.`);
     await loadAgents();
     renderLinks();
@@ -2103,14 +2189,15 @@ window.createAgent = async function() {
   // 이메일/비밀번호 자동 생성 (Firebase Auth 필요, 화면에는 표시 안 함)
   const slug = name.replace(/\s+/g,'').toLowerCase() + '_' + Date.now();
   const email = `${slug}@agent.insuremgr.com`;
-  const password = Math.random().toString(36).slice(2,10) + 'Aa1!';
+  const password = randomPw();
   showCreateStatus('loading','계정 생성 중...');
   try {
     const cred = await createUserWithEmailAndPassword(subAuth, email, password);
     const uid = cred.user.uid;
     await setDoc(doc(db,'agents',uid), {uid, name, email, role:'agent', disabled:false, createdAt:new Date().toISOString()});
+    await setDoc(doc(db,'agentSecrets',uid), {email, password, updatedAt:new Date().toISOString()});
     await subAuth.signOut();
-    showCreateStatus('done', `✅ ${name}님 계정 생성 완료!`);
+    showCreateStatus('done', `✅ ${name}님 계정 생성 완료! 뷰어 링크도 바로 발급됐어요.`);
     document.getElementById('new-name').value='';
     await loadAll();
   } catch(e) {
