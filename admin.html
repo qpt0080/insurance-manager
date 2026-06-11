@@ -497,6 +497,11 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
   <!-- ───────────── 탭 1: 대시보드 ───────────── -->
   <div id="tab-dashboard" class="tab-panel active">
+    <div id="orphan-warning" style="display:none;background:#FEF3E2;border:1.5px solid #F5C97B;border-radius:var(--radius);padding:13px 16px;margin-bottom:14px;cursor:pointer;"
+      onclick="switchTab('agents');setTimeout(runDataCheck,300);">
+      <div style="font-size:13px;font-weight:700;color:#92600A;">⚠️ 담당 연결 문제 <span id="orphan-count">0</span>건 발견</div>
+      <div style="font-size:12px;color:#A87416;margin-top:2px;">일부 고객의 담당 설계사 연결이 끊어져 뷰어에 표시되지 않아요. 눌러서 바로 점검·수리하기 →</div>
+    </div>
     <div class="stats">
       <div class="stat-hero-wrap">
         <div class="stat-hero-label">전체 누적</div>
@@ -1028,6 +1033,19 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <!-- 서브패널: 계정 관리 -->
     <div id="agents-sub-accounts">
 
+      <!-- 데이터 점검: 고객 담당(agentId) 연결 상태 -->
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>🔧 데이터 점검</span>
+          <button class="btn btn-sm" onclick="runDataCheck()">점검 실행</button>
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px;">
+          모든 고객의 담당(agentId)이 실제 설계사 계정과 연결돼 있는지 확인합니다.
+          뷰어에 계약이 안 보일 때 여기서 원인을 찾고 바로 고칠 수 있어요.
+        </div>
+        <div id="data-check-result"></div>
+      </div>
+
       <!-- 계정 생성 -->
       <div class="card">
         <div class="card-title">➕ 새 설계사 계정 생성</div>
@@ -1177,6 +1195,23 @@ async function loadAll() {
   renderLinks();
   renderAgentRadios();
   renderAwardBanner();
+  checkOrphanAgents(); // 담당 연결 자동 점검 (문제 있을 때만 배너)
+}
+
+// 끊어진 담당(agentId가 어떤 설계사 계정과도 안 맞는 고객) 자동 감지
+function checkOrphanAgents() {
+  try {
+    const validIds = new Set(agentsCache.map(a => a._docId).filter(Boolean));
+    const orphans = customersCache.filter(c => !c.agentId || !validIds.has(c.agentId));
+    const banner = document.getElementById('orphan-warning');
+    if (!banner) return;
+    if (orphans.length) {
+      document.getElementById('orphan-count').textContent = orphans.length;
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch(e) {}
 }
 
 async function loadAdminAwards() {
@@ -1556,6 +1591,82 @@ window.reassignFromDetail = async function(docId) {
     showToast('❌ 이관 실패: ' + e.message);
     if (saveBtn) { saveBtn.textContent='💾 이관'; saveBtn.disabled=false; }
   }
+};
+
+// ── 데이터 점검: 고객 agentId ↔ 설계사 계정 연결 상태 ──
+window.runDataCheck = async function() {
+  const box = document.getElementById('data-check-result');
+  box.innerHTML = '<div class="empty">점검 중...</div>';
+  try {
+    await loadAgents();
+    const custSnap = await getDocs(collection(db,'customers'));
+    const custs = [];
+    custSnap.forEach(d => custs.push({...d.data(), _docId: d.id}));
+
+    const myUid = auth.currentUser.uid;
+    const uidToName = {};
+    agentsCache.forEach(a => { if (a._docId) uidToName[a._docId] = (a.name||a.email||'') + (a.role==='admin'?' (관리자)':''); });
+
+    let rows = '';
+    let problems = 0;
+    custs.forEach(c => {
+      const aid = c.agentId;
+      let status, color, fixBtn = '';
+      if (aid && uidToName[aid] !== undefined) {
+        status = `✅ ${escHtml(uidToName[aid])}`; color = 'var(--text2)';
+      } else {
+        problems++;
+        status = aid ? `❌ 끊어진 담당 (값: <code style="font-size:10px;background:var(--surface2);padding:1px 4px;border-radius:4px;">${escHtml(String(aid)).slice(0,18)}…</code>)` : '❌ 담당 없음';
+        color = 'var(--red)';
+        fixBtn = `<button class="btn btn-sm btn-primary" style="font-size:11px;padding:4px 9px;" onclick="fixCustAgent('${c._docId}')">나(관리자)로 지정</button>`;
+      }
+      const ctn = (c.contracts||[]).length;
+      rows += `<div style="display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+        <b style="font-size:13px;">${escHtml(c.name||'(이름없음)')}</b>
+        <span style="font-size:11px;color:var(--text3);">계약 ${ctn}건</span>
+        <span style="font-size:12px;color:${color};flex:1;min-width:140px;">${status}</span>
+        ${fixBtn}
+      </div>`;
+    });
+
+    const myDocUid = (agentsCache.find(a=>a._docId===myUid)||{}).uid;
+    const uidNote = myDocUid === myUid
+      ? '✅ 관리자 문서 uid 필드 정상'
+      : `⚠️ 관리자 문서 uid 필드(${escHtml(String(myDocUid||'없음')).slice(0,12)}…)가 로그인 uid와 달라요 — 페이지 새로고침 시 자동 보정됩니다.`;
+
+    box.innerHTML = `
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">
+        고객 ${custs.length}명 점검 — 문제 ${problems}건 · ${uidNote}<br>
+        <span style="color:var(--text3);">내 로그인 uid: <code style="font-size:10px;background:var(--surface2);padding:1px 4px;border-radius:4px;">${escHtml(myUid)}</code></span>
+      </div>
+      ${rows || '<div class="empty">고객 데이터가 없습니다.</div>'}
+      ${problems ? `<button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="fixAllOrphans()">⚡ 문제 ${problems}건 모두 나(관리자)로 지정</button>` : ''}
+    `;
+    window._dataCheckOrphans = custs.filter(c => !(c.agentId && uidToName[c.agentId] !== undefined)).map(c => c._docId);
+  } catch(e) {
+    box.innerHTML = `<div class="empty" style="color:var(--red);">점검 실패: ${escHtml(e.message||String(e))}</div>`;
+  }
+};
+
+window.fixCustAgent = async function(docId) {
+  try {
+    await updateDoc(doc(db,'customers',docId), {agentId: auth.currentUser.uid, agentName: '관리자'});
+    showToast('✅ 담당을 관리자로 지정했어요.');
+    await loadAll();
+    runDataCheck();
+  } catch(e) { showToast('❌ 실패: ' + e.message); }
+};
+
+window.fixAllOrphans = async function() {
+  const ids = window._dataCheckOrphans || [];
+  if (!ids.length) return;
+  if (!confirm(`${ids.length}건의 고객 담당을 모두 관리자(나)로 지정할까요?`)) return;
+  try {
+    for (const id of ids) await updateDoc(doc(db,'customers',id), {agentId: auth.currentUser.uid, agentName: '관리자'});
+    showToast(`✅ ${ids.length}건 지정 완료!`);
+    await loadAll();
+    runDataCheck();
+  } catch(e) { showToast('❌ 실패: ' + e.message); }
 };
 
 // ── 설계사 관리 ──
