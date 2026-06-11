@@ -476,7 +476,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     </div>
     <div class="header-right">
       <span id="admin-name-badge" style="font-size:12px;font-weight:600;color:var(--text2);"></span>
-      <a href="viewer.html" class="btn btn-sm" style="text-decoration:none;background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.25);">👤<span class="hdr-label"> 내 뷰어</span></a>
       <a href="dashboard.html" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.25);">📊<span class="hdr-label"> 대시보드</span></a>
       <button onclick="doLogout()" class="btn btn-sm">🚪<span class="hdr-label"> 로그아웃</span></button>
     </div>
@@ -1461,7 +1460,7 @@ function renderAdminPerf() {
 
 // ── 대시보드 ──
 function renderDashboard() {
-  const agents = agentsCache.filter(a => a.role !== 'admin');
+  const agents = agentsCache; // 관리자도 설계사로서 활동하므로 팀원에 포함
   let totalCust = customersCache.length;
   let totalContracts = 0;
   let totalPremium = 0;
@@ -3896,7 +3895,7 @@ window.openCustDetail = function(custDocId) {
           <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">👤 담당 설계사</div>
           <div style="display:flex;gap:8px;">
             <select id="adm-agent-sel-${custDocId}" onchange="document.getElementById('adm-agent-save-${custDocId}').style.display='inline-flex';" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;background:var(--surface);color:var(--text);outline:none;-webkit-appearance:none;appearance:none;">
-              ${agentsCache.filter(a=>a.role!=='admin'&&a.uid).map(a=>`<option value="${a.uid}" ${cust.agentId===a.uid?'selected':''}>${escHtml(a.name||a.email)}${a.disabled?' (비활성)':''}</option>`).join('')}
+              ${agentsCache.filter(a=>a.uid).map(a=>`<option value="${a.uid}" ${cust.agentId===a.uid?'selected':''}>${escHtml(a.name||a.email)}${a.role==='admin'?' 👑':''}${a.disabled?' (비활성)':''}</option>`).join('')}
             </select>
             <button class="btn btn-primary btn-sm" id="adm-agent-save-${custDocId}"
               onclick="reassignFromDetail('${custDocId}')" style="display:none;">💾 이관</button>

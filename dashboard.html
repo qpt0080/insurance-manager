@@ -495,7 +495,7 @@ function renderDash(){
   });
   const commEst = totalPrem * 5.22;
   const activeAgents = new Set(allCts.map(c => c._agentId).filter(Boolean));
-  const totalAgents = agentsCache.filter(a => a.role !== 'admin' && !a.disabled).length;
+  const totalAgents = agentsCache.filter(a => !a.disabled).length; // 관리자 포함
 
   document.getElementById('period-label').textContent = `— ${CUR_YEAR}년 ${CUR_MONTH}월 누적 실적`;
   countUp('kpi-contracts', allCts.length);
@@ -512,7 +512,7 @@ function renderDash(){
 }
 
 function renderRanking(){
-  const rows = agentsCache.filter(a => a.role !== 'admin' && !a.disabled).map(a => {
+  const rows = agentsCache.filter(a => !a.disabled).map(a => {
     const myCusts = customersCache.filter(c => c.agentId === a.uid);
     const cts = curMonthContracts(myCusts);
     const prem = cts.reduce((s,ct) => s + premOf(ct), 0);
@@ -649,7 +649,7 @@ function initSimControls(){
   coSel.innerHTML = companies.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
 
   const chipEl = document.getElementById('agent-chips');
-  const agents = agentsCache.filter(a => a.role !== 'admin' && a.uid && !a.disabled);
+  const agents = agentsCache.filter(a => a.uid && !a.disabled);
   chipEl.innerHTML =
     `<button class="agent-chip active" data-uid="" onclick="pickAgent('',this)"><span class="ac-dot"></span>전체 보기</button>` +
     agents.map(a => `<button class="agent-chip" data-uid="${esc(a.uid)}" onclick="pickAgent('${esc(a.uid)}',this)"><span class="ac-dot"></span>${esc(a.name||a.email)}</button>`).join('');

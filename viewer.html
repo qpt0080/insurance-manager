@@ -397,7 +397,18 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 </head>
 <body>
 <div id="loading-screen"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--text2);">데이터 불러오는 중...</div></div>
-<div id="error-screen"><div><div style="font-size:48px;margin-bottom:16px;">🔒</div><div style="font-size:18px;font-weight:700;margin-bottom:8px;">접근 불가</div><div style="font-size:13px;color:var(--text2);line-height:1.7;" id="error-msg">유효하지 않은 링크입니다.</div><a href="index.html" style="display:inline-block;margin-top:18px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:9px 16px;border-radius:9px;">← 처음으로</a></div></div>
+<div id="error-screen"><div style="width:100%;max-width:360px;"><div style="font-size:48px;margin-bottom:16px;">🔒</div><div style="font-size:18px;font-weight:700;margin-bottom:8px;">접근 불가</div><div style="font-size:13px;color:var(--text2);line-height:1.7;" id="error-msg">유효하지 않은 링크입니다.</div>
+  <div id="error-code-entry" style="display:none;margin-top:18px;text-align:left;">
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">🔑 접근 코드 입력</div>
+    <input id="error-code-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+      placeholder="받은 코드 또는 링크를 붙여넣기"
+      style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;"
+      onkeydown="if(event.key==='Enter')enterWithCode()"/>
+    <button onclick="enterWithCode()" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">입장하기</button>
+    <div style="font-size:11px;color:var(--text3);margin-top:9px;line-height:1.5;">담당 관리자가 보내준 링크를 통째로 붙여넣어도 코드만 자동 인식해요. 한 번 입장하면 이 기기에 저장됩니다.</div>
+  </div>
+  <a href="admin.html" style="display:inline-block;margin-top:18px;font-size:12px;font-weight:600;color:var(--text3);text-decoration:none;">관리자이신가요? 관리자 로그인 →</a>
+</div></div>
 
 <div class="app" id="app" style="display:none;">
   <header class="header">
@@ -566,7 +577,7 @@ async function init() {
     const cred = decodeToken(token);
     if (!cred) {
       try { localStorage.removeItem('mujinViewerToken'); } catch(e){}
-      showError('사용할 수 없는 코드입니다.\n(보안 업데이트로 기존 코드는 만료됐어요)\n담당자에게 새 링크를 받아주세요.');
+      showError('사용할 수 없는 코드입니다.\n(보안 업데이트로 기존 코드는 만료됐어요)\n담당자에게 새 코드를 받아 아래에 붙여넣어 주세요.', true);
       return;
     }
     // 설계사 계정으로 로그인 — 로그인 성공 = 토큰 유효
@@ -574,7 +585,7 @@ async function init() {
       await signInWithEmailAndPassword(auth, cred.email, cred.pw);
     } catch(e) {
       try { localStorage.removeItem('mujinViewerToken'); } catch(e2){} // 무효 코드는 저장 안 남김
-      showError('유효하지 않은 링크입니다.\n담당자에게 링크를 다시 받아주세요.');
+      showError('유효하지 않은 링크입니다.\n담당자에게 새 코드를 받아 아래에 붙여넣어 주세요.', true);
       return;
     }
   } else {
@@ -583,7 +594,7 @@ async function init() {
       const un = onAuthStateChanged(auth, u => { un(); res(u); });
     });
     if (!user) {
-      showError('접근 코드가 없습니다.\n설계사는 처음 화면에서 코드로 입장해 주세요.\n관리자는 관리자 페이지에 먼저 로그인하면 코드 없이 들어올 수 있어요.');
+      showError('접근 코드가 없습니다.\n담당 관리자가 보내준 코드(또는 링크)를 아래에 붙여넣어 주세요.', true);
       return;
     }
   }
@@ -2889,7 +2900,23 @@ function fmt(n) { return Number(String(n).replace(/,/g,'')).toLocaleString()+'�
 function ic(k,v) { if(!v) return ''; const long = ['상품명','특이사항','납입면제조건'].includes(k)||String(v).length>14; return `<div class="info-cell${long?' full':''}"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v))}</div></div>`; }
 function icEdit(k,v,editFn) { return `<div class="info-cell info-cell-editable" style="position:relative;"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v||''))}</div><button class="info-edit-btn" onclick="${editFn}" title="편집">✏️</button></div>`; }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function showError(msg) { document.getElementById('loading-screen').style.display='none'; document.getElementById('error-msg').innerHTML=msg.replace(/\n/g,'<br>'); document.getElementById('error-screen').classList.add('show'); }
+function showError(msg, withCodeEntry) {
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('error-msg').innerHTML=msg.replace(/\n/g,'<br>');
+  const entry = document.getElementById('error-code-entry');
+  if (entry) entry.style.display = withCodeEntry ? 'block' : 'none';
+  document.getElementById('error-screen').classList.add('show');
+}
+
+// 에러 화면에서 코드로 바로 입장 (링크 전체를 붙여넣어도 token만 추출)
+window.enterWithCode = function() {
+  let raw = (document.getElementById('error-code-input').value||'').trim();
+  if (!raw) return;
+  const m = raw.match(/[?&#]token=([^&\s#]+)/i);
+  let code = m ? m[1] : raw.replace(/\s+/g,'');
+  try { code = decodeURIComponent(code); } catch(e) {}
+  location.href = 'viewer.html?token=' + encodeURIComponent(code);
+};
 
 init();
 </script>
