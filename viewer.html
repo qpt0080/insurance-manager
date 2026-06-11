@@ -24,6 +24,7 @@
   --shadow-lg:0 8px 28px rgba(59,91,219,.15),0 4px 12px rgba(0,0,0,.07);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+mark.hl{background:#FFE875;color:inherit;padding:0 2px;border-radius:3px;font-weight:inherit;}
 html{overflow-x:clip;width:100%;overscroll-behavior-x:none;}body{overflow-x:clip;width:100%;max-width:100%;overscroll-behavior-x:none;position:relative;touch-action:pan-y;}
 body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
 .app{overflow-x:hidden;}
@@ -850,9 +851,25 @@ window.toggleVPrem = function(tag) {
   renderList();
 };
 
+// ── 검색어 형광펜 (escHtml 후 적용이라 XSS 안전) ──
+let vHlRe = null; // renderList에서 갱신, 카드 렌더에서 사용
+function buildHlRegex(q) {
+  if (!q) return null;
+  const S = window.InsSearch;
+  let vars = (S.allVariants ? S.allVariants(q) : S.tokenize(q)).filter(Boolean);
+  if (!vars.length) return null;
+  vars = vars.sort((a,b)=>b.length-a.length).map(v=>v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  try { return new RegExp('('+vars.join('|')+')','gi'); } catch(e) { return null; }
+}
+function hlHtml(s, re) {
+  const e = escHtml(s||'');
+  return re ? e.replace(re, '<mark class="hl">$1</mark>') : e;
+}
+
 window.renderList = function() {
   const el = document.getElementById('list-results');
   const q = (document.getElementById('search-input')?.value||'').trim();
+  vHlRe = q ? buildHlRegex(q) : null;
   const wrap = document.getElementById('dambo-toggle-wrap');
 
   // 담보명 모드일 때만 토글 표시
@@ -975,7 +992,7 @@ function renderInsuredCards(el, custList, q) {
         <div style="display:flex;align-items:center;gap:10px;min-width:0;">
           <div style="width:38px;height:38px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;border:2px solid rgba(59,91,219,.12);">${escHtml(initials)}</div>
           <div style="min-width:0;">
-            <div class="cust-name">${escHtml(g.insured)}<span style="font-size:11px;font-weight:600;color:var(--text3);margin-left:5px;">피보험자</span></div>
+            <div class="cust-name">${hlHtml(g.insured,vHlRe)}<span style="font-size:11px;font-weight:600;color:var(--text3);margin-left:5px;">피보험자</span></div>
             <div class="cust-phone">계약자 ${holders.map(h=>escHtml(h)).join(', ')||'-'}</div>
           </div>
         </div>
@@ -1011,7 +1028,7 @@ function renderCustCard(c, highlight) {
   if (highlight) {
     const m = [];
     contracts.forEach(ct=>getCoverages(ct).forEach(cv=>{const nm=cv.name||cv.담보명||''; if(nm && window.InsSearch.touches(nm, highlight))m.push(nm);}));
-    if (m.length) hint = `<div style="font-size:11px;color:var(--accent);margin-top:5px;">🛡 ${m.slice(0,3).map(n=>escHtml(n)).join(', ')}${m.length>3?` 외 ${m.length-3}개`:''}</div>`;
+    if (m.length) hint = `<div style="font-size:11px;color:var(--accent);margin-top:5px;">🛡 ${m.slice(0,3).map(n=>hlHtml(n,vHlRe)).join(', ')}${m.length>3?` 외 ${m.length-3}개`:''}</div>`;
   }
   // 계약일 표시
   const dates = [...new Set(contracts.map(ct=>{const p=parsePeriod(ct);return p?`${p.year}.${String(p.month||'').padStart(2,'0')}`:''}).filter(Boolean))];
@@ -1021,8 +1038,8 @@ function renderCustCard(c, highlight) {
       <div style="display:flex;align-items:center;gap:10px;min-width:0;">
         <div style="width:38px;height:38px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;border:2px solid rgba(59,91,219,.12);">${escHtml(initials)}</div>
         <div style="min-width:0;">
-          <div class="cust-name">${escHtml(c.name||'')}</div>
-          <div class="cust-phone">${c.phone?`<a href="tel:${c.phone.replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">${escHtml(c.phone)}</a>`:''} ${c.birth?' · '+escHtml(c.birth):''}${c.gender?' · '+escHtml(c.gender):''}</div>
+          <div class="cust-name">${hlHtml(c.name||'',vHlRe)}</div>
+          <div class="cust-phone">${c.phone?`<a href="tel:${c.phone.replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">${hlHtml(c.phone,vHlRe)}</a>`:''} ${c.birth?' · '+escHtml(c.birth):''}${c.gender?' · '+escHtml(c.gender):''}</div>
         </div>
       </div>
       ${totalPrem>0?`<div class="cust-prem">${Math.round(totalPrem).toLocaleString()}원</div>`:''}
@@ -1030,7 +1047,7 @@ function renderCustCard(c, highlight) {
     <div style="height:1px;background:var(--border);margin:10px 0 9px;"></div>
     <div class="cust-meta">
       <span class="chip blue">${contracts.length}건</span>
-      ${otherInsured.length?`<span class="chip" style="background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.2);">👤 피보험 ${otherInsured.slice(0,2).map(n=>escHtml(n)).join(', ')}${otherInsured.length>2?` 외 ${otherInsured.length-2}`:''}</span>`:''}
+      ${otherInsured.length?`<span class="chip" style="background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.2);">👤 피보험 ${otherInsured.slice(0,2).map(n=>hlHtml(n,vHlRe)).join(', ')}${otherInsured.length>2?` 외 ${otherInsured.length-2}`:''}</span>`:''}
       ${dates.length?`<span class="chip">${dates[0]}</span>`:''}
       ${hasRenew?'<span class="chip amber">갱신형</span>':''}
       ${hasCard?'<span class="chip">💳 카드</span>':''}

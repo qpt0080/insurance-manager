@@ -23,6 +23,7 @@
   --hero-from:#1e3a8a; --hero-to:#4F6FE8;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+mark.hl{background:#FFE875;color:inherit;padding:0 2px;border-radius:3px;font-weight:inherit;}
 html{overflow-x:clip;width:100%;overscroll-behavior-x:none;}body{overflow-x:clip;width:100%;max-width:100%;overscroll-behavior-x:none;position:relative;touch-action:pan-y;}
 body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
 
@@ -3341,12 +3342,28 @@ function getAgentColor(uid) {
   return AGENT_COLORS[Math.max(0,idx) % AGENT_COLORS.length];
 }
 
+// ── 검색어 형광펜 ──
+// 동의어까지 포함해 매칭된 단어를 <mark>로 감쌈 (escHtml 후 적용이라 XSS 안전)
+function buildHlRegex(q) {
+  if (!q) return null;
+  const S = window.InsSearch;
+  let vars = (S.allVariants ? S.allVariants(q) : S.tokenize(q)).filter(Boolean);
+  if (!vars.length) return null;
+  vars = vars.sort((a,b)=>b.length-a.length).map(v=>v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  try { return new RegExp('('+vars.join('|')+')','gi'); } catch(e) { return null; }
+}
+function hlHtml(s, re) {
+  const e = escHtml(s||'');
+  return re ? e.replace(re, '<mark class="hl">$1</mark>') : e;
+}
+
 window.renderContractsList = function() {
   const el = document.getElementById('contracts-list');
   const countEl = document.getElementById('cm-count');
   if (!el) return;
 
   const q = (document.getElementById('contracts-search')?.value||'').trim().toLowerCase();
+  const hlRe = q ? buildHlRegex(q) : null;
 
   // 보험료 범위: prem 태그에서 읽기
   let premMin = 0, premMax = 0;
@@ -3374,7 +3391,7 @@ window.renderContractsList = function() {
     list = list.filter(c => c._docId === cmScopeCustomer);
   }
 
-  function ctMatches(c, ct) {
+  function ctMatches(c, ct, skipKeyword) {
     const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
     const hasClaimed = (ct.coverageMeta||[]).some(m=>m&&m.claimed) || (ct.claims||[]).length > 0;
     const hasMemo    = !!(ct.memo || ct.rawJson?.특이사항);
@@ -3383,7 +3400,8 @@ window.renderContractsList = function() {
     if (!matchesCmPeriod(ct)) return false;
 
     // 키워드: 고객명/연락처 + 계약 전 필드 + 담보명을 하나로 합쳐 다중키워드+동의어 매칭
-    if (q) {
+    // (skipKeyword: 고객명/연락처가 이미 키워드에 히트한 경우 → 키워드 조건만 면제, 다른 필터는 그대로)
+    if (q && !skipKeyword) {
       const cvs = ct.coverages||ct.rawJson?.담보목록||[];
       const haystack = [
         c.name, c.phone,
@@ -3413,11 +3431,13 @@ window.renderContractsList = function() {
   const hasPeriodFilter    = cmYears.size > 0 || cmMonths.size > 0;
   const hasContractFilter  = hasPeriodFilter || cmTags.size > 0 || q;
 
+  // 고객명/연락처 키워드 히트 여부 (키워드 조건만 면제, 기간·종류·특성·보험료 필터는 계약별로 그대로 적용)
+  const custNameHit = c => q ? window.InsSearch.matchAll([c.name,c.phone].filter(Boolean).join(' '), q) : false;
+
   if (hasContractFilter) {
     list = list.filter(c => {
-      // 고객명/연락처만으로도 히트 (계약 없는 고객 대비)
-      const nameHit = q ? window.InsSearch.matchAll([c.name,c.phone].filter(Boolean).join(' '), q) : false;
-      return nameHit || (c.contracts||[]).some(ct => ctMatches(c, ct));
+      const nameHit = custNameHit(c);
+      return (c.contracts||[]).some(ct => ctMatches(c, ct, nameHit));
     });
   }
 
@@ -3434,7 +3454,7 @@ window.renderContractsList = function() {
   let totalContracts = 0;
   list.forEach(c => {
     totalContracts += hasContractFilter
-      ? (c.contracts||[]).filter(ct => ctMatches(c, ct)).length
+      ? (c.contracts||[]).filter(ct => ctMatches(c, ct, custNameHit(c))).length
       : (c.contracts||[]).length;
   });
 
@@ -3443,10 +3463,8 @@ window.renderContractsList = function() {
 
   el.innerHTML = list.map(c => {
     let contracts = hasContractFilter
-      ? (c.contracts||[]).filter(ct => ctMatches(c, ct))
+      ? (c.contracts||[]).filter(ct => ctMatches(c, ct, custNameHit(c)))
       : (c.contracts||[]);
-    // 키워드가 고객명/연락처 히트인 경우엔 계약 전체 표시
-    if (q && contracts.length === 0) contracts = c.contracts||[];
     if (!contracts.length) return '';
     const agent = agentsCache.find(a=>a.uid===c.agentId);
     const agentName = agent?.name || c.agentName || '미배정';
@@ -3469,9 +3487,15 @@ window.renderContractsList = function() {
       const claimedCount = (ct.coverageMeta||[]).filter(m=>m&&m.claimed).length;
       const claimsLen = (ct.claims||[]).length;
       const payPeriod = ct.payPeriod||ct.rawJson?.납입기간||'';
+      // 검색어가 담보명에 맞은 경우, 어떤 담보가 걸렸는지 형광펜으로 표시
+      let covHits = '';
+      if (q) {
+        const hitNames = cvs.map(cv=>cv.담보명||cv.name||'').filter(nm=>nm && window.InsSearch.touches(nm, q));
+        if (hitNames.length) covHits = `<div style="font-size:11px;color:var(--text2);margin-top:3px;">🛡 ${hitNames.slice(0,3).map(n=>hlHtml(n,hlRe)).join(', ')}${hitNames.length>3?` 외 ${hitNames.length-3}개`:''}</div>`;
+      }
       return `<div class="cm-ct-row${isTemp?' is-temp':''}" onclick="event.stopPropagation();openAdminContractDetail('${c._docId}','${ctId2}')">
         <div class="cm-ct-body">
-          <div class="cm-ct-name">${escHtml(company)}${company&&product?' · ':''}${escHtml(product)}${isTemp?' <span style="color:var(--amber);font-size:10px;font-weight:800;background:rgba(180,83,9,.12);padding:1px 6px;border-radius:6px;">⚠ 가설계</span>':''}</div>
+          <div class="cm-ct-name">${hlHtml(company,hlRe)}${company&&product?' · ':''}${hlHtml(product,hlRe)}${isTemp?' <span style="color:var(--amber);font-size:10px;font-weight:800;background:rgba(180,83,9,.12);padding:1px 6px;border-radius:6px;">⚠ 가설계</span>':''}</div>
           <div class="cm-ct-sub">
             ${dateStr?`<span>${escHtml(dateStr)}</span>`:''}
             ${payPeriod?`<span class="chip" style="font-size:10px;padding:1px 7px;">${escHtml(payPeriod)}</span>`:''}
@@ -3481,6 +3505,7 @@ window.renderContractsList = function() {
             ${claimsLen?`<span class="chip green" style="font-size:10px;padding:1px 7px;">보상이력 ${claimsLen}건</span>`:''}
             ${claimedCount?`<span class="chip amber" style="font-size:10px;padding:1px 7px;">🏆 보상력 ${claimedCount}</span>`:''}
           </div>
+          ${covHits}
         </div>
         <div class="cm-ct-prem">${escHtml(prem)}</div>
         <button class="cm-del-ct-btn" title="계약 삭제" onclick="event.stopPropagation();deleteContract('${c._docId}','${ctId2}','${escHtml(company+' '+product)}')">🗑</button>
@@ -3492,9 +3517,9 @@ window.renderContractsList = function() {
         <div class="cm-cust-info">
           <div class="cm-cust-avatar">${escHtml(initials)}</div>
           <div style="min-width:0;">
-            <div class="cm-cust-name">${escHtml(c.name||'')}</div>
+            <div class="cm-cust-name">${hlHtml(c.name||'',hlRe)}</div>
             <div class="cm-cust-meta">
-              ${c.phone?`<span>${escHtml(c.phone)}</span><span style="color:var(--border)">·</span>`:''}
+              ${c.phone?`<span>${hlHtml(c.phone,hlRe)}</span><span style="color:var(--border)">·</span>`:''}
               <span class="cm-agent-badge" style="background:${agentColor.bg};color:${agentColor.color};">👤 ${escHtml(agentName)}</span>
               <span style="color:var(--text3);">${contracts.length}건${totalPrem>0?' · '+Math.round(totalPrem).toLocaleString()+'원':''}</span>
             </div>
