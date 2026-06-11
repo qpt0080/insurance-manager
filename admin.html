@@ -1108,7 +1108,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 <!-- 계약 상세 시트 -->
 <div id="admin-sheet-overlay" onclick="closeAdminSheet(event)" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:flex-end;backdrop-filter:blur(2px);">
-  <div id="admin-sheet-inner" style="background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:720px;margin:0 auto;max-height:92vh;overflow-y:auto;overflow-x:hidden;padding:0 20px 44px;">
+  <div id="admin-sheet-inner" style="background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:720px;margin:0 auto;max-height:92vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 20px 44px;">
     <div style="position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);padding:calc(10px + env(safe-area-inset-top,0px)) 0 8px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:18px;">
       <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;"></div>
     </div>
