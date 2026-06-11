@@ -1686,6 +1686,47 @@ window.fixAllOrphans = async function() {
   } catch(e) { showToast('❌ 실패: ' + e.message); }
 };
 
+// ── 설계사 계정을 관리자로 병합 ──
+// 고객·수당의 담당을 전부 관리자로 옮기고, 뷰어 링크를 무효화하고, 계정을 목록에서 제거.
+// "관리자 본인 = 설계사이기도 한" 경우 본인의 설계사 계정을 흡수할 때 사용.
+window.mergeAgentIntoAdmin = async function(uid, name) {
+  if (!confirm(`"${name}" 설계사의 모든 고객·수당 담당을 관리자(나)로 옮기고,\n이 계정과 뷰어 링크를 제거할까요?\n\n이 작업은 되돌릴 수 없어요.`)) return;
+  try {
+    const myUid = auth.currentUser.uid;
+    showToast('🔀 병합 중...');
+
+    // 1) 담당 데이터 이전
+    let moved = 0;
+    const custs = await getDocs(query(collection(db,'customers'), where('agentId','==',uid)));
+    for (const d of custs.docs) { await updateDoc(doc(db,'customers',d.id), {agentId: myUid, agentName: '관리자'}); moved++; }
+    const comms = await getDocs(query(collection(db,'commissions'), where('agentId','==',uid)));
+    for (const d of comms.docs) { await updateDoc(doc(db,'commissions',d.id), {agentId: myUid}); moved++; }
+
+    // 2) 뷰어 링크 무효화 (비밀번호 회전 후 비밀정보 삭제)
+    try {
+      const secSnap = await getDoc(doc(db,'agentSecrets',uid));
+      if (secSnap.exists()) {
+        const sec = secSnap.data();
+        try {
+          await signInWithEmailAndPassword(subAuth, sec.email, sec.password);
+          await updatePassword(subAuth.currentUser, randomPw());
+          await subAuth.signOut();
+        } catch(e) { try { await subAuth.signOut(); } catch(e2){} }
+        await deleteDoc(doc(db,'agentSecrets',uid));
+      }
+    } catch(e) {}
+
+    // 3) 설계사 문서 제거
+    await deleteDoc(doc(db,'agents',uid));
+
+    showToast(`✅ "${name}" 병합 완료! 데이터 ${moved}건이 관리자 담당이 됐어요.`);
+    await loadAll();
+    renderLinks();
+  } catch(e) {
+    showToast('❌ 병합 실패: ' + (e.message||e));
+  }
+};
+
 // ── 설계사 관리 ──
 function renderAgents() {
   const el = document.getElementById('agent-list');
@@ -1707,6 +1748,7 @@ function renderAgents() {
       </div>
       <div class="agent-actions">
         ${!isMe ? `
+          ${!isAdmin ? `<button class="btn btn-sm" style="color:var(--accent);border-color:rgba(59,91,219,.35);" onclick="mergeAgentIntoAdmin('${a.uid}','${escHtml(a.name||a.email)}')">🔀 관리자로 병합</button>` : ''}
           <button class="btn btn-sm" onclick="sendReset('${a.email}')">🔑 비번초기화</button>
           <button class="btn btn-sm ${a.disabled?'btn-primary':''}" onclick="toggleDisable('${a.uid}',${a.disabled})">
             ${a.disabled?'✅ 활성화':'⛔ 비활성화'}
