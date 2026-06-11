@@ -1907,7 +1907,10 @@ function renderPerformance() {
   // 고지의무 체크리스트
   if (noticesCache.length) {
     const noticeResults = c.noticeResults||{};
-    html += `<div class="sec-label" style="margin-top:20px;">📋 고지의무 체크</div>`;
+    html += `<div class="sec-label" style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <span>📋 고지의무 체크</span>
+      <button class="btn btn-sm" onclick="copyNoticeReport('${c._docId||c.id}')">📋 복사</button>
+    </div>`;
     noticesCache.forEach(notice => {
       const result = noticeResults[notice._id]; // 'pass'|'fail'|undefined
       const allPass = (notice.items||[]).every(item => (noticeResults[notice._id+'_'+item.id]) === 'pass');
@@ -2135,6 +2138,37 @@ window.toggleNoticeItem = async function(custId, noticeId, itemId) {
     showDetail(custId, true);
   } catch(e) { showToast('❌ 저장 실패: '+e.message); }
 };
+// ── 고지의무 체크 결과 → 매니저 전송용 텍스트로 정리해 복사 ──
+// 체크된(통과/미통과 무관) 항목만 나열. 통과 여부 판단은 받는 쪽에서.
+window.copyNoticeReport = function(custId) {
+  const c = getCust(custId); if(!c) return;
+  const noticeResults = c.noticeResults || {};
+  const insured = (c.contracts||[]).map(ct=>ct.rawJson?.피보험자).filter(Boolean)[0];
+  const head = `[계약전 알릴의무 — ${c.name||''}${insured && insured!==c.name ? ' / 피보험자 '+insured : ''}]`;
+  const lines = [head, ''];
+  let anyChecked = false;
+
+  // 체크된 항목이 있는 세트가 둘 이상일 때만 세트 구분줄 표시 (회사명은 넣지 않음)
+  const setsWithChecks = noticesCache.filter(n => (n.items||[]).some(it => noticeResults[n._id+'_'+it.id]));
+  const multi = setsWithChecks.length > 1;
+
+  noticesCache.forEach(notice => {
+    const items = notice.items || [];
+    const checked = items.filter(it => noticeResults[notice._id+'_'+it.id]); // pass/fail 무관, 체크된 것
+    if (!checked.length) return; // 아무것도 체크 안 한 세트는 생략
+    anyChecked = true;
+    if (multi) {
+      const setName = notice.title || notice.product || '';
+      if (setName) lines.push(`■ ${setName}`);
+    }
+    checked.forEach(it => lines.push(`· ${it.label||''}`));
+    lines.push('');
+  });
+
+  if (!anyChecked) { showToast('체크된 고지 항목이 없어요'); return; }
+  copyDetailText(lines.join('\n').trim(), '고지사항');
+};
+
 window.copyDetailText = function(text, label) {
   navigator.clipboard.writeText(text)
     .then(() => showToast(`✅ ${label} 복사됐어요!`))
