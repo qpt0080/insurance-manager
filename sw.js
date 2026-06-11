@@ -49,7 +49,7 @@ self.addEventListener('notificationclick', function(event){
 const CACHE = 'mujin-shell-v19';
 const SHELL = [
   'index.html','admin.html','viewer.html','dashboard.html',
-  'income-simulator.html','notice.html',
+  'income-simulator.html','notice.html','awards-compare.html',
   'search-engine.js','coverage-summary.js',
   'manifest-admin.webmanifest','manifest-viewer.webmanifest',
   'icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','favicon.png',

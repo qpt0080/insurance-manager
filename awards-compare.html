@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>시상 비교</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root{
+    --ink:#191A1D; --ink2:#5B6068; --ink3:#9AA0AA;
+    --paper:#F4F5F8; --card:#FFFFFF; --line:#E4E6EC; --line2:#D7DAE2;
+    --gold:#3B5BDB; --gold-deep:#2C46B8; --gold-soft:#EEF1FE;
+    --green:#1A7F4B; --green-soft:#E7F4ED;
+    --shadow:0 1px 2px rgba(40,30,10,.04),0 8px 28px rgba(40,30,10,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background:
+      radial-gradient(1200px 500px at 85% -10%, #fbeecf 0%, transparent 55%),
+      radial-gradient(900px 600px at -10% 110%, #f1ece0 0%, transparent 50%),
+      var(--paper);
+    color:var(--ink); line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding:0 0 60px;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:0 18px;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  header{padding:26px 0 4px;}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--gold-deep);display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .eyebrow::before{content:"";width:26px;height:1.5px;background:var(--gold);}
+  h1{font-weight:600;font-size:clamp(26px,5.2vw,40px);line-height:1.08;letter-spacing:-.01em;}
+  h1 em{font-style:italic;color:var(--gold-deep);}
+
+  /* 상단 고정 실적 입력 바 */
+  .perf-bar{position:sticky;top:0;z-index:30;margin-top:18px;
+    background:rgba(244,245,248,.86);backdrop-filter:saturate(160%) blur(10px);
+    border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+    padding:16px;}
+  .perf-bar .cap{font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--ink3);
+    text-transform:uppercase;margin-bottom:12px;}
+  .stepper{display:flex;align-items:center;gap:12px;}
+  .step-btn{flex-shrink:0;width:60px;height:60px;border-radius:16px;border:1.5px solid var(--line2);
+    background:var(--card);color:var(--gold-deep);font-size:30px;font-weight:600;line-height:1;
+    cursor:pointer;font-family:inherit;transition:.12s;display:flex;align-items:center;justify-content:center;
+    -webkit-tap-highlight-color:transparent;}
+  .step-btn:hover{border-color:var(--gold);background:var(--gold-soft);}
+  .step-btn:active{transform:scale(.94);}
+  .perf-display{flex:1;min-width:0;text-align:center;background:var(--paper);
+    border:1.5px solid var(--line2);border-radius:14px;padding:8px 6px;}
+  .perf-display input{width:100%;background:none;border:none;outline:none;text-align:center;
+    font-family:inherit;font-variant-numeric:tabular-nums;font-size:30px;font-weight:600;color:var(--ink);}
+  .perf-display .u{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-top:1px;letter-spacing:.02em;}
+  .perf-display:focus-within{border-color:var(--gold);}
+  .comm-row{display:flex;align-items:center;gap:10px;margin-top:13px;}
+  .comm-row label{font-size:12px;font-weight:700;color:var(--ink2);white-space:nowrap;}
+  .comm-ib{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
+    border-radius:10px;padding:0 10px;flex:1;}
+  .comm-ib:focus-within{border-color:var(--gold);}
+  .comm-ib input{flex:1;width:100%;background:none;border:none;outline:none;text-align:right;
+    font-family:inherit;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;color:var(--ink);padding:9px 0;}
+  .comm-ib .unit{font-size:13px;font-weight:700;color:var(--ink3);margin-left:5px;}
+  .comm-hint{font-size:11px;color:var(--ink3);margin-top:7px;line-height:1.5;}
+
+  .status{font-size:12px;color:var(--ink3);margin:16px 2px 4px;}
+  .status b{color:var(--ink2);}
+
+  /* 회사 카드 그리드 */
+  .co-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:8px;}
+  @media(min-width:560px){ .co-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));} }
+
+  .co-card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;transition:border-color .15s;}
+  .co-card:hover{border-color:var(--line2);}
+  .co-head{padding:16px 16px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .co-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .co-name{font-size:15px;font-weight:800;letter-spacing:-.2px;}
+  .co-period{font-size:11px;font-weight:700;color:var(--ink3);}
+  .co-sum{margin-top:12px;}
+  .co-sum .big{font-weight:600;font-size:30px;line-height:1;letter-spacing:-.01em;color:var(--gold-deep);}
+  .co-sum .big .w{font-size:14px;font-weight:600;color:var(--ink2);margin-left:2px;}
+  .co-sum .sub{font-size:11.5px;color:var(--ink3);margin-top:7px;}
+  .co-sum .sub b{color:var(--ink2);font-weight:700;}
+  .co-toggle{font-size:11px;font-weight:700;color:var(--gold-deep);margin-top:11px;display:inline-flex;align-items:center;gap:4px;}
+
+  .co-detail{display:none;border-top:1px solid var(--line);padding:13px 16px 16px;background:#FCFCFE;}
+  .co-card.open .co-detail{display:block;}
+  .co-card.open .co-toggle .arr{transform:rotate(180deg);}
+  .co-toggle .arr{transition:transform .15s;display:inline-block;}
+  .dt-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .dt-row:last-of-type{border-bottom:none;}
+  .dt-row .lab{color:var(--ink2);min-width:0;}
+  .dt-row .lab small{display:block;font-size:10.5px;color:var(--ink3);font-weight:600;}
+  .dt-row .amt{font-weight:700;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .dt-row.off{opacity:.4;}
+  .dt-sec{font-size:10.5px;font-weight:800;letter-spacing:.05em;color:var(--ink3);text-transform:uppercase;margin:12px 0 2px;}
+  .dt-extra{margin-top:11px;font-size:11.5px;color:var(--green);background:var(--green-soft);
+    border-radius:9px;padding:8px 11px;line-height:1.5;font-weight:600;}
+  .band-now{font-size:11px;font-weight:700;color:var(--gold-deep);background:var(--gold-soft);
+    border-radius:7px;padding:2px 8px;}
+
+  .empty{text-align:center;padding:40px 18px;color:var(--ink3);}
+  .empty .ic{font-size:34px;margin-bottom:10px;}
+  .empty p{font-size:13px;line-height:1.6;}
+  .empty b{color:var(--ink2);}
+
+  .disclaim{font-size:11px;color:var(--ink3);text-align:center;margin-top:22px;line-height:1.6;}
+</style>
+  <link rel="manifest" href="manifest-admin.webmanifest">
+  <meta name="theme-color" content="#3B5BDB">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="무진 관리">
+  <script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">회사별 시상 비교</div>
+    <h1>같은 실적, <em>회사마다</em> 다른 수익</h1>
+  </header>
+
+  <!-- 상단 고정: 실적 입력 -->
+  <div class="perf-bar">
+    <div class="cap">💰 이만큼 팔았다면</div>
+    <div class="stepper">
+      <button class="step-btn" id="minus" aria-label="5만원 내리기">−</button>
+      <div class="perf-display">
+        <input id="perf" type="text" inputmode="numeric" value="100,000">
+        <span class="u">월 실적 (원) · 버튼은 5만씩</span>
+      </div>
+      <button class="step-btn" id="plus" aria-label="5만원 올리기">＋</button>
+    </div>
+    <div class="comm-row">
+      <label>기본 수수료율</label>
+      <div class="comm-ib"><input id="comm" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
+    </div>
+    <div class="comm-hint">수수료율은 회사·상품마다 달라요. 비교 기준으로 하나만 적용 중 — 직접 조정하세요.</div>
+  </div>
+
+  <div class="status" id="status">시상 불러오는 중…</div>
+  <div class="co-grid" id="grid"></div>
+
+  <p class="disclaim">올려둔 시상안 기준 <b>참고용 예측</b>이에요. 실제 지급은 정책·유지 조건에 따라 달라집니다.<br>시상은 계약 1건당 <b>평생 받는 총액</b>(익월 + 13회차)으로 계산했어요.</p>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
+  authDomain:"insurance-manager-c4308.firebaseapp.com",
+  projectId:"insurance-manager-c4308",
+  storageBucket:"insurance-manager-c4308.firebasestorage.app",
+  messagingSenderId:"769412429451",
+  appId:"1:769412429451:web:0c3a31bb14430f8fe5068e"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// ── 유틸 (income-simulator와 동일) ──
+const onlyDigits = s => (''+s).replace(/[^0-9]/g,'');
+const comma = n => (Math.round(+n)||0).toLocaleString('ko-KR');
+const KRW = n => '₩' + comma(n);
+const man = n => (n/10000).toLocaleString('ko-KR',{maximumFractionDigits:1});
+const F = id => document.getElementById(id);
+
+const BANDS = [100000,200000,300000,500000];
+const BAND_KEYS = [100000,200000,300000,500000];
+const STEP = 50000; // +/- 5만
+
+// ── award-extract tiers[] → 시상 항목 변환 (income-simulator 로직 재사용) ──
+function bandsFromTiers(arr, keys){
+  const raw={100000:0,200000:0,300000:0,500000:0};
+  (arr||[]).forEach(t=>{
+    let th=null; for(const k of keys){ if(t[k]!=null){ th=+t[k]; break; } }
+    if(th!=null && raw[th]!==undefined && (+t.reward)>0) raw[th]=Math.max(raw[th],+t.reward);
+  });
+  let carry=0; const bands={};
+  for(const b of BAND_KEYS){ if(raw[b]>0) carry=raw[b]; bands[b]=carry; }
+  return bands;
+}
+function bandsFromConsecutive(arr){
+  const bands={100000:0,200000:0,300000:0,500000:0};
+  BAND_KEYS.forEach(B=>{
+    let best=0;
+    (arr||[]).forEach(t=>{
+      const pv=+(t.prevThreshold??t.threshold??0);
+      const cv=+(t.currThreshold??t.threshold??0);
+      const rw=+(t.reward||0);
+      if(rw>0 && pv<=B && cv<=B) best=Math.max(best,rw);
+    });
+    bands[B]=best;
+  });
+  return bands;
+}
+function bandsAllZero(b){ return BAND_KEYS.every(k=>!b[k]); }
+function bandSub(b){
+  const out=[]; let last=null;
+  for(const k of BAND_KEYS){ if(b[k]>0 && b[k]!==last){ out.push(`${man(k)}만→${man(b[k])}만`); last=b[k]; } }
+  return out.join(' · ');
+}
+function itemsFromDoc(d){
+  const out=[];
+  (d.tiers||[]).forEach((t,i)=>{
+    const timing=(t.payTiming==='13th_payment'||t.retention===13)?'13th':'next_month';
+    if(t.type==='basic'){
+      const p=(t.periods&&t.periods[0])||{}; const rate=(p.totalRate??p.ownRate??0);
+      out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true});
+    } else if(t.type==='consecutive'){
+      const bands=bandsFromConsecutive(t.tiers);
+      if(bandsAllZero(bands)) return;
+      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true});
+    } else if(['weekly','weekly_extra','flagship','club','membership'].includes(t.type)){
+      const bands=bandsFromTiers(t.tiers,['threshold']);
+      if(bandsAllZero(bands)) return;
+      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true});
+    }
+    // gift(물품)·travel(여행) 등 현금 아님 → 시상 합계엔 제외, extras로 따로 표시
+  });
+  return out;
+}
+// 물품·여행 시상(현금 아님)은 따로 모아 카드에 "+ 항목" 표시
+function extrasFromDoc(d){
+  const ex=[];
+  (d.tiers||[]).forEach(t=>{
+    if(t.type==='gift' && t.gift) ex.push('🎁 '+t.gift);
+    else if(t.type==='travel' && (t.travel||t.gift)) ex.push('✈️ '+(t.travel||t.gift));
+  });
+  return ex;
+}
+
+// ── 상태 ──
+let POLICIES = []; // [{company, label, items, extras, _id}]
+let perf = 100000;
+let comm = 522;
+const openSet = new Set();
+
+function matchBand(P){ let b=null; for(const t of BANDS){ if(P>=t) b=t; } return b; }
+
+// 회사(시상 항목들) 기준 1건당 예상 — 익월시상 + 13회차시상 + 수수료
+function calc(items){
+  const band = matchBand(perf);
+  let next=0, r13=0;
+  const detail=[];
+  (items||[]).forEach(it=>{
+    let v=0;
+    if(it.on){
+      v = it.mode==='rate' ? perf*(it.rate||0)/100 : (band?(it.bands[band]||0):0);
+    }
+    if(it.timing==='13th') r13+=v; else next+=v;
+    detail.push({label:it.label, sub:it.sub, timing:it.timing, on:it.on, amount:v});
+  });
+  const commission = perf*comm/100;
+  return { next, r13, award:next+r13, commission, total:next+r13+commission, band, detail };
+}
+
+// ── 렌더 ──
+function render(){
+  const grid=F('grid');
+  if(!POLICIES.length){
+    grid.innerHTML = `<div class="empty"><div class="ic">📋</div>
+      <p>아직 올려둔 시상이 없어요.<br>관리자 페이지에서 <b>관심 있는 보험사 시상</b>을 먼저 올리면<br>여기에서 나란히 비교할 수 있어요.</p></div>`;
+    return;
+  }
+  grid.innerHTML = POLICIES.map((p,idx)=>{
+    const r = calc(p.items);
+    const open = openSet.has(p._id);
+    const bandLabel = r.band ? `${man(r.band)}만↑ 구간` : '구간 미달';
+
+    const nextRows = r.detail.filter(d=>d.timing!=='13th');
+    const r13Rows  = r.detail.filter(d=>d.timing==='13th');
+    const rowHtml = d => `<div class="dt-row ${d.on?'':'off'}">
+        <div class="lab">${esc(d.label||'')}${d.sub?`<small>${esc(d.sub)}</small>`:''}</div>
+        <div class="amt">${d.amount?man(d.amount)+'만':'–'}</div></div>`;
+
+    const extra = (p.extras&&p.extras.length)
+      ? `<div class="dt-extra">${p.extras.map(esc).join('<br>')}</div>` : '';
+
+    return `<div class="co-card ${open?'open':''}" data-id="${esc(p._id)}">
+      <div class="co-head" data-id="${esc(p._id)}">
+        <div class="co-top">
+          <span class="co-name">${esc(p.company)}</span>
+          <span class="co-period">${esc(p.label)}</span>
+        </div>
+        <div class="co-sum">
+          <div class="big num">${man(r.total)}<span class="w">만원</span></div>
+          <div class="sub">시상 <b>${man(r.award)}만</b> + 수수료 <b>${man(r.commission)}만</b> · <span class="band-now">${bandLabel}</span></div>
+        </div>
+        <div class="co-toggle">상세 <span class="arr">▾</span></div>
+      </div>
+      <div class="co-detail">
+        ${nextRows.length?`<div class="dt-sec">익월 지급 시상</div>${nextRows.map(rowHtml).join('')}`:''}
+        ${r13Rows.length?`<div class="dt-sec">13회차 지급 시상</div>${r13Rows.map(rowHtml).join('')}`:''}
+        <div class="dt-row"><div class="lab">기본 수수료 (${comm}%)</div><div class="amt">${man(r.commission)}만</div></div>
+        ${extra}
+      </div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.co-head').forEach(el=>el.addEventListener('click',()=>{
+    const id=el.dataset.id;
+    if(openSet.has(id)) openSet.delete(id); else openSet.add(id);
+    render();
+  }));
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ── 실적 입력 ──
+function setPerf(v){
+  perf = Math.max(0, Math.round(v));
+  F('perf').value = comma(perf);
+  render();
+}
+F('minus').addEventListener('click',()=>{
+  // 5만 격자에 맞춰 내림 (예: 9만 → 5만)
+  const next = (perf % STEP === 0) ? perf - STEP : Math.floor(perf/STEP)*STEP;
+  setPerf(Math.max(0, next));
+});
+F('plus').addEventListener('click',()=>{
+  const next = (perf % STEP === 0) ? perf + STEP : Math.ceil(perf/STEP)*STEP;
+  setPerf(next);
+});
+F('perf').addEventListener('input',()=>{
+  perf = +onlyDigits(F('perf').value)||0;
+  render();
+});
+F('perf').addEventListener('blur',()=>{ F('perf').value = comma(perf); });
+F('comm').addEventListener('input',()=>{
+  comm = +onlyDigits(F('comm').value)||0;
+  F('comm').value = comma(comm);
+  render();
+});
+
+// ── Firestore 로드 (income-simulator와 동일 흐름) ──
+async function loadAwards(){
+  try{
+    const snap=await getDocs(collection(db,'awards'));
+    const loaded=[];
+    snap.forEach(docu=>{
+      const d=docu.data();
+      const its=itemsFromDoc(d);
+      if(!its.length) return;
+      const wk=d.week?` ${d.week}주차`:'';
+      const yy=d.year?String(d.year).slice(2):'';
+      loaded.push({
+        company:d.company||'(미상)',
+        label:`${yy}년 ${d.month}월${wk}`,
+        items:its, extras:extrasFromDoc(d), _id:docu.id
+      });
+    });
+    if(loaded.length){
+      loaded.sort((a,b)=> a.company.localeCompare(b.company) || (''+b._id).localeCompare(''+a._id));
+      POLICIES=loaded;
+      F('status').innerHTML=`✅ 등록 시상 <b>${loaded.length}건</b> · 실적을 바꾸면 회사별 예상수익이 같이 움직여요.`;
+    } else {
+      F('status').innerHTML=`등록된 시상이 없어요. 관리자에서 시상을 올리면 여기에 표시됩니다.`;
+    }
+  }catch(e){
+    F('status').innerHTML=`시상을 불러오지 못했어요. <span style="color:var(--ink3)">(${e.code||e.message||'오류'})</span>`;
+  }
+  render();
+}
+
+// ── 인증 후 로드 (income-simulator와 동일) ──
+function decodeToken(t){
+  try {
+    t = String(t||'').replace(/-/g,'+').replace(/_/g,'/');
+    while (t.length % 4) t += '=';
+    const s = atob(t); const i = s.indexOf(':');
+    if (i < 1) return null;
+    return { email: s.slice(0, i), pw: s.slice(i + 1) };
+  } catch(e) { return null; }
+}
+let _started=false;
+onAuthStateChanged(auth, async(user)=>{
+  if(_started) return;
+  if(user){ _started=true; await loadAwards(); return; }
+  let token=null;
+  try{ token = localStorage.getItem('mujinViewerToken'); }catch(e){}
+  const cred = token ? decodeToken(token) : null;
+  if(cred){
+    try{ await signInWithEmailAndPassword(auth, cred.email, cred.pw); return; }catch(e){}
+  }
+  _started=true; await loadAwards();
+});
+
+// 초기 렌더 (로드 전에도 빈 화면 표시)
+render();
+</script>
+</body>
+</html>
