@@ -187,8 +187,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .filter-section{margin-bottom:16px;}
 .filter-section-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
 /* 연도: 세그먼트 스타일 */
-.year-seg-wrap{display:flex;flex-wrap:wrap;gap:6px;}
-.year-seg-btn{padding:7px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;}
+.year-seg-wrap{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.year-seg-wrap::-webkit-scrollbar{display:none;}
+.year-seg-btn{padding:7px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;flex-shrink:0;white-space:nowrap;}
 .year-seg-btn:hover{border-color:var(--text2);}
 .year-seg-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(59,91,219,.2);}
 /* 월: 4열 그리드 */
@@ -293,11 +294,12 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 /* 고객 상세 모달 */
 .cust-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
-.cust-detail-sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:680px;max-height:80vh;display:flex;flex-direction:column;animation:slideUp .22s cubic-bezier(.25,.46,.45,.94);}
+.cust-detail-sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:680px;max-height:80vh;display:flex;flex-direction:column;animation:slideUp .22s cubic-bezier(.25,.46,.45,.94);overflow:hidden;}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .cust-detail-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;}
 .cust-detail-header{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.cust-detail-body{overflow-y:auto;padding:18px 20px;flex:1;}
+.cust-detail-body{overflow-y:auto;overflow-x:hidden;overscroll-behavior-x:none;padding:18px 20px;flex:1;min-width:0;}
+.cust-detail-body input[type=date]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;}
 .cust-detail-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--surface2);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 /* 입력 공통 */
 .cust-textarea{width:100%;min-height:90px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;line-height:1.7;background:var(--bg);color:var(--text);outline:none;resize:vertical;transition:border-color .18s;box-sizing:border-box;}
@@ -3500,7 +3502,7 @@ window.renderContractsList = function() {
         <div class="cm-cust-menu-wrap">
           <button class="cm-cust-menu-btn" onclick="event.stopPropagation();toggleCustMenu('${c._docId}')" title="메뉴">⋯</button>
           <div class="cm-cust-dropdown" id="cust-menu-${c._docId}">
-            <button class="cm-cust-dropdown-item" onclick="event.stopPropagation();closeCustMenus();openCustDetail('${c._docId}')">👤 고객 상세</button>
+            <button class="cm-cust-dropdown-item" onclick="event.stopPropagation();closeCustMenus();openCustDetail('${c._docId}')">📋 계약 상세</button>
             <div class="cm-cust-dropdown-divider"></div>
             <button class="cm-cust-dropdown-item danger" onclick="event.stopPropagation();closeCustMenus();deleteCustomer('${c._docId}','${escHtml(c.name||'')}',${c.contracts?.length||0})">🗑 고객 삭제</button>
           </div>
@@ -3607,6 +3609,7 @@ window.openCustDetail = function(custDocId) {
       <div class="cust-detail-handle"></div>
       <div class="cust-detail-header">
         <div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.02em;margin-bottom:2px;">📋 계약 상세</div>
           <div style="font-size:16px;font-weight:800;letter-spacing:-.3px;">${escHtml(name)}</div>
           <div style="font-size:12px;color:var(--text3);margin-top:2px;">${escHtml(phone)} · 계약 ${ctCount}건${totalPrem>0?' · '+Math.round(totalPrem).toLocaleString()+'원':''}</div>
         </div>
