@@ -299,9 +299,10 @@ onAuthStateChanged(auth, async user => {
   $('#me').innerHTML = `<b>${esc(me.name)}</b>${me.role==='admin' ? '관리자' : '설계사'}`;
   $('#backLink').setAttribute('href', me.role==='admin' ? 'admin.html' : 'viewer.html');
 
-  await countActiveAgents();
-  if (me.role === 'admin') initCompose();
+  // 목록 구독을 먼저 시작 (체감 속도 ↑), 응답률 분모 계산은 백그라운드
   subscribeList();
+  countActiveAgents().catch(()=>{});
+  if (me.role === 'admin') initCompose();
   setupPush();
 });
 

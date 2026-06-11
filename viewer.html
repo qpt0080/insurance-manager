@@ -618,7 +618,44 @@ async function loadCustomers() {
   customers = [];
   snap.forEach(d => customers.push({...d.data(), _docId: d.id}));
   customers.sort((a,b) => (a.name||'').localeCompare(b.name||''));
-  if (!customers.length) console.log('[뷰어 진단] 담당 고객 0명 — 조회 기준 uid:', auth.currentUser.uid, '/ 고객 문서의 agentId가 이 값과 일치해야 표시됩니다.');
+  if (!customers.length) {
+    console.log('[뷰어 진단] 담당 고객 0명 — 조회 기준 uid:', auth.currentUser.uid, '/ 고객 문서의 agentId가 이 값과 일치해야 표시됩니다.');
+    if (agentInfo && agentInfo.role === 'admin') adminEmptyDiagnosis();
+  }
+}
+
+// 관리자 전용: 내 담당 고객이 0명일 때, 전체 데이터의 담당 분포를 화면에 표시
+async function adminEmptyDiagnosis() {
+  try {
+    const [allCust, allAgents] = await Promise.all([
+      getDocs(collection(db,'customers')),
+      getDocs(collection(db,'agents'))
+    ]);
+    const nameOf = {};
+    allAgents.forEach(d => nameOf[d.id] = (d.data().name||d.data().email||'') + (d.data().role==='admin'?' (관리자)':''));
+    const myUid = auth.currentUser.uid;
+    const dist = {};
+    let total = 0;
+    allCust.forEach(d => {
+      total++;
+      const aid = d.data().agentId;
+      const key = aid === myUid ? '나(관리자)' : (nameOf[aid] !== undefined ? nameOf[aid] : `❌ 끊어진 값(${String(aid||'없음').slice(0,10)}…)`);
+      dist[key] = (dist[key]||0) + 1;
+    });
+    const rows = Object.entries(dist).map(([k,v]) =>
+      `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>${escHtml(k)}</span><b>${v}명</b></div>`).join('');
+    const el = document.getElementById('list-results');
+    if (!el) return;
+    el.insertAdjacentHTML('afterbegin', `
+      <div style="background:#FEF3E2;border:1.5px solid #F5C97B;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:800;color:#92600A;margin-bottom:6px;">🔍 관리자 진단: 내 담당 고객이 0명이에요</div>
+        <div style="font-size:12px;color:#A87416;line-height:1.6;margin-bottom:8px;">
+          전체 고객 ${total}명의 담당 분포입니다. 내 뷰어에는 <b>"나(관리자)" 담당</b>만 표시돼요.<br>
+          다른 설계사 담당이면 계약 관리에서 담당 변경, ❌ 끊어진 값이면 설계사 관리 → 데이터 점검에서 수리하세요.
+        </div>
+        ${rows || '<div style="font-size:12px;">고객 데이터가 아예 없어요.</div>'}
+      </div>`);
+  } catch(e) { console.warn('진단 실패:', e); }
 }
 
 window.refreshData = async function() {

@@ -445,7 +445,10 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 <!-- 로그인 -->
 <div id="login-screen">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 28px;width:100%;max-width:380px;box-shadow:var(--shadow-md);">
+  <div id="auth-checking" style="text-align:center;color:var(--text2);font-size:14px;font-weight:600;">
+    <div style="font-size:34px;margin-bottom:10px;">🔐</div>로그인 확인 중...
+  </div>
+  <div id="login-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 28px;width:100%;max-width:380px;box-shadow:var(--shadow-md);">
     <div style="text-align:center;margin-bottom:30px;">
       <div style="font-size:36px;margin-bottom:12px;">🔐</div>
       <div style="font-size:22px;font-weight:800;letter-spacing:-.4px;">관리자 로그인</div>
@@ -597,23 +600,39 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
           <div id="upload-preview" style="display:none;">
             <div class="divider"></div>
+
+            <!-- ✅ 확인 카드: 요약 + 담당 선택 + 저장 (기본 화면) -->
+            <div id="upload-confirm-card" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius);padding:16px;box-shadow:0 4px 14px rgba(59,91,219,.10);">
+              <div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:10px;">✅ 저장 전 확인</div>
+              <div id="upload-summary-grid" style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;margin-bottom:12px;"></div>
+              <div id="match-auto-note" style="display:none;font-size:12px;color:var(--accent);background:var(--accent-light);border-radius:8px;padding:8px 11px;margin-bottom:10px;"></div>
+              <div style="margin-bottom:12px;">
+                <div class="sec-label" style="margin-top:0;margin-bottom:8px;">👤 담당 설계사</div>
+                <div class="agent-pick-wrap" id="agent-pick-wrap">
+                  <div style="font-size:12px;color:var(--text3);">불러오는 중...</div>
+                </div>
+              </div>
+              <button onclick="saveUploadContract()" class="btn btn-green btn-full" id="save-upload-btn" style="font-size:14px;padding:13px;">
+                💾 저장하기
+              </button>
+              <button onclick="toggleUploadDetail()" class="btn btn-full" id="upload-detail-toggle" style="margin-top:8px;font-size:12px;">
+                ✏️ 상세 보기·수정 (담보 목록 / 계약일 / 고객 정보)
+              </button>
+            </div>
+
+            <!-- ✏️ 상세 영역: 필요할 때만 펼침 -->
+            <div id="upload-detail-area" style="display:none;margin-top:14px;">
             <div class="preview-box">
               <div class="preview-title">📝 계약 미리보기</div>
               <div class="preview-grid" id="preview-info-grid"></div>
               <div style="margin:4px 0 14px;">
                 <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">📅 계약일 <span id="upload-date-hint" style="font-weight:600;text-transform:none;letter-spacing:0;"></span></div>
                 <input type="date" id="upload-date-input"
-                  onchange="document.getElementById('upload-date-hint').textContent='';"
+                  onchange="document.getElementById('upload-date-hint').textContent='';updateUploadSummary();"
                   style="width:100%;max-width:220px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;">
               </div>
               <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">담보 목록</div>
               <div class="preview-dambo-list" id="preview-dambo-list"></div>
-            </div>
-            <div style="margin-top:16px;">
-              <div class="sec-label" style="margin-top:0;margin-bottom:10px;">👤 담당 설계사</div>
-              <div class="agent-pick-wrap" id="agent-pick-wrap">
-                <div style="font-size:12px;color:var(--text3);">불러오는 중...</div>
-              </div>
             </div>
 
             <div style="margin-top:16px;display:none;">
@@ -643,8 +662,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
                     <label class="form-label">생년월일</label>
                     <input class="form-input" id="new-cust-birth" placeholder="1990-01-01"/>
                   </div>
-                  <div class="form-row">
-                    <label class="form-label">성별</label>
+                  <div class="form-row" style="display:none;"><!-- 성별: JSON에서 자동 입력되어 저장만 됨 (UI 비노출) -->
                     <select class="form-select" id="new-cust-gender">
                       <option value="">선택</option>
                       <option>남</option><option>여</option>
@@ -652,12 +670,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
                   </div>
                 </div>
               </div>
-              <div style="margin-top:14px;">
-                <button onclick="saveUploadContract()" class="btn btn-green btn-full" id="save-upload-btn" style="font-size:14px;padding:13px;">
-                  💾 저장하기
-                </button>
-              </div>
             </div>
+            </div><!-- /upload-detail-area -->
           </div>
         </div>
       </div>
@@ -1154,8 +1168,8 @@ onAuthStateChanged(auth, async (user) => {
       showLoginError('관리자 계정으로만 접근 가능합니다.');
       return;
     }
-    // 🔧 uid 필드 자동 보정: 문서의 uid 필드가 실제 로그인 uid와 다르면(또는 없으면)
-    //    고객/수당에 박힌 옛 agentId까지 한 번에 이전 (뷰어에서 계약이 안 보이던 원인)
+    // 🔧 uid 필드 자동 보정 — 백그라운드 실행 (메인 화면 표시를 막지 않음)
+    (async () => {
     try {
       if (agentData.uid !== user.uid) {
         const oldUid = agentData.uid || null;
@@ -1172,6 +1186,7 @@ onAuthStateChanged(auth, async (user) => {
         showToast(moved ? `🔧 관리자 정보를 보정하고 데이터 ${moved}건의 담당을 이전했어요.` : '🔧 관리자 정보(uid)를 보정했어요.');
       }
     } catch(e) { console.warn('uid 보정 실패:', e); }
+    })();
     const badge = document.getElementById('admin-name-badge');
     badge.textContent = agentData?.name || user.email;
     document.getElementById('login-screen').style.display = 'none';
@@ -1182,6 +1197,8 @@ onAuthStateChanged(auth, async (user) => {
     setupAdminSwipeNav();
   } else {
     currentAdmin = null;
+    document.getElementById('auth-checking').style.display = 'none';
+    document.getElementById('login-card').style.display = 'block';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('main-content').style.display = 'none';
   }
@@ -1970,6 +1987,23 @@ function renderMatchCandidates(data) {
   document.getElementById('new-cust-phone').value = data.연락처 || '';
   document.getElementById('new-cust-birth').value = data.생년월일 || '';
   document.getElementById('new-cust-gender').value = data.피보험자성별 === '남성' ? '남' : data.피보험자성별 === '여성' ? '여' : '';
+
+  // 🤖 자동 선택: 이름이 정확히 일치하는 기존 고객이 1명이면 그 고객,
+  //    아니면 신규 고객으로 자동 설정 (직접 클릭할 필요 없음, 바꾸고 싶을 때만 클릭)
+  const note = document.getElementById('match-auto-note');
+  const exact = candidates.filter(c => (c.name||'') === name &&
+    (!data.생년월일 || !c.birth || c.birth === data.생년월일));
+  if (name && exact.length === 1) {
+    selectCustomer(exact[0]._docId);
+    if (note) { note.innerHTML = `🤖 기존 고객 <b>${escHtml(exact[0].name)}</b>과(와) 일치해서 자동 선택했어요. 새 계약이 이 고객에게 추가됩니다.`; note.style.display = 'block'; }
+  } else {
+    selectNewCustomer();
+    if (note) { note.innerHTML = `🤖 일치하는 기존 고객이 없어 <b>신규 고객</b>으로 자동 설정했어요.${candidates.length ? ' 기존 고객에게 넣으려면 상세 보기에서 후보를 누르세요.' : ''}`; note.style.display = 'block'; }
+  }
+  // 새 JSON 적용 시 상세 영역은 접힌 상태로 시작
+  const detail = document.getElementById('upload-detail-area');
+  if (detail) { detail.style.display = 'none'; const t = document.getElementById('upload-detail-toggle'); if (t) t.textContent = '✏️ 상세 보기·수정 (담보 목록 / 계약일 / 고객 정보)'; }
+  updateUploadSummary();
 }
 
 window.selectCustomer = function(docId) {
@@ -1980,12 +2014,48 @@ window.selectCustomer = function(docId) {
   document.getElementById('new-customer-form').style.display = 'none';
   const btn = document.getElementById('match-new-btn');
   btn.style.borderStyle = 'solid';
+  updateUploadSummary();
 };
 
 window.selectNewCustomer = function() {
   selectedCustomerId = 'NEW';
   document.querySelectorAll('.match-candidate').forEach(el => el.classList.remove('selected'));
   document.getElementById('new-customer-form').style.display = 'block';
+  updateUploadSummary();
+};
+
+// ── 확인 카드: 요약 갱신 ──
+window.updateUploadSummary = function() {
+  const grid = document.getElementById('upload-summary-grid');
+  if (!grid || !parsedContractData) return;
+  const d = parsedContractData;
+  // 고객 표기
+  let custLabel;
+  if (selectedCustomerId === 'NEW') {
+    custLabel = `<b>${escHtml(document.getElementById('new-cust-name').value || d.계약자 || d.피보험자 || '')}</b> <span class="chip blue" style="font-size:10px;padding:1px 7px;">신규</span>`;
+  } else if (selectedCustomerId) {
+    const c = customersCache.find(x => x._docId === selectedCustomerId);
+    custLabel = `<b>${escHtml(c?.name || '')}</b> <span class="chip" style="font-size:10px;padding:1px 7px;">기존 · 계약 ${(c?.contracts||[]).length}건</span>`;
+  } else {
+    custLabel = '<span style="color:var(--red);">미선택</span>';
+  }
+  const dateVal = document.getElementById('upload-date-input')?.value || d.계약일 || '-';
+  const row = (k,v) => `<div style="color:var(--text3);font-weight:600;">${k}</div><div>${v}</div>`;
+  grid.innerHTML =
+    row('고객', custLabel) +
+    row('보험사·상품', `${escHtml(d.보험사||'-')} · ${escHtml(d.상품명||'-')}`) +
+    row('월 보험료', escHtml(d.월보험료||'-')) +
+    row('계약일', escHtml(dateVal)) +
+    row('담보', `${(d.담보목록||[]).length}개`);
+};
+
+window.toggleUploadDetail = function() {
+  const area = document.getElementById('upload-detail-area');
+  const open = area.style.display !== 'none';
+  area.style.display = open ? 'none' : 'block';
+  document.getElementById('upload-detail-toggle').textContent =
+    open ? '✏️ 상세 보기·수정 (담보 목록 / 계약일 / 고객 정보)' : '▲ 상세 접기';
+  if (!open) area.scrollIntoView({behavior:'smooth', block:'start'});
 };
 
 window.saveUploadContract = async function() {
