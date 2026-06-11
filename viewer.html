@@ -614,7 +614,7 @@ async function init() {
 }
 
 async function loadCustomers() {
-  const snap = await getDocs(query(collection(db,'customers'), where('agentId','==',agentInfo.uid)));
+  const snap = await getDocs(query(collection(db,'customers'), where('agentId','==',auth.currentUser.uid)));
   customers = [];
   snap.forEach(d => customers.push({...d.data(), _docId: d.id}));
   customers.sort((a,b) => (a.name||'').localeCompare(b.name||''));
@@ -1079,7 +1079,7 @@ async function loadNotices() {
 }
 async function loadCommissions() {
   try {
-    const snap = await getDocs(query(collection(db,'commissions'), where('agentId','==',agentInfo.uid)));
+    const snap = await getDocs(query(collection(db,'commissions'), where('agentId','==',auth.currentUser.uid)));
     commissionsCache = [];
     snap.forEach(d => commissionsCache.push({_id:d.id,...d.data()}));
   } catch(e) { commissionsCache = []; }

@@ -239,6 +239,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   #admin-name-badge{display:none;}
   .header-right{gap:6px;}
   .header-right .btn{padding:7px 10px;font-size:11px;}
+  .header-right .hdr-label{display:none;}
+  .logo{white-space:nowrap;}
+  .logo-sub{white-space:nowrap;}
   .tab-nav{top:52px;padding:0;}
   .tab-nav-item{padding:10px 8px;font-size:12px;gap:4px;}
   .container{padding:12px 10px;}
@@ -470,9 +473,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     </div>
     <div class="header-right">
       <span id="admin-name-badge" style="font-size:12px;font-weight:600;color:var(--text2);"></span>
-      <a href="viewer.html" class="btn btn-sm" style="text-decoration:none;background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.25);">👤 내 뷰어</a>
-      <a href="dashboard.html" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.25);">📊 대시보드</a>
-      <button onclick="doLogout()" class="btn btn-sm">🚪 로그아웃</button>
+      <a href="viewer.html" class="btn btn-sm" style="text-decoration:none;background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.25);">👤<span class="hdr-label"> 내 뷰어</span></a>
+      <a href="dashboard.html" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.25);">📊<span class="hdr-label"> 대시보드</span></a>
+      <button onclick="doLogout()" class="btn btn-sm">🚪<span class="hdr-label"> 로그아웃</span></button>
     </div>
   </div>
 </header>
