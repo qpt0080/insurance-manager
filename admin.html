@@ -1128,15 +1128,32 @@ let selectedUploadAgentUid = null; // 업로드 탭 선택된 설계사
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentAdmin = user;
-    // 관리자인지 확인
-    const agentSnap = await getDocs(query(collection(db,'agents'), where('uid','==',user.uid)));
-    let agentData = null;
-    agentSnap.forEach(d => agentData = d.data());
-    if (agentData && agentData.role !== 'admin') {
+    // 관리자인지 확인 (문서 ID = 로그인 uid 가 기준)
+    const meSnap = await getDoc(doc(db,'agents',user.uid));
+    const agentData = meSnap.exists() ? meSnap.data() : null;
+    if (!agentData || agentData.role !== 'admin') {
       await signOut(auth);
       showLoginError('관리자 계정으로만 접근 가능합니다.');
       return;
     }
+    // 🔧 uid 필드 자동 보정: 문서의 uid 필드가 실제 로그인 uid와 다르면(또는 없으면)
+    //    고객/수당에 박힌 옛 agentId까지 한 번에 이전 (뷰어에서 계약이 안 보이던 원인)
+    try {
+      if (agentData.uid !== user.uid) {
+        const oldUid = agentData.uid || null;
+        await updateDoc(doc(db,'agents',user.uid), {uid: user.uid});
+        let moved = 0;
+        // 옛 uid 값 + uid 누락 시절에 문자열 "undefined"로 저장된 케이스까지 모두 이전
+        const staleIds = [...new Set([oldUid, 'undefined', ''].filter(v => v != null && v !== user.uid))];
+        for (const stale of staleIds) {
+          const custs = await getDocs(query(collection(db,'customers'), where('agentId','==',stale)));
+          for (const d of custs.docs) { await updateDoc(doc(db,'customers',d.id), {agentId: user.uid}); moved++; }
+          const comms = await getDocs(query(collection(db,'commissions'), where('agentId','==',stale)));
+          for (const d of comms.docs) { await updateDoc(doc(db,'commissions',d.id), {agentId: user.uid}); moved++; }
+        }
+        showToast(moved ? `🔧 관리자 정보를 보정하고 데이터 ${moved}건의 담당을 이전했어요.` : '🔧 관리자 정보(uid)를 보정했어요.');
+      }
+    } catch(e) { console.warn('uid 보정 실패:', e); }
     const badge = document.getElementById('admin-name-badge');
     badge.textContent = agentData?.name || user.email;
     document.getElementById('login-screen').style.display = 'none';

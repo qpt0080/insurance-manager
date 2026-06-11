@@ -618,6 +618,7 @@ async function loadCustomers() {
   customers = [];
   snap.forEach(d => customers.push({...d.data(), _docId: d.id}));
   customers.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  if (!customers.length) console.log('[뷰어 진단] 담당 고객 0명 — 조회 기준 uid:', auth.currentUser.uid, '/ 고객 문서의 agentId가 이 값과 일치해야 표시됩니다.');
 }
 
 window.refreshData = async function() {
