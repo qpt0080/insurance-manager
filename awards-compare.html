@@ -137,8 +137,10 @@
     <div class="comm-row">
       <label>기본 수수료율</label>
       <div class="comm-ib"><input id="comm" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
+      <label>유지 수수료율</label>
+      <div class="comm-ib"><input id="keep" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
     </div>
-    <div class="comm-hint">수수료율은 회사·상품마다 달라요. 비교 기준으로 하나만 적용 중 — 직접 조정하세요.</div>
+    <div class="comm-hint">수수료율은 회사·상품마다 달라요. 유지 수수료는 <b>7~15회차 분할</b> 지급 기준 — 둘 다 직접 조정하세요.</div>
   </div>
 
   <div class="status" id="status">시상 불러오는 중…</div>
@@ -210,17 +212,22 @@ function itemsFromDoc(d){
   const out=[];
   (d.tiers||[]).forEach((t,i)=>{
     const timing=(t.payTiming==='13th_payment'||t.retention===13)?'13th':'next_month';
+    const ag = t.audienceGroup || null; // ⭐ 그룹 한정 시상: 그룹 멤버에게만 보임
     if(t.type==='basic'){
       const p=(t.periods&&t.periods[0])||{}; const rate=(p.totalRate??p.ownRate??0);
-      out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true});
+      out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true, audienceGroup:ag});
+    } else if(t.type==='special'){
+      // 특별시상: 보험료 대비 % (보통 그룹 한정)
+      const rate=+(t.rate||0); if(!rate) return;
+      out.push({id:t.id||('s'+i), label:t.label||'특별시상', sub:rate+'%', mode:'rate', rate, timing, on:true, audienceGroup:ag, special:true});
     } else if(t.type==='consecutive'){
       const bands=bandsFromConsecutive(t.tiers);
       if(bandsAllZero(bands)) return;
-      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true});
+      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true, audienceGroup:ag});
     } else if(['weekly','weekly_extra','flagship','club','membership'].includes(t.type)){
       const bands=bandsFromTiers(t.tiers,['threshold']);
       if(bandsAllZero(bands)) return;
-      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true});
+      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true, audienceGroup:ag});
     }
     // gift(물품)·travel(여행) 등 현금 아님 → 시상 합계엔 제외, extras로 따로 표시
   });
@@ -238,27 +245,56 @@ function extrasFromDoc(d){
 
 // ── 상태 ──
 let POLICIES = []; // [{company, label, items, extras, _id}]
+let GROUPS = [];   // [{id, name, memberUids}] — ⭐ 추가시상 그룹
+let myUid = null;  // 로그인한 설계사 uid
 let perf = 100000;
-let comm = 522;
+let comm = 522;    // 기본 수수료율 %
+let keep = 200;    // 유지 수수료율 % (7~15회차 분할)
+const KEEP_FROM = 7, KEEP_TO = 15; // 유지 수수료 분할 구간
 const openSet = new Set();
 
 function matchBand(P){ let b=null; for(const t of BANDS){ if(P>=t) b=t; } return b; }
 
-// 회사(시상 항목들) 기준 1건당 예상 — 익월시상 + 13회차시상 + 수수료
+// ⭐ 그룹 한정 항목: 내가 멤버인 그룹의 것만 보임 (이름 또는 문서ID로 매칭)
+function inAudience(groupRef){
+  if(!groupRef) return true; // 한정 없음 = 전체 공개
+  const g = GROUPS.find(x => x.name===groupRef || x.id===groupRef);
+  return !!(g && myUid && (g.memberUids||[]).includes(myUid));
+}
+
+// ⭐ 내가 멤버인 그룹들의 특별시상 → 모든 회사에 공통 추가되는 항목들
+function mySpecialItems(){
+  if(!myUid) return [];
+  return GROUPS
+    .filter(g => (g.memberUids||[]).includes(myUid) && g.special && +g.special.rate > 0)
+    .map(g => ({
+      id:'gspecial_'+g.id, label:g.special.label||'그룹 특별시상',
+      sub:(+g.special.rate)+'%', mode:'rate', rate:+g.special.rate,
+      timing:g.special.timing==='13th'?'13th':'next_month', on:true, special:true
+    }));
+}
+
+// 회사(시상 항목들) 기준 1건당 예상 — 익월시상 + 13회차시상 + 수수료(기본+유지)
+// 그룹 특별시상은 모든 회사에 공통으로 더해짐
 function calc(items){
   const band = matchBand(perf);
   let next=0, r13=0;
   const detail=[];
-  (items||[]).forEach(it=>{
+  [...(items||[]), ...mySpecialItems()].forEach(it=>{
+    if(!inAudience(it.audienceGroup)) return; // 그룹 한정 — 비멤버에겐 숨김
     let v=0;
     if(it.on){
       v = it.mode==='rate' ? perf*(it.rate||0)/100 : (band?(it.bands[band]||0):0);
     }
     if(it.timing==='13th') r13+=v; else next+=v;
-    detail.push({label:it.label, sub:it.sub, timing:it.timing, on:it.on, amount:v});
+    detail.push({label:it.label, sub:it.sub, timing:it.timing, on:it.on, amount:v, special:!!it.special});
   });
-  const commission = perf*comm/100;
-  return { next, r13, award:next+r13, commission, total:next+r13+commission, band, detail };
+  const commission = perf*comm/100;                       // 기본 수수료
+  const keepTotal  = perf*keep/100;                       // 유지 수수료 총액 (7~15회차 분할)
+  const keepN      = KEEP_TO - KEEP_FROM + 1;             // 분할 횟수 (9회)
+  const keepEach   = keepN ? keepTotal/keepN : 0;
+  return { next, r13, award:next+r13, commission, keepTotal, keepEach, keepN,
+           total:next+r13+commission+keepTotal, band, detail };
 }
 
 // ── 렌더 ──
@@ -277,7 +313,7 @@ function render(){
     const nextRows = r.detail.filter(d=>d.timing!=='13th');
     const r13Rows  = r.detail.filter(d=>d.timing==='13th');
     const rowHtml = d => `<div class="dt-row ${d.on?'':'off'}">
-        <div class="lab">${esc(d.label||'')}${d.sub?`<small>${esc(d.sub)}</small>`:''}</div>
+        <div class="lab">${d.special?'⭐ ':''}${esc(d.label||'')}${d.sub?`<small>${esc(d.sub)}${d.special?' · 그룹 한정':''}</small>`:''}</div>
         <div class="amt">${d.amount?man(d.amount)+'만':'–'}</div></div>`;
 
     const extra = (p.extras&&p.extras.length)
@@ -291,14 +327,16 @@ function render(){
         </div>
         <div class="co-sum">
           <div class="big num">${man(r.total)}<span class="w">만원</span></div>
-          <div class="sub">시상 <b>${man(r.award)}만</b> + 수수료 <b>${man(r.commission)}만</b> · <span class="band-now">${bandLabel}</span></div>
+          <div class="sub">시상 <b>${man(r.award)}만</b> + 수수료 <b>${man(r.commission+r.keepTotal)}만</b> · <span class="band-now">${bandLabel}</span></div>
         </div>
         <div class="co-toggle">상세 <span class="arr">▾</span></div>
       </div>
       <div class="co-detail">
         ${nextRows.length?`<div class="dt-sec">익월 지급 시상</div>${nextRows.map(rowHtml).join('')}`:''}
         ${r13Rows.length?`<div class="dt-sec">13회차 지급 시상</div>${r13Rows.map(rowHtml).join('')}`:''}
+        <div class="dt-sec">수수료</div>
         <div class="dt-row"><div class="lab">기본 수수료 (${comm}%)</div><div class="amt">${man(r.commission)}만</div></div>
+        <div class="dt-row"><div class="lab">유지 수수료 (${keep}%)<small>${KEEP_FROM}~${KEEP_TO}회차 분할 · 회차당 ${man(r.keepEach)}만 × ${r.keepN}회</small></div><div class="amt">${man(r.keepTotal)}만</div></div>
         ${extra}
       </div>
     </div>`;
@@ -338,9 +376,19 @@ F('comm').addEventListener('input',()=>{
   F('comm').value = comma(comm);
   render();
 });
+F('keep').addEventListener('input',()=>{
+  keep = +onlyDigits(F('keep').value)||0;
+  F('keep').value = comma(keep);
+  render();
+});
 
 // ── Firestore 로드 (income-simulator와 동일 흐름) ──
 async function loadAwards(){
+  // ⭐ 추가시상 그룹 (실패해도 비교는 동작 — 그룹 한정 항목만 안 보임)
+  try{
+    const gs=await getDocs(collection(db,'awardGroups'));
+    GROUPS=[]; gs.forEach(d=>GROUPS.push({id:d.id, ...d.data()}));
+  }catch(e){ GROUPS=[]; }
   try{
     const snap=await getDocs(collection(db,'awards'));
     const loaded=[];
@@ -381,6 +429,7 @@ function decodeToken(t){
 }
 let _started=false;
 onAuthStateChanged(auth, async(user)=>{
+  if(user) myUid = user.uid; // ⭐ 그룹 한정 시상 판별용
   if(_started) return;
   if(user){ _started=true; await loadAwards(); return; }
   let token=null;

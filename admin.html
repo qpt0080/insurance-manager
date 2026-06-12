@@ -800,6 +800,22 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
           <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;">📁 전체 저장 목록</div>
           <div id="award-saved-list"><div class="empty">불러오는 중...</div></div>
         </div>
+
+        <!-- ⭐ 추가시상 그룹 -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title" style="margin-bottom:6px;">⭐ 추가시상 그룹</div>
+          <div style="font-size:11.5px;color:var(--text3);line-height:1.6;margin-bottom:12px;">
+            특정 설계사에게만 주는 <b>특별시상</b>을 설정해요.
+            그룹을 만들고 멤버를 체크한 뒤, 아래에서 시상 이름·비율·지급 시점을 저장하면
+            그 멤버들의 <b>시상 비교 화면 모든 회사</b>에 ⭐ 항목으로 자동 추가돼요.
+          </div>
+          <div id="award-groups-list"><div class="empty">불러오는 중...</div></div>
+          <div style="display:flex;gap:6px;margin-top:12px;">
+            <input id="new-group-name" type="text" placeholder="새 그룹 이름 (예: 추가시상)"
+              style="flex:1;padding:9px 11px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;">
+            <button onclick="createAwardGroup()" class="btn btn-sm" style="white-space:nowrap;">+ 만들기</button>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -1205,11 +1221,12 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── 전체 로드 ──
 async function loadAll() {
-  await Promise.all([loadAgents(), loadCustomers(), loadAdminAwards()]);
+  await Promise.all([loadAgents(), loadCustomers(), loadAdminAwards(), loadAwardGroups()]);
   renderDashboard();
   renderAgents();
   renderLinks();
   renderAgentRadios();
+  renderAwardGroups();
   renderAwardBanner();
   checkOrphanAgents(); // 담당 연결 자동 점검 (문제 있을 때만 배너)
 }
@@ -1237,6 +1254,120 @@ async function loadAdminAwards() {
     snap.forEach(d => awardsCache.push({id:d.id, ...d.data()}));
   } catch(e) { awardsCache = []; }
 }
+
+// ── ⭐ 추가시상 그룹 ──
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+let awardGroupsCache = []; // [{_docId, name, memberUids:[]}]
+
+async function loadAwardGroups() {
+  try {
+    const snap = await getDocs(collection(db,'awardGroups'));
+    awardGroupsCache = [];
+    snap.forEach(d => awardGroupsCache.push({...d.data(), _docId: d.id}));
+    awardGroupsCache.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  } catch(e) { awardGroupsCache = []; }
+}
+
+window.renderAwardGroups = function() {
+  const box = document.getElementById('award-groups-list');
+  if (!box) return;
+  if (!awardGroupsCache.length) {
+    box.innerHTML = `<div class="empty" style="padding:14px;font-size:12px;">아직 그룹이 없어요. 아래에서 만들어보세요.</div>`;
+    return;
+  }
+  const activeAgents = agentsCache.filter(a => !a.disabled);
+  box.innerHTML = awardGroupsCache.map(g => {
+    const members = g.memberUids || [];
+    const sp = g.special || {};
+    const chips = activeAgents.map(a => {
+      const uid = a.uid || a._docId;
+      const onIt = members.includes(uid);
+      return `<label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid ${onIt?'var(--accent)':'var(--border)'};border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;background:${onIt?'var(--accent-light)':'var(--surface)'};color:${onIt?'var(--accent)':'var(--text2)'};">
+        <input type="checkbox" ${onIt?'checked':''} onchange="toggleGroupMember('${g._docId}','${uid}',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;">
+        ${esc(a.name||'(이름없음)')}</label>`;
+    }).join(' ');
+    return `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;background:var(--bg);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+        <span style="font-size:13px;font-weight:800;">⭐ ${esc(g.name||'')}</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;font-weight:700;color:var(--text3);">${members.length}명</span>
+          <button onclick="deleteAwardGroup('${g._docId}')" class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-size:11px;padding:4px 8px;">삭제</button>
+        </span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || '<span style="font-size:12px;color:var(--text3);">활성 설계사가 없어요</span>'}</div>
+
+      <!-- 특별시상 설정 (모든 회사 적용) -->
+      <div style="margin-top:11px;padding-top:11px;border-top:1px dashed var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:7px;">특별시상 — 이 그룹 멤버의 모든 회사 시상에 자동 추가</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <input id="sp-label-${g._docId}" type="text" placeholder="시상 이름" value="${esc(sp.label||'')}"
+            style="flex:2;min-width:110px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;">
+          <span style="display:inline-flex;align-items:center;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);padding:0 8px;">
+            <input id="sp-rate-${g._docId}" type="text" inputmode="numeric" placeholder="0" value="${sp.rate||''}"
+              style="width:48px;padding:8px 0;border:none;font-size:12px;font-weight:700;font-family:inherit;background:none;color:var(--text);outline:none;text-align:right;">
+            <span style="font-size:11px;font-weight:700;color:var(--text3);margin-left:2px;">%</span>
+          </span>
+          <select id="sp-timing-${g._docId}"
+            style="padding:8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;">
+            <option value="next_month" ${sp.timing!=='13th'?'selected':''}>익월</option>
+            <option value="13th" ${sp.timing==='13th'?'selected':''}>13회차</option>
+          </select>
+          <button onclick="saveGroupSpecial('${g._docId}')" class="btn btn-sm" style="font-size:11px;">저장</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:6px;">${sp.rate?`현재: <b>${esc(sp.label||'특별시상')} ${sp.rate}% · ${sp.timing==='13th'?'13회차':'익월'}</b> 적용 중 — 비율을 0으로 저장하면 꺼져요.`:'비율을 넣고 저장하면 켜져요. (예: 그룹 특별시상 · 100% · 13회차)'}</div>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.createAwardGroup = async function() {
+  const inp = document.getElementById('new-group-name');
+  const name = (inp.value||'').trim();
+  if (!name) { alert('그룹 이름을 입력하세요'); return; }
+  if (awardGroupsCache.some(g => g.name === name)) { alert('같은 이름의 그룹이 이미 있어요'); return; }
+  try {
+    await addDoc(collection(db,'awardGroups'), { name, memberUids: [], createdAt: new Date().toISOString() });
+    inp.value = '';
+    await loadAwardGroups(); renderAwardGroups();
+  } catch(e) { alert('그룹 생성 실패: '+e.message); }
+};
+
+window.toggleGroupMember = async function(groupId, uid, on) {
+  const g = awardGroupsCache.find(x => x._docId === groupId);
+  if (!g) return;
+  const set = new Set(g.memberUids || []);
+  if (on) set.add(uid); else set.delete(uid);
+  const memberUids = [...set];
+  try {
+    await updateDoc(doc(db,'awardGroups',groupId), { memberUids });
+    g.memberUids = memberUids;
+    renderAwardGroups();
+  } catch(e) { alert('저장 실패: '+e.message); renderAwardGroups(); }
+};
+
+window.saveGroupSpecial = async function(groupId) {
+  const g = awardGroupsCache.find(x => x._docId === groupId);
+  if (!g) return;
+  const label  = (document.getElementById('sp-label-'+groupId).value||'').trim() || '그룹 특별시상';
+  const rate   = +String(document.getElementById('sp-rate-'+groupId).value||'').replace(/[^0-9]/g,'') || 0;
+  const timing = document.getElementById('sp-timing-'+groupId).value === '13th' ? '13th' : 'next_month';
+  const special = rate > 0 ? { label, rate, timing } : null; // 0% = 끔
+  try {
+    await updateDoc(doc(db,'awardGroups',groupId), { special });
+    g.special = special;
+    renderAwardGroups();
+  } catch(e) { alert('저장 실패: '+e.message); }
+};
+
+window.deleteAwardGroup = async function(groupId) {
+  const g = awardGroupsCache.find(x => x._docId === groupId);
+  if (!g) return;
+  if (!confirm(`'${g.name}' 그룹을 삭제할까요?\n이 그룹을 가리키는 특별시상 항목은 아무에게도 보이지 않게 됩니다.`)) return;
+  try {
+    await deleteDoc(doc(db,'awardGroups',groupId));
+    await loadAwardGroups(); renderAwardGroups();
+  } catch(e) { alert('삭제 실패: '+e.message); }
+};
 
 async function loadAgents() {
   const snap = await getDocs(collection(db,'agents'));
