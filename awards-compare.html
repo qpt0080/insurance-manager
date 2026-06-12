@@ -151,7 +151,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -384,11 +384,15 @@ F('keep').addEventListener('input',()=>{
 
 // ── Firestore 로드 (income-simulator와 동일 흐름) ──
 async function loadAwards(){
-  // ⭐ 추가시상 그룹 (실패해도 비교는 동작 — 그룹 한정 항목만 안 보임)
-  try{
-    const gs=await getDocs(collection(db,'awardGroups'));
-    GROUPS=[]; gs.forEach(d=>GROUPS.push({id:d.id, ...d.data()}));
-  }catch(e){ GROUPS=[]; }
+  // ⭐ 추가시상 그룹 — 보안규칙상 "내가 멤버인 그룹"만 조회 가능 (비멤버에겐 존재 자체 숨김)
+  GROUPS=[];
+  if(myUid){
+    try{
+      const gq=query(collection(db,'awardGroups'), where('memberUids','array-contains',myUid));
+      const gs=await getDocs(gq);
+      gs.forEach(d=>GROUPS.push({id:d.id, ...d.data()}));
+    }catch(e){ GROUPS=[]; }
+  }
   try{
     const snap=await getDocs(collection(db,'awards'));
     const loaded=[];
