@@ -532,11 +532,17 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <!-- 이번달 시상 등록 현황 배너 -->
     <div id="award-status-banner" style="margin-bottom:16px;"></div>
 
-    <!-- 시뮬레이션 -->
-    <a href="income-simulator.html" target="_blank" rel="noopener" class="card" style="display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text);margin-bottom:16px;padding:16px 18px;">
-      <span style="font-size:15px;font-weight:800;">📊 시뮬레이션</span>
-      <span style="color:var(--text3);font-size:18px;">→</span>
-    </a>
+    <!-- 시뮬레이션 / 시상 비교 -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <a href="income-simulator.html" target="_blank" rel="noopener" class="card" style="flex:1;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text);margin-bottom:0;padding:16px 18px;">
+        <span style="font-size:15px;font-weight:800;">📊 시뮬레이션</span>
+        <span style="color:var(--text3);font-size:18px;">→</span>
+      </a>
+      <a href="awards-compare.html" target="_blank" rel="noopener" class="card" style="flex:1;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text);margin-bottom:0;padding:16px 18px;">
+        <span style="font-size:15px;font-weight:800;">🏆 시상 비교</span>
+        <span style="color:var(--text3);font-size:18px;">→</span>
+      </a>
+    </div>
 
     <!-- 미배정 고객 알림 -->
     <div class="card" id="orphan-card" style="display:none;border-color:var(--amber);border-left:4px solid var(--amber);background:linear-gradient(135deg,var(--amber-light) 0%,var(--surface) 60%);">

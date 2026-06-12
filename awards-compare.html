@@ -225,21 +225,22 @@ function itemsFromDoc(d){
   (d.tiers||[]).forEach((t,i)=>{
     const timing=(t.payTiming==='13th_payment'||t.retention===13)?'13th':'next_month';
     const ag = t.audienceGroup || null; // ⭐ 그룹 한정 시상: 그룹 멤버에게만 보임
+    const el = t.eligibility || null;   // 🎯 자격 조건: 본인 계약 데이터로 자동 판정
     if(t.type==='basic'){
       const p=(t.periods&&t.periods[0])||{}; const rate=(p.totalRate??p.ownRate??0);
-      out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true, audienceGroup:ag});
+      out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true, audienceGroup:ag, eligibility:el});
     } else if(t.type==='special'){
       // 특별시상: 보험료 대비 % (보통 그룹 한정)
       const rate=+(t.rate||0); if(!rate) return;
-      out.push({id:t.id||('s'+i), label:t.label||'특별시상', sub:rate+'%', mode:'rate', rate, timing, on:true, audienceGroup:ag, special:true});
+      out.push({id:t.id||('s'+i), label:t.label||'특별시상', sub:rate+'%', mode:'rate', rate, timing, on:true, audienceGroup:ag, eligibility:el, special:true});
     } else if(t.type==='consecutive'){
       const bands=bandsFromConsecutive(t.tiers);
       if(bandsAllZero(bands)) return;
-      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true, audienceGroup:ag});
+      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true, audienceGroup:ag, eligibility:el});
     } else if(['weekly','weekly_extra','flagship','club','membership'].includes(t.type)){
       const bands=bandsFromTiers(t.tiers,['threshold']);
       if(bandsAllZero(bands)) return;
-      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true, audienceGroup:ag});
+      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true, audienceGroup:ag, eligibility:el});
     }
     // gift(물품)·travel(여행) 등 현금 아님 → 시상 합계엔 제외, extras로 따로 표시
   });
@@ -271,6 +272,46 @@ function ratesFor(company){ return isLife(company) ? RATES.life : RATES.nl; }
 const KEEP_FROM = 7, KEEP_TO = 15; // 유지 수수료 분할 구간
 const openSet = new Set();
 
+// ── 자격 조건(eligibility) 자동 판정 — 본인 계약 데이터 기반 ──
+// 시상 tier에 eligibility가 있으면, Firestore의 내 계약 월별 실적으로 달성 여부를 판정.
+// 미달이면 항목을 숨김(⭐그룹 한정과 동일 동작). 계약 데이터가 없으면 = 미달성.
+let MONTH_SUMS = {}; // 'YYYY-M' → 월 보험료 합계 (viewer와 동일 규칙: startDate/rawJson.계약일, premium)
+async function loadMyPerf(){
+  MONTH_SUMS = {};
+  if(!myUid) return;
+  try{
+    const snap = await getDocs(query(collection(db,'customers'), where('agentId','==',myUid)));
+    snap.forEach(d=>{
+      (d.data().contracts||[]).forEach(ct=>{
+        const date = ct.startDate || (ct.rawJson && ct.rawJson['계약일']) || null;
+        if(!date) return; // 계약일 없으면 월 판정 불가 → 제외 (viewer와 동일)
+        const m = String(date).match(/(\d{4})[.\-\/](\d{1,2})/);
+        if(!m) return;
+        const key = m[1]+'-'+(+m[2]);
+        const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0;
+        MONTH_SUMS[key] = (MONTH_SUMS[key]||0) + prem;
+      });
+    });
+  }catch(e){ MONTH_SUMS = {}; }
+}
+function meetsEligibility(e){
+  if(!e) return true;
+  if(e.type==='monthly_min'){
+    // 특정 월 실적이 minPremium 이상이어야 자격 (예: K-다이아몬드 = 5월 200만↑)
+    return (MONTH_SUMS[e.year+'-'+(+e.month)]||0) >= (e.minPremium||0);
+  }
+  if(e.type==='active_months_min'){
+    // 기간 내 minPremium 이상 가동한 달이 minMonths개 이상 (예: 1Q 그린플래티넘 = 1~3월 중 2개월 20만↑)
+    let n=0, y=e.fromYear, mo=e.fromMonth;
+    while(y<e.toYear || (y===e.toYear && mo<=e.toMonth)){
+      if((MONTH_SUMS[y+'-'+mo]||0) >= (e.minPremium||0)) n++;
+      mo++; if(mo>12){ mo=1; y++; }
+    }
+    return n >= (e.minMonths||1);
+  }
+  return true; // 알 수 없는 타입은 숨기지 않음 (보수적)
+}
+
 function matchBand(P){ let b=null; for(const t of BANDS){ if(P>=t) b=t; } return b; }
 
 // ⭐ 그룹 한정 항목: 내가 멤버인 그룹의 것만 보임 (이름 또는 문서ID로 매칭)
@@ -301,6 +342,7 @@ function calc(items, company){
   const detail=[];
   [...(items||[]), ...mySpecialItems()].forEach(it=>{
     if(!inAudience(it.audienceGroup)) return; // 그룹 한정 — 비멤버에겐 숨김
+    if(!meetsEligibility(it.eligibility)) return; // 🎯 자격 미달(실데이터 판정) — 숨김
     let v=0;
     if(it.on){
       v = it.mode==='rate' ? perf*(it.rate||0)/100 : (band?(it.bands[band]||0):0);
@@ -416,6 +458,7 @@ async function loadAwards(){
       gs.forEach(d=>GROUPS.push({id:d.id, ...d.data()}));
     }catch(e){ GROUPS=[]; }
   }
+  await loadMyPerf(); // 🎯 자격 조건 판정용 — 내 계약 월별 실적
   try{
     const snap=await getDocs(collection(db,'awards'));
     const loaded=[];
