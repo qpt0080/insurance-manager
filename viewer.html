@@ -436,7 +436,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
       <div class="tab" onclick="showTab('list')" id="tab-list">📋 계약</div>
       <div class="tab" onclick="showTab('performance')" id="tab-performance">📊 실적</div>
       <div class="tab" onclick="showTab('awards')" id="tab-awards">🏆 시상</div>
-      <div class="tab" onclick="location.href='notice.html'" id="tab-notice">🔔 공지</div>
+      <div class="tab" onclick="showTab('notice')" id="tab-notice">🔔 공지</div>
     </div>
   </header>
 
@@ -511,6 +511,10 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <!-- 시상 비교 (awards-compare.html을 iframe으로 임베드 — 토큰 공유, 코드 분리) -->
     <div id="screen-awards" class="screen">
       <iframe id="awards-frame" title="시상 비교" style="width:100%;border:0;display:block;background:transparent;"></iframe>
+    </div>
+    <!-- 공지 (notice.html을 iframe으로 임베드 — 토큰 공유, SPA 뒤로가기) -->
+    <div id="screen-notice" class="screen">
+      <iframe id="notice-frame" title="공지" style="width:100%;border:0;display:block;background:transparent;"></iframe>
     </div>
     <!-- 고객 상세 -->
     <div id="screen-detail" class="screen pb">
@@ -2742,7 +2746,7 @@ window.savePayMethod = async function(custId, ctId, ctSafeId) {
   } catch(e) { alert('저장 실패: '+e.message); }
 };
 window.showTab = function(tab, skipHistory) {
-  ['home','list','performance','awards'].forEach(t => {
+  ['home','list','performance','awards','notice'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
     document.getElementById('screen-'+t).classList.toggle('active', t===tab);
   });
@@ -2752,6 +2756,7 @@ window.showTab = function(tab, skipHistory) {
   if (tab === 'list') renderList();
   if (tab === 'performance') renderPerformance();
   if (tab === 'awards') ensureAwardsFrame();
+  if (tab === 'notice') ensureNoticeFrame();
   if (!skipHistory) {
     const cur = history.state;
     // 같은 탭이 이미 현재 상태면 중복 push 안 함
@@ -2774,13 +2779,24 @@ function sizeAwardsFrame() {
   const f = document.getElementById('awards-frame');
   if (header && f) f.style.height = Math.max(320, window.innerHeight - header.offsetHeight) + 'px';
 }
-window.addEventListener('resize', sizeAwardsFrame);
+// ── 공지 iframe: 처음 열 때만 로드(이후 유지 — 실시간 구독이 새 공지 반영) ──
+function ensureNoticeFrame() {
+  const f = document.getElementById('notice-frame');
+  if (f && !f.getAttribute('src')) f.setAttribute('src', 'notice.html');
+  sizeNoticeFrame();
+}
+function sizeNoticeFrame() {
+  const header = document.querySelector('header');
+  const f = document.getElementById('notice-frame');
+  if (header && f) f.style.height = Math.max(320, window.innerHeight - header.offsetHeight) + 'px';
+}
+window.addEventListener('resize', function(){ sizeAwardsFrame(); sizeNoticeFrame(); });
 function showScreen(name) {
-  ['home','list','performance','awards','detail','contract'].forEach(s =>
+  ['home','list','performance','awards','notice','detail','contract'].forEach(s =>
     document.getElementById('screen-'+s).classList.toggle('active', s===name)
   );
-  if (['home','list','performance','awards'].includes(name)) {
-    ['home','list','performance','awards'].forEach(t =>
+  if (['home','list','performance','awards','notice'].includes(name)) {
+    ['home','list','performance','awards','notice'].forEach(t =>
       document.getElementById('tab-'+t).classList.toggle('active', t===name)
     );
   }
@@ -2796,12 +2812,13 @@ window.addEventListener('popstate', function(e) {
   if (!s || s.view === 'tab') {
     const tab = s?.tab || prevScreen || 'home';
     showScreen(tab);
-    ['home','list','performance','awards'].forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t===tab));
+    ['home','list','performance','awards','notice'].forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t===tab));
     currentCustomerId = null; currentSheetCustId = null; currentSheetCtId = null;
     if (tab === 'home') renderHome();
     else if (tab === 'list') renderList();
     else if (tab === 'performance') renderPerformance();
     else if (tab === 'awards') ensureAwardsFrame();
+    else if (tab === 'notice') ensureNoticeFrame();
   } else if (s.view === 'detail') {
     showDetail(s.custId, true);
     currentSheetCustId = null; currentSheetCtId = null;
