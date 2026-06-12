@@ -18,6 +18,7 @@
   --shadow-sm:0 1px 2px rgba(20,22,30,.05);
   --shadow:0 4px 16px rgba(20,22,30,.06);
   --shadow-lg:0 10px 30px rgba(20,22,30,.09);
+  --content-w:1440px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;}
@@ -25,9 +26,10 @@ body{
   font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;color:var(--text);
   background:var(--bg0);min-height:100vh;
   -webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;
+  display:flex;flex-direction:column;align-items:center;
 }
 
-.wrap{position:relative;z-index:5;max-width:1200px;margin:0 auto;padding:22px 26px 40px;}
+.wrap{position:relative;z-index:5;width:100%;max-width:var(--content-w,1440px);margin:0;padding:22px 26px 40px;}
 
 .dash-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-shrink:0;gap:16px;}
 .dash-logo{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.3em;color:var(--cyan);text-transform:uppercase;}
@@ -40,6 +42,8 @@ body{
 .dash-clock-wrap{text-align:right;flex-shrink:0;}
 .dash-clock{font-family:inherit;font-size:30px;font-weight:700;letter-spacing:.04em;color:var(--text);line-height:1;}
 .dash-date{font-size:12px;color:var(--text2);margin-top:6px;letter-spacing:.06em;}
+.fs-btn{margin-top:10px;font-family:inherit;font-size:12px;font-weight:700;color:var(--text2);background:var(--surface);border:1px solid var(--glass-border);border-radius:10px;padding:7px 13px;cursor:pointer;transition:all .18s;box-shadow:var(--shadow-sm);}
+.fs-btn:hover{color:var(--text);background:var(--bg1);}
 
 .tab-switch{display:inline-flex;gap:4px;background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:4px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
 .tab-switch-btn{padding:9px 20px;border-radius:11px;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;transition:all .2s;border:none;background:transparent;font-family:inherit;display:flex;align-items:center;gap:7px;}
@@ -262,6 +266,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
     <div class="dash-clock-wrap">
       <div class="dash-clock" id="clock">00:00:00</div>
       <div class="dash-date" id="date">—</div>
+      <button id="fsBtn" class="fs-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
     </div>
   </div>
 
@@ -456,6 +461,7 @@ async function loadAll(){
     document.getElementById('app').style.display = 'block';
     renderDash();
     initSimControls();
+    requestAnimationFrame(applyScale); // 렌더 완료 후 실제 높이 기준으로 맞춤
   }catch(e){
     document.getElementById('loading').style.display = 'none';
     document.getElementById('error').style.display = 'flex';
@@ -468,6 +474,7 @@ window.switchView = function(v){
   document.querySelectorAll('.tab-switch-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.getElementById('tabbtn-'+v).classList.add('active');
+  requestAnimationFrame(applyScale); // 뷰마다 높이가 달라 재계산
 };
 
 const AVATAR = [
@@ -826,6 +833,53 @@ function tickClock(){
   document.getElementById('date').textContent = `${d.getFullYear()}. ${pad(d.getMonth()+1)}. ${pad(d.getDate())} (${days[d.getDay()]})`;
 }
 setInterval(tickClock, 1000); tickClock();
+
+/* ── 화면에 맞춰 UI 비례 확대 — 1화면 딱맞춤(contain) ──
+   기준폭 1440px. 가로 비율과 세로 비율(줌 1배 기준 실제 내용 높이 대비
+   화면 높이) 중 작은 쪽을 택해, 확대해도 세로 스크롤이 생기지 않게 함.
+   1배 미만 축소는 하지 않음(모바일·노트북은 기존 레이아웃 그대로). 최대 2.6배. */
+const DESIGN_W = 1440, MAX_ZOOM = 2.6;
+function applyScale(){
+  const app = document.getElementById('app');
+  if(!app || app.style.display === 'none') return;
+  const vw = document.documentElement.clientWidth  || window.innerWidth;
+  const vh = document.documentElement.clientHeight || window.innerHeight;
+  app.style.zoom = 1;                          // 자연 높이 측정을 위해 일단 1배
+  const naturalH = app.scrollHeight || vh;
+  const zw = (vw / DESIGN_W) * 0.985;          // 가로 기준(양옆 여백 살짝)
+  const zh = (vh / naturalH) * 0.99;           // 세로 기준(아래 여백 살짝)
+  let z = Math.min(zw, zh);                    // 둘 다 들어가는 배율
+  z = Math.max(1, Math.min(z, MAX_ZOOM));      // 축소 금지, 상한 2.6배
+  app.style.zoom = z;
+}
+applyScale();
+window.addEventListener('resize', applyScale);
+window.addEventListener('orientationchange', applyScale);
+
+/* ── 전체화면 + 화면 꺼짐 방지 (켜두고 회의하는 상시 디스플레이용) ── */
+let wakeLock = null;
+async function requestWake(){
+  try{
+    if('wakeLock' in navigator && document.visibilityState === 'visible'){
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  }catch(e){ /* 권한·미지원 시 조용히 무시 */ }
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') requestWake(); });
+requestWake();
+
+window.toggleFullscreen = async function(){
+  try{
+    if(!document.fullscreenElement){ await document.documentElement.requestFullscreen(); }
+    else { await document.exitFullscreen(); }
+  }catch(e){ /* 일부 브라우저 제한 시 무시 */ }
+};
+document.addEventListener('fullscreenchange', ()=>{
+  const b = document.getElementById('fsBtn');
+  if(b) b.textContent = document.fullscreenElement ? '🗗 창 모드' : '⛶ 전체화면';
+  applyScale();      // 전체화면 진입/해제 시 폭이 바뀌므로 재계산
+  requestWake();     // 전체화면 전환은 사용자 제스처라 wake lock 재획득 확실
+});
 
 /* 배경 파티클 애니메이션은 리모델링에서 제거됨 */
 

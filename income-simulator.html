@@ -599,5 +599,21 @@ F('i-k').addEventListener('input',()=>{ K=+F('i-k').value; renderK(); renderAll(
 // 초기화 — 먼저 예시 프리셋으로 즉시 렌더, Firebase 로드되면 자동 갱신
 rebuildCompanySelect(); renderBands(); renderK(); renderItems(); renderAll();
 </script>
+<script>
+/* ── 화면 폭에 맞춰 UI 비례 확대 (모바일·데스크탑·대형 4K 한 코드 대응) ──
+   스크롤형 도구 페이지라 폭 기준으로만 확대. 1배 미만 축소 없음, 최대 2.6배. */
+(function(){
+  var DESIGN_W = 1440, MAX_ZOOM = 2.6;
+  function applyScale(){
+    var vw = document.documentElement.clientWidth || window.innerWidth;
+    var z = (vw / DESIGN_W) * 0.985;
+    z = Math.max(1, Math.min(z, MAX_ZOOM));
+    document.body.style.zoom = z;
+  }
+  applyScale();
+  window.addEventListener("resize", applyScale);
+  window.addEventListener("orientationchange", applyScale);
+})();
+</script>
 </body>
 </html>

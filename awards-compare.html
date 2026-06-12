@@ -54,6 +54,10 @@
   .perf-display .u{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-top:1px;letter-spacing:.02em;}
   .perf-display:focus-within{border-color:var(--gold);}
   .comm-row{display:flex;align-items:center;gap:10px;margin-top:13px;}
+  .comm-row + .comm-row{margin-top:8px;}
+  .comm-type{font-size:12px;font-weight:800;padding:3px 9px;border-radius:8px;white-space:nowrap;flex:0 0 auto;}
+  .comm-type.nl{background:rgba(26,127,75,.1);color:#1A7F4B;}
+  .comm-type.life{background:rgba(59,91,219,.1);color:#3B5BDB;}
   .comm-row label{font-size:12px;font-weight:700;color:var(--ink2);white-space:nowrap;}
   .comm-ib{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
     border-radius:10px;padding:0 10px;flex:1;}
@@ -135,12 +139,20 @@
       <button class="step-btn" id="plus" aria-label="5만원 올리기">＋</button>
     </div>
     <div class="comm-row">
-      <label>기본 수수료율</label>
-      <div class="comm-ib"><input id="comm" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
-      <label>유지 수수료율</label>
-      <div class="comm-ib"><input id="keep" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
+      <label class="comm-type nl">🛡 손보</label>
+      <label>기본</label>
+      <div class="comm-ib"><input id="commNL" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
+      <label>유지</label>
+      <div class="comm-ib"><input id="keepNL" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
     </div>
-    <div class="comm-hint">수수료율은 회사·상품마다 달라요. 유지 수수료는 <b>7~15회차 분할</b> 지급 기준 — 둘 다 직접 조정하세요.</div>
+    <div class="comm-row">
+      <label class="comm-type life">💙 생보</label>
+      <label>기본</label>
+      <div class="comm-ib"><input id="commL" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
+      <label>유지</label>
+      <div class="comm-ib"><input id="keepL" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
+    </div>
+    <div class="comm-hint">수수료율은 회사·상품마다 달라요. 회사명으로 손보/생보를 자동 구분해 각각의 율을 적용합니다. 유지 수수료는 <b>7~15회차 분할</b> 지급 기준 — 직접 조정하세요.</div>
   </div>
 
   <div class="status" id="status">시상 불러오는 중…</div>
@@ -248,8 +260,14 @@ let POLICIES = []; // [{company, label, items, extras, _id}]
 let GROUPS = [];   // [{id, name, memberUids}] — ⭐ 추가시상 그룹
 let myUid = null;  // 로그인한 설계사 uid
 let perf = 100000;
-let comm = 522;    // 기본 수수료율 %
-let keep = 200;    // 유지 수수료율 % (7~15회차 분할)
+// 손보/생보 분리 수수료율 % — 회사명으로 자동 구분 적용
+let RATES = {
+  nl:   { comm:522, keep:200 },  // 🛡 손해보험
+  life: { comm:522, keep:200 },  // 💙 생명보험
+};
+// viewer.html과 동일 분류 규칙 (회사명 기준)
+function isLife(s){ return /생명|생보|라이프|한화생|삼성생|교보생|흥국생|동양생|미래에셋생|푸본현대생|처브라이프|AIA|DB생명|KDB생명|ABL생명|DGB생명|iM라이프|메트라이프|신한라이프|카카오페이생명/.test(s||''); }
+function ratesFor(company){ return isLife(company) ? RATES.life : RATES.nl; }
 const KEEP_FROM = 7, KEEP_TO = 15; // 유지 수수료 분할 구간
 const openSet = new Set();
 
@@ -275,8 +293,9 @@ function mySpecialItems(){
 }
 
 // 회사(시상 항목들) 기준 1건당 예상 — 익월시상 + 13회차시상 + 수수료(기본+유지)
-// 그룹 특별시상은 모든 회사에 공통으로 더해짐
-function calc(items){
+// 그룹 특별시상은 모든 회사에 공통으로 더해짐. 수수료율은 손보/생보 자동 구분.
+function calc(items, company){
+  const rt = ratesFor(company);
   const band = matchBand(perf);
   let next=0, r13=0;
   const detail=[];
@@ -289,12 +308,13 @@ function calc(items){
     if(it.timing==='13th') r13+=v; else next+=v;
     detail.push({label:it.label, sub:it.sub, timing:it.timing, on:it.on, amount:v, special:!!it.special});
   });
-  const commission = perf*comm/100;                       // 기본 수수료
-  const keepTotal  = perf*keep/100;                       // 유지 수수료 총액 (7~15회차 분할)
+  const commission = perf*rt.comm/100;                    // 기본 수수료
+  const keepTotal  = perf*rt.keep/100;                    // 유지 수수료 총액 (7~15회차 분할)
   const keepN      = KEEP_TO - KEEP_FROM + 1;             // 분할 횟수 (9회)
   const keepEach   = keepN ? keepTotal/keepN : 0;
   return { next, r13, award:next+r13, commission, keepTotal, keepEach, keepN,
-           total:next+r13+commission+keepTotal, band, detail };
+           total:next+r13+commission+keepTotal, band, detail,
+           commRate:rt.comm, keepRate:rt.keep, life:isLife(company) };
 }
 
 // ── 렌더 ──
@@ -306,9 +326,12 @@ function render(){
     return;
   }
   grid.innerHTML = POLICIES.map((p,idx)=>{
-    const r = calc(p.items);
+    const r = calc(p.items, p.company);
     const open = openSet.has(p._id);
     const bandLabel = r.band ? `${man(r.band)}만↑ 구간` : '구간 미달';
+    const typeTag = r.life
+      ? `<span class="comm-type life" style="font-size:10px;padding:2px 7px;">💙 생보</span>`
+      : `<span class="comm-type nl" style="font-size:10px;padding:2px 7px;">🛡 손보</span>`;
 
     const nextRows = r.detail.filter(d=>d.timing!=='13th');
     const r13Rows  = r.detail.filter(d=>d.timing==='13th');
@@ -323,6 +346,7 @@ function render(){
       <div class="co-head" data-id="${esc(p._id)}">
         <div class="co-top">
           <span class="co-name">${esc(p.company)}</span>
+          ${typeTag}
           <span class="co-period">${esc(p.label)}</span>
         </div>
         <div class="co-sum">
@@ -334,9 +358,9 @@ function render(){
       <div class="co-detail">
         ${nextRows.length?`<div class="dt-sec">익월 지급 시상</div>${nextRows.map(rowHtml).join('')}`:''}
         ${r13Rows.length?`<div class="dt-sec">13회차 지급 시상</div>${r13Rows.map(rowHtml).join('')}`:''}
-        <div class="dt-sec">수수료</div>
-        <div class="dt-row"><div class="lab">기본 수수료 (${comm}%)</div><div class="amt">${man(r.commission)}만</div></div>
-        <div class="dt-row"><div class="lab">유지 수수료 (${keep}%)<small>${KEEP_FROM}~${KEEP_TO}회차 분할 · 회차당 ${man(r.keepEach)}만 × ${r.keepN}회</small></div><div class="amt">${man(r.keepTotal)}만</div></div>
+        <div class="dt-sec">수수료 <small style="font-weight:600;color:var(--ink3);">(${r.life?'생보':'손보'} 율 적용)</small></div>
+        <div class="dt-row"><div class="lab">기본 수수료 (${r.commRate}%)</div><div class="amt">${man(r.commission)}만</div></div>
+        <div class="dt-row"><div class="lab">유지 수수료 (${r.keepRate}%)<small>${KEEP_FROM}~${KEEP_TO}회차 분할 · 회차당 ${man(r.keepEach)}만 × ${r.keepN}회</small></div><div class="amt">${man(r.keepTotal)}만</div></div>
         ${extra}
       </div>
     </div>`;
@@ -371,15 +395,14 @@ F('perf').addEventListener('input',()=>{
   render();
 });
 F('perf').addEventListener('blur',()=>{ F('perf').value = comma(perf); });
-F('comm').addEventListener('input',()=>{
-  comm = +onlyDigits(F('comm').value)||0;
-  F('comm').value = comma(comm);
-  render();
-});
-F('keep').addEventListener('input',()=>{
-  keep = +onlyDigits(F('keep').value)||0;
-  F('keep').value = comma(keep);
-  render();
+// 손보/생보 분리 수수료율 입력 4개 — 같은 패턴으로 일괄 바인딩
+[ ['commNL','nl','comm'], ['keepNL','nl','keep'], ['commL','life','comm'], ['keepL','life','keep'] ]
+.forEach(([id, type, key])=>{
+  F(id).addEventListener('input',()=>{
+    RATES[type][key] = +onlyDigits(F(id).value)||0;
+    F(id).value = comma(RATES[type][key]);
+    render();
+  });
 });
 
 // ── Firestore 로드 (income-simulator와 동일 흐름) ──
@@ -447,6 +470,22 @@ onAuthStateChanged(auth, async(user)=>{
 
 // 초기 렌더 (로드 전에도 빈 화면 표시)
 render();
+</script>
+<script>
+/* ── 화면 폭에 맞춰 UI 비례 확대 (모바일·데스크탑·대형 4K 한 코드 대응) ──
+   스크롤형 도구 페이지라 폭 기준으로만 확대. 1배 미만 축소 없음, 최대 2.6배. */
+(function(){
+  var DESIGN_W = 1440, MAX_ZOOM = 2.6;
+  function applyScale(){
+    var vw = document.documentElement.clientWidth || window.innerWidth;
+    var z = (vw / DESIGN_W) * 0.985;
+    z = Math.max(1, Math.min(z, MAX_ZOOM));
+    document.body.style.zoom = z;
+  }
+  applyScale();
+  window.addEventListener("resize", applyScale);
+  window.addEventListener("orientationchange", applyScale);
+})();
 </script>
 </body>
 </html>
