@@ -54,9 +54,9 @@
   .perf-display .u{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-top:1px;letter-spacing:.02em;}
   .perf-display:focus-within{border-color:var(--gold);}
   .comm-row{display:flex;align-items:center;gap:10px;margin-top:13px;}
-  .seg{display:flex;gap:0;margin-top:12px;border:1.5px solid var(--line2);border-radius:11px;overflow:hidden;background:var(--paper);}
-  .seg-btn{flex:1;font-family:inherit;font-size:13px;font-weight:800;padding:9px 8px;border:none;background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;}
-  .seg-btn.on{background:var(--gold,#B8860B);color:#fff;}
+  .seg{display:flex;gap:0;margin-top:12px;border:1.5px solid var(--line2);border-radius:11px;overflow:hidden;background:var(--card);}
+  .seg-btn{flex:1;font-family:inherit;font-size:13px;font-weight:700;padding:9px 8px;border:none;background:transparent;color:var(--ink);cursor:pointer;transition:all .15s;}
+  .seg-btn.on{background:var(--ink);color:#fff;font-weight:800;}
   .seg-btn + .seg-btn{border-left:1.5px solid var(--line2);}
   .comm-row + .comm-row{margin-top:8px;}
   .comm-type{font-size:12px;font-weight:800;padding:3px 9px;border-radius:8px;white-space:nowrap;flex:0 0 auto;}
@@ -143,7 +143,7 @@
       <button class="step-btn" id="plus" aria-label="5만원 올리기">＋</button>
     </div>
     <div class="seg" role="tablist" aria-label="보기 방식">
-      <button class="seg-btn on" id="segTotal" onclick="setViewMode('total')">🧮 평생 총액</button>
+      <button class="seg-btn on" id="segTotal" onclick="setViewMode('total')">🧮 총액</button>
       <button class="seg-btn" id="segNext" onclick="setViewMode('next')">⚡ 익월만</button>
     </div>
     <div class="comm-row">
@@ -166,7 +166,7 @@
   <div class="status" id="status">시상 불러오는 중…</div>
   <div class="co-grid" id="grid"></div>
 
-  <p class="disclaim">올려둔 시상안 기준 <b>참고용 예측</b>이에요. 실제 지급은 정책·유지 조건에 따라 달라집니다.<br>🧮 평생 총액 = 계약 1건당 익월+13회차 시상과 수수료 전체 · ⚡ 익월만 = 다음 달에 받는 익월 시상+기본 수수료만</p>
+  <p class="disclaim">올려둔 시상안 기준 <b>참고용 예측</b>이에요. 실제 지급은 정책·유지 조건에 따라 달라집니다.<br>🧮 총액 = 계약 1건당 익월+13회차 시상과 수수료 전체 · ⚡ 익월만 = 다음 달에 받는 익월 시상+기본 수수료만</p>
 </div>
 
 <script type="module">
@@ -280,7 +280,7 @@ function isLife(s){ return /생명|생보|라이프|한화생|삼성생|교보�
 function ratesFor(company){ return isLife(company) ? RATES.life : RATES.nl; }
 const KEEP_FROM = 7, KEEP_TO = 15; // 유지 수수료 분할 구간
 
-// 보기 방식: 'total' = 평생 총액(익월+13회차+수수료 전체), 'next' = 익월만(익월 시상+기본 수수료)
+// 보기 방식: 'total' = 총액(익월+13회차+수수료 전체), 'next' = 익월만(익월 시상+기본 수수료)
 let viewMode = 'total';
 window.setViewMode = function(m){
   viewMode = m;
@@ -427,7 +427,7 @@ function render(){
         ${isNext ? `
         <div class="dt-sec">수수료 <small style="font-weight:600;color:var(--ink3);">(${r.life?'생보':'손보'} 율 적용)</small></div>
         <div class="dt-row"><div class="lab">기본 수수료 (${r.commRate}%)<small>회사 지급 방식에 따라 분할될 수 있어요</small></div><div class="amt">${man(r.commission)}만</div></div>
-        <div class="dt-extra">13회차 시상·유지 수수료는 🧮 평생 총액에서 확인</div>
+        <div class="dt-extra">13회차 시상·유지 수수료는 🧮 총액에서 확인</div>
         ` : `
         ${r13Rows.length?`<div class="dt-sec">13회차 지급 시상</div>${r13Rows.map(rowHtml).join('')}`:''}
         ${tbdRows.length?`<div class="dt-sec">지급시기 미정 시상 <small style="font-weight:600;color:var(--ink3);">(시상안에 미표기 — 합계 포함)</small></div>${tbdRows.map(rowHtml).join('')}`:''}
