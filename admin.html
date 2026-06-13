@@ -575,7 +575,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   <div id="tab-upload" class="tab-panel">
 
     <!-- ① 계약 업로드 -->
-    <div class="upload-layout">
+    <div class="upload-layout" style="grid-template-columns:1fr;">
       <div>
         <div class="card" style="margin-bottom:0;">
           <div class="card-title">📋 계약 업로드</div>
@@ -599,7 +599,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
           </div>
           <div class="form-row" style="margin-bottom:10px;">
             <textarea class="form-textarea" id="upload-json-input"
-              placeholder='여기에 Claude가 추출한 JSON을 붙여넣으세요'
+              placeholder='여기에 Claude가 추출한 JSON을 붙여넣으세요 (붙여넣으면 자동 적용돼요)'
+              onpaste="handleUploadPaste(event)"
               style="min-height:140px;font-size:13px;"></textarea>
           </div>
           <button onclick="applyUploadJson()" class="btn btn-primary btn-full" style="font-size:14px;padding:13px;">✅ 적용하기</button>
@@ -683,27 +684,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
         </div>
       </div>
 
-      <div class="upload-tip-box">
-        <div class="upload-tip-title">계약 업로드 방법</div>
-        <div class="upload-tip-step">
-          <div class="upload-tip-num">1</div>
-          <div class="upload-tip-text">보험사 PDF를 <strong>Claude</strong>에 올려 JSON을 추출해요</div>
-        </div>
-        <div class="upload-tip-step">
-          <div class="upload-tip-num">2</div>
-          <div class="upload-tip-text">추출된 JSON을 왼쪽에 붙여넣고 <strong>적용하기</strong>를 눌러요</div>
-        </div>
-        <div class="upload-tip-step">
-          <div class="upload-tip-num">3</div>
-          <div class="upload-tip-text"><strong>담당 설계사</strong>와 <strong>고객</strong>을 선택하고 저장해요</div>
-        </div>
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
-          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Claude 추출 프롬프트</div>
-          <div style="font-size:11px;color:var(--text2);background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px;line-height:1.7;border:1px solid var(--border);">
-            첨부된 보험 PDF를 분석해서<br>지정된 JSON 스키마로 추출해줘
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- 구분선 -->
@@ -778,25 +758,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
       <!-- 오른쪽: 안내 + 저장된 시상 목록 -->
       <div>
-        <div class="upload-tip-box" style="margin-bottom:16px;">
-          <div class="upload-tip-title">시상 업로드 방법</div>
-          <div class="upload-tip-step">
-            <div class="upload-tip-num">1</div>
-            <div class="upload-tip-text">시상 이미지를 <strong>Claude 대화창</strong>에 올려 JSON으로 변환해요</div>
-          </div>
-          <div class="upload-tip-step">
-            <div class="upload-tip-num">2</div>
-            <div class="upload-tip-text">받은 JSON을 <strong>붙여넣기</strong> 또는 .json 파일로 업로드해요</div>
-          </div>
-          <div class="upload-tip-step">
-            <div class="upload-tip-num">3</div>
-            <div class="upload-tip-text">결과 확인 후 <strong>저장하기</strong>를 눌러요</div>
-          </div>
-          <div class="upload-tip-step">
-            <div class="upload-tip-num">4</div>
-            <div class="upload-tip-text">실적 탭에서 <strong>자동 계산</strong>됩니다</div>
-          </div>
-        </div>
         <div class="card">
           <div class="card-title" style="margin-bottom:10px;">📅 시상 등록 현황</div>
           <!-- 월 선택 -->
@@ -895,25 +856,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
         </div>
       </div>
       <div>
-        <div class="upload-tip-box" style="margin-bottom:16px;">
-          <div class="upload-tip-title">고지의무 업로드 방법</div>
-          <div class="upload-tip-step">
-            <div class="upload-tip-num">1</div>
-            <div class="upload-tip-text">지점장/청약설계사에게 받은 고지의무 이미지를 <strong>Claude 대화창</strong>에 올려 JSON으로 변환</div>
-          </div>
-          <div class="upload-tip-step">
-            <div class="upload-tip-num">2</div>
-            <div class="upload-tip-text">받은 JSON을 <strong>붙여넣기</strong> 또는 .json 파일로 업로드</div>
-          </div>
-          <div class="upload-tip-step">
-            <div class="upload-tip-num">3</div>
-            <div class="upload-tip-text">미리보기 확인 후 <strong>저장하기</strong> (같은 키는 자동 중복 제거)</div>
-          </div>
-          <div class="upload-tip-step">
-            <div class="upload-tip-num">4</div>
-            <div class="upload-tip-text">설계사가 뷰어에서 고객별 체크 후 필터링</div>
-          </div>
-        </div>
         <div class="card">
           <div class="card-title">📋 알릴의무(고지사항) 통합 항목 <span id="notice-pool-count" style="font-size:12px;color:var(--text3);font-weight:500;"></span></div>
           <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5;">고지의무를 추출·저장하면 항목이 여기에 모입니다. 같은 키의 항목은 자동으로 무시돼요. 직접 추가·수정·삭제할 수 있어요.</div>
@@ -2037,20 +1979,49 @@ window.selectAgentPick = function(uid) {
 };
 
 // ── 계약 업로드 ──
+// JSON 견고화: 마크다운 펜스/앞뒤 잡소리 제거 + 스마트따옴표·trailing comma 가벼운 보정
+window.safeParseJson = function(raw) {
+  if (!raw || !String(raw).trim()) return { ok:false, error:'empty' };
+  let t = String(raw).trim().replace(/```[a-zA-Z]*\s*/g,'').replace(/```/g,'').trim();
+  // 첫 { 또는 [ 부터 마지막 } 또는 ] 까지만 취함 (앞뒤 설명 문장 제거)
+  let s = Infinity; ['{','['].forEach(c => { const i = t.indexOf(c); if (i >= 0 && i < s) s = i; });
+  const e = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'));
+  if (s === Infinity || e < 0 || e < s) return { ok:false, error:'notfound' };
+  const body = t.slice(s, e+1);
+  const smart = body.replace(/[\u201C\u201D]/g,'"').replace(/[\u2018\u2019]/g,"'");
+  const attempts = [ body, smart, smart.replace(/,(\s*[}\]])/g,'$1') ]; // 원본 → 따옴표보정 → trailing comma 제거
+  for (const cand of attempts) { try { return { ok:true, data: JSON.parse(cand) }; } catch(_){} }
+  return { ok:false, error:'parse' };
+};
+
 window.applyUploadJson = async function() {
-  const raw = document.getElementById('upload-json-input').value.trim();
-  if (!raw) { showUploadStatus('error','JSON을 붙여넣어주세요.'); return; }
-  try {
-    const clean = raw.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
-    parsedContractData = parsed;
-    // 고지의무 목록이 비어있으면 먼저 로드
-    if (!noticesCache.length) { try { await loadNotices(); } catch(e){} }
-    renderUploadPreview(parsed);
-    showUploadStatus('done', `✅ 담보 ${parsed.담보목록?.length||0}개 인식됐어요. 아래에서 고객을 선택해주세요.`);
-  } catch(e) {
-    showUploadStatus('error', 'JSON 형식이 올바르지 않아요. Claude에서 복사한 내용을 그대로 붙여넣어주세요.');
+  const r = window.safeParseJson(document.getElementById('upload-json-input').value);
+  if (!r.ok) {
+    showUploadStatus('error', {
+      empty:   'JSON을 붙여넣어주세요.',
+      notfound:'JSON을 찾지 못했어요. 내용이 잘렸거나 { } 부분이 빠졌을 수 있어요 — 다시 복사해보세요.',
+      parse:   'JSON 형식이 조금 어긋났어요. 끝부분이 잘렸는지 확인하고 다시 붙여넣어주세요.'
+    }[r.error] || 'JSON을 읽지 못했어요.');
+    return;
   }
+  const parsed = r.data;
+  // 계약 JSON이 맞는지 가벼운 검증 (시상/고지 JSON 오삽입 방지)
+  const looksContract = parsed && !Array.isArray(parsed) &&
+    (parsed.담보목록 || parsed.보험사 || parsed.상품명 || parsed.계약자 || parsed.피보험자);
+  if (!looksContract) {
+    showUploadStatus('error', '계약 JSON이 아닌 것 같아요. (담보목록·보험사·상품명이 안 보여요) 시상/고지의무는 아래 해당 칸에 넣어주세요.');
+    return;
+  }
+  parsedContractData = parsed;
+  // 고지의무 목록이 비어있으면 먼저 로드
+  if (!noticesCache.length) { try { await loadNotices(); } catch(e){} }
+  renderUploadPreview(parsed);
+  showUploadStatus('done', `✅ 담보 ${parsed.담보목록?.length||0}개 인식됐어요. 아래에서 고객을 선택해주세요.`);
+};
+
+// 붙여넣으면 버튼 없이 자동 적용 (값이 textarea에 반영된 뒤 실행)
+window.handleUploadPaste = function() {
+  setTimeout(() => { try { window.applyUploadJson(); } catch(_){} }, 30);
 };
 
 let uploadDateWasEstimated = false;
