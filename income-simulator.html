@@ -57,8 +57,8 @@
   .band.on{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 2px 10px rgba(200,136,29,.15);}
   .band.on b{color:var(--gold-deep);}
 
-  .inrow{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .field label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px;}
+  .inrow{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:end;}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px;line-height:1.35;min-height:2.7em;}
   .ib{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
     border-radius:11px;padding:0 12px;transition:.15s;}
   .ib:focus-within{border-color:var(--gold);}
@@ -90,6 +90,8 @@
     border:none;border-bottom:1px solid transparent;outline:none;font-family:inherit;padding:2px 0;}
   .item .nm-edit:focus{border-bottom-color:var(--gold);}
   .item .nm small{font-size:10.5px;color:var(--ink3);font-weight:600;}
+  .item .nm .cond{display:flex;flex-direction:column;gap:2px;margin-top:3px;}
+  .item .nm .cond .seg{font-size:10.5px;color:var(--ink3);font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:.01em;}
   .item .vbox{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
     border-radius:9px;padding:0 9px;width:78px;flex-shrink:0;}
   .item .vbox input{width:100%;background:none;border:none;outline:none;text-align:right;
@@ -192,7 +194,6 @@
     <div class="card-h">📈 받는 시점별 수입 (월별 실제 입금)</div>
     <div style="position:relative;height:300px;"><canvas id="chart"></canvas></div>
     <div class="legend" id="legend"></div>
-    <div class="note" id="graph-note"></div>
   </div>
 
   <!-- 합산 -->
@@ -288,11 +289,12 @@ function bandsFromConsecutive(arr){
 
 function bandsAllZero(b){ return BAND_KEYS.every(k=>!b[k]); }
 // 구간별 현금을 사람이 읽는 요약으로 (예: "10만→20만 · 20만→60만")
-function bandSub(b){
+function bandPairs(b){
   const out=[]; let last=null;
-  for(const k of BAND_KEYS){ if(b[k]>0 && b[k]!==last){ out.push(`${man(k)}만→${man(b[k])}만`); last=b[k]; } }
-  return out.join(' · ');
+  for(const k of BAND_KEYS){ if(b[k]>0 && b[k]!==last){ out.push([k,b[k]]); last=b[k]; } }
+  return out;
 }
+function bandSub(b){ return bandPairs(b).map(([k,v])=>`${man(k)}만→${man(v)}만`).join(' · '); }
 
 function itemsFromDoc(d){
   const out=[];
@@ -416,19 +418,20 @@ let K = 12; // 가동(계약) 개월수: 1=단건, 24=계속
 function simulate(N){
   const rows=[]; let cum=0;
   for(let m=1;m<=N;m++){
-    const per={}; let recv=0;
+    const per={}; let recv=0, recvNext=0, recv13=0;
     items.forEach(it=>{
       const r=itemReward(it);
       const p = (it.timing==='13th') ? (m-12) : (m-1);
       const active = (p>=1 && p<=K);
       const v = active ? r : 0;
       per[it.id]=v; recv+=v;
+      if(v){ if(it.timing==='13th') recv13+=v; else recvNext+=v; }
     });
     const pc = m-1;
     const commission = (pc>=1 && pc<=K) ? perf*comm/100 : 0; // 수수료 시점은 추후 반영
     const total = recv + commission;
     cum += total;
-    rows.push({m, per, recv, commission, total, cum});
+    rows.push({m, per, recv, recvNext, recv13, commission, total, cum});
   }
   return rows;
 }
@@ -455,12 +458,18 @@ function renderItems(){
     const valBox = isBand
       ? `<div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="band" value="${man(curAmt)}" ${curBand?'':'disabled'}><span class="u">만</span></div>`
       : `<div class="vbox"><input type="text" inputmode="numeric" data-i="${idx}" data-f="rate" value="${comma(it.rate||0)}"><span class="u">%</span></div>`;
+    const subHTML = (isBand && it.bands)
+      ? (() => { const ps = bandPairs(it.bands);
+          return ps.length
+            ? `<div class="cond">` + ps.map(([k,v]) => `<span class="seg">${man(k)}만 → ${man(v)}만</span>`).join('') + `</div>`
+            : (it.sub ? `<small>${it.sub}</small>` : ''); })()
+      : (it.sub ? `<small>${it.sub}</small>` : '');
     return `<div class="item ${it.on?'':'off'}">
       <input type="checkbox" class="chk" data-i="${idx}" ${it.on?'checked':''}>
       <div class="tag" style="background:${c}"></div>
       <div class="nm">
         <input class="nm-edit" data-i="${idx}" value="${(it.label||'').replace(/"/g,'&quot;')}" placeholder="시상 항목명">
-        <small>${it.sub||''}</small>
+        ${subHTML}
       </div>
       ${valBox}
       <select class="pay" data-i="${idx}">
@@ -512,49 +521,49 @@ function renderAll(){
   // 그라데이션 (캔버스 컨텍스트 기반)
   const cv=F('chart'); const ctx=cv.getContext('2d');
   const H=cv.height||320;
-  const barGrad=ctx.createLinearGradient(0,0,0,H);
-  barGrad.addColorStop(0,'#4E6EF2'); barGrad.addColorStop(1,'#CBD6FA');
-  const barHover=ctx.createLinearGradient(0,0,0,H);
-  barHover.addColorStop(0,'#2C46B8'); barHover.addColorStop(1,'#7E93D6');
+  const mkGrad=(c0,c1)=>{ const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,c0); g.addColorStop(1,c1); return g; };
+  const gComm = mkGrad('#AEBBDD','#D9E0F1');   // 수수료 — 차분한 블루그레이 (매달 깔리는 기반)
+  const gNext = mkGrad('#4E6EF2','#9FB2F7');   // 익월 시상 — 메인 블루
+  const g13   = mkGrad('#F5A524','#FBD08A');   // 13회차 시상 — 강조 앰버 (13개월차부터 합류)
   const areaGrad=ctx.createLinearGradient(0,0,0,H);
-  areaGrad.addColorStop(0,'rgba(59,91,219,.30)'); areaGrad.addColorStop(.85,'rgba(59,91,219,.02)'); areaGrad.addColorStop(1,'rgba(59,91,219,0)');
+  areaGrad.addColorStop(0,'rgba(59,91,219,.15)'); areaGrad.addColorStop(.9,'rgba(59,91,219,.015)'); areaGrad.addColorStop(1,'rgba(59,91,219,0)');
 
+  const bar={ type:'bar', stack:'income', yAxisID:'y', order:3, borderSkipped:false,
+    barPercentage:.78, categoryPercentage:.82, maxBarThickness:30 };
   const ds=[
-    {label:'월 입금', type:'bar', data:rows.map(r=>r.total),
-      backgroundColor:barGrad, hoverBackgroundColor:barHover, borderRadius:7, borderSkipped:false,
-      yAxisID:'y', order:2, barPercentage:.66, categoryPercentage:.86, maxBarThickness:26},
+    {label:'수수료',      data:rows.map(r=>r.commission), backgroundColor:gComm, ...bar},
+    {label:'익월 시상',   data:rows.map(r=>r.recvNext),   backgroundColor:gNext, ...bar},
+    {label:'13회차 시상', data:rows.map(r=>r.recv13),     backgroundColor:g13, borderRadius:{topLeft:6,topRight:6}, ...bar},
     {label:'누적 수령', type:'line', data:rows.map(r=>r.cum),
-      borderColor:'#2C46B8', backgroundColor:areaGrad, borderWidth:3, fill:true,
-      tension:.4, pointRadius:0, pointHoverRadius:5, pointBackgroundColor:'#2C46B8',
+      borderColor:'#2C46B8', backgroundColor:areaGrad, borderWidth:2.5, fill:true,
+      tension:.45, pointRadius:0, pointHoverRadius:5, pointBackgroundColor:'#2C46B8',
       pointBorderColor:'#fff', pointBorderWidth:2, yAxisID:'y2', order:1}
   ];
 
   const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-    layout:{padding:{top:8}},
+    layout:{padding:{top:14}},
     plugins:{legend:{display:false},tooltip:{
       backgroundColor:'rgba(25,26,29,.92)', titleColor:'#fff', bodyColor:'#E4E6EC',
       padding:12, cornerRadius:12, displayColors:true, boxPadding:4, usePointStyle:true,
       titleFont:{size:12,weight:'700'}, bodyFont:{size:12},
+      filter:it=>it.dataset.type==='line' || it.parsed.y>0,
       callbacks:{ title:i=>i[0].label+' 입금', label:c=>` ${c.dataset.label}: ${KRW(c.parsed.y)}` }}},
     scales:{
-      x:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#9AA0AA',maxRotation:0,autoSkip:true,maxTicksLimit:8}},
-      y:{position:'left',beginAtZero:true,border:{display:false},
-        title:{display:true,text:'월 입금',font:{size:9},color:'#9AA0AA'},
-        ticks:{callback:v=>v/10000+'만',font:{size:9},color:'#9AA0AA'},
-        grid:{color:'rgba(228,230,236,.7)',drawTicks:false}},
-      y2:{position:'right',beginAtZero:true,border:{display:false},
-        title:{display:true,text:'누적',font:{size:9},color:'#9AA0AA'},
-        ticks:{callback:v=>Math.round(v/10000)+'만',font:{size:9},color:'#9AA0AA'},grid:{display:false}}}};
+      x:{stacked:true,grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#B5BAC4',maxRotation:0,autoSkip:true,maxTicksLimit:8}},
+      y:{stacked:true,position:'left',beginAtZero:true,border:{display:false},
+        ticks:{callback:v=>v/10000+'만',font:{size:9},color:'#B5BAC4',maxTicksLimit:5},
+        grid:{color:'rgba(228,230,236,.5)',drawTicks:false}},
+      y2:{stacked:false,position:'right',beginAtZero:true,display:false}}};
   if(chart){chart.data={labels,datasets:ds};chart.options=opts;chart.update();}
   else chart=new Chart(cv,{type:'bar',data:{labels,datasets:ds},options:opts});
 
-  F('legend').innerHTML = `<span><i class="dot" style="background:linear-gradient(180deg,#4E6EF2,#CBD6FA)"></i>월 입금(막대)</span>`
-    + `<span><i class="dot" style="background:#2C46B8;border-radius:50%"></i>누적 수령(면적)</span>`;
+  F('legend').innerHTML =
+      `<span><i class="dot" style="background:linear-gradient(180deg,#4E6EF2,#9FB2F7)"></i>익월 시상</span>`
+    + `<span><i class="dot" style="background:linear-gradient(180deg,#F5A524,#FBD08A)"></i>13회차 시상</span>`
+    + `<span><i class="dot" style="background:linear-gradient(180deg,#AEBBDD,#D9E0F1)"></i>수수료</span>`
+    + `<span><i class="dot" style="background:#2C46B8;border-radius:50%"></i>누적 수령</span>`;
 
   // 계약 1건당 1회성 시상 (참고)
-  const oneNext = items.filter(it=>it.on&&it.timing==='next_month').reduce((s,it)=>s+itemReward(it),0);
-  const one13   = items.filter(it=>it.on&&it.timing==='13th').reduce((s,it)=>s+itemReward(it),0);
-  F('graph-note').innerHTML = `📌 매달 신규 10만급 계약을 <b>${K}개월</b> 동안 한다고 가정. 시상은 전부 <b>1회성</b>이지만, 매달 새 계약이 들어와 다른 계약의 1회성 시상이 줄줄이 입금돼요.<br>계약 <b>1건당</b>: 익월 ${KRW(oneNext)} + 13회차 ${KRW(one13)} = <b>${KRW(oneNext+one13)}</b> (평생 2회).`;
 
   F('tbl').innerHTML=`<thead><tr>
     <th>입금 월</th><th class="num">시상 입금</th><th class="num">수수료</th><th class="num">월 합계</th><th class="num">누적</th>
