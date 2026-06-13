@@ -223,7 +223,8 @@ function bandSub(b){
 function itemsFromDoc(d){
   const out=[];
   (d.tiers||[]).forEach((t,i)=>{
-    const timing=(t.payTiming==='13th_payment'||t.retention===13)?'13th':'next_month';
+    // 익월/13회차/미표기(tbd) 3분류 — 지급시기 미표기를 익월로 단정하지 않음
+    const timing=(t.payTiming==='13th_payment'||t.retention===13)?'13th':(t.payTiming==null?'tbd':'next_month');
     const ag = t.audienceGroup || null; // ⭐ 그룹 한정 시상: 그룹 멤버에게만 보임
     const el = t.eligibility || null;   // 🎯 자격 조건: 본인 계약 데이터로 자동 판정
     if(t.type==='basic'){
@@ -338,7 +339,7 @@ function mySpecialItems(){
 function calc(items, company){
   const rt = ratesFor(company);
   const band = matchBand(perf);
-  let next=0, r13=0;
+  let next=0, r13=0, tbd=0;
   const detail=[];
   [...(items||[]), ...mySpecialItems()].forEach(it=>{
     if(!inAudience(it.audienceGroup)) return; // 그룹 한정 — 비멤버에겐 숨김
@@ -347,15 +348,15 @@ function calc(items, company){
     if(it.on){
       v = it.mode==='rate' ? perf*(it.rate||0)/100 : (band?(it.bands[band]||0):0);
     }
-    if(it.timing==='13th') r13+=v; else next+=v;
+    if(it.timing==='13th') r13+=v; else if(it.timing==='tbd') tbd+=v; else next+=v;
     detail.push({label:it.label, sub:it.sub, timing:it.timing, on:it.on, amount:v, special:!!it.special});
   });
   const commission = perf*rt.comm/100;                    // 기본 수수료
   const keepTotal  = perf*rt.keep/100;                    // 유지 수수료 총액 (7~15회차 분할)
   const keepN      = KEEP_TO - KEEP_FROM + 1;             // 분할 횟수 (9회)
   const keepEach   = keepN ? keepTotal/keepN : 0;
-  return { next, r13, award:next+r13, commission, keepTotal, keepEach, keepN,
-           total:next+r13+commission+keepTotal, band, detail,
+  return { next, r13, tbd, award:next+r13+tbd, commission, keepTotal, keepEach, keepN,
+           total:next+r13+tbd+commission+keepTotal, band, detail,
            commRate:rt.comm, keepRate:rt.keep, life:isLife(company) };
 }
 
@@ -375,8 +376,9 @@ function render(){
       ? `<span class="comm-type life" style="font-size:10px;padding:2px 7px;">💙 생보</span>`
       : `<span class="comm-type nl" style="font-size:10px;padding:2px 7px;">🛡 손보</span>`;
 
-    const nextRows = r.detail.filter(d=>d.timing!=='13th');
+    const nextRows = r.detail.filter(d=>d.timing!=='13th' && d.timing!=='tbd');
     const r13Rows  = r.detail.filter(d=>d.timing==='13th');
+    const tbdRows  = r.detail.filter(d=>d.timing==='tbd');
     const rowHtml = d => `<div class="dt-row ${d.on?'':'off'}">
         <div class="lab">${d.special?'⭐ ':''}${esc(d.label||'')}${d.sub?`<small>${esc(d.sub)}${d.special?' · 그룹 한정':''}</small>`:''}</div>
         <div class="amt">${d.amount?man(d.amount)+'만':'–'}</div></div>`;
@@ -400,6 +402,7 @@ function render(){
       <div class="co-detail">
         ${nextRows.length?`<div class="dt-sec">익월 지급 시상</div>${nextRows.map(rowHtml).join('')}`:''}
         ${r13Rows.length?`<div class="dt-sec">13회차 지급 시상</div>${r13Rows.map(rowHtml).join('')}`:''}
+        ${tbdRows.length?`<div class="dt-sec">지급시기 미정 시상 <small style="font-weight:600;color:var(--ink3);">(시상안에 미표기 — 합계 포함)</small></div>${tbdRows.map(rowHtml).join('')}`:''}
         <div class="dt-sec">수수료 <small style="font-weight:600;color:var(--ink3);">(${r.life?'생보':'손보'} 율 적용)</small></div>
         <div class="dt-row"><div class="lab">기본 수수료 (${r.commRate}%)</div><div class="amt">${man(r.commission)}만</div></div>
         <div class="dt-row"><div class="lab">유지 수수료 (${r.keepRate}%)<small>${KEEP_FROM}~${KEEP_TO}회차 분할 · 회차당 ${man(r.keepEach)}만 × ${r.keepN}회</small></div><div class="amt">${man(r.keepTotal)}만</div></div>
