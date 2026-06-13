@@ -1453,15 +1453,10 @@ function calcAgentNextMonthAward(agentId, year, month) {
     const prem = coCts.reduce((s, ct) => s + (parseFloat(String(ct.premium || '').replace(/[^0-9.]/g, '')) || 0), 0);
     if (!prem) return;
     (award.tiers || []).forEach(tier => {
-      // 기본시상(인보험 430% 등): 같은 상품군 계약의 보험료 × 요율 (익월)
+      // 기본시상: 인보험 기본시상만 회사 보험료에 적용 (펫·재물 기본은 제외 — 상품별 정밀 매칭은 후속)
       if (tier.type === 'basic' && tier.payTiming === 'next_month') {
         const rate = (tier.periods?.[0]?.totalRate ?? tier.periods?.[0]?.ownRate ?? 0);
-        if (rate) {
-          const prod = window.AwardsCore.classifyProduct(tier.label);
-          const mp = coCts.filter(ct => window.AwardsCore.classifyProduct(ct.product || ct.rawJson?.상품명 || ct.rawJson?.상품 || '') === prod)
-            .reduce((s, ct) => s + (parseFloat(String(ct.premium || '').replace(/[^0-9.]/g, '')) || 0), 0);
-          z.base += mp * rate / 100;
-        }
+        if (rate && window.AwardsCore.classifyProduct(tier.label) === '인보험') z.base += prem * rate / 100;
         return;
       }
       if (['consecutive', 'club'].includes(tier.type) || !tier.tiers?.length) return;

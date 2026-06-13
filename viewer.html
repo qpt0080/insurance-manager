@@ -1238,17 +1238,13 @@ function calcAwardEstimate(cts) {
           return;
         }
 
-        // 기본시상(인보험 430% 등): 같은 상품군 계약 보험료 × 요율 (익월)
+        // 기본시상: 인보험 기본시상만 회사 보험료에 적용 (펫·재물 기본 제외 — 후속 정밀 매칭)
         if (tier.type === 'basic' && tier.payTiming === 'next_month') {
           const rate = (tier.periods?.[0]?.totalRate ?? tier.periods?.[0]?.ownRate ?? 0);
-          const prod = window.AwardsCore.classifyProduct(tier.label);
-          const mp = (companyContracts[co]||[])
-            .filter(ct => window.AwardsCore.classifyProduct(ct.product || ct.rawJson?.상품명 || '') === prod)
-            .reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
-          const amt = mp * rate / 100;
+          const amt = (rate && window.AwardsCore.classifyProduct(tier.label) === '인보험') ? prem * rate / 100 : 0;
           if (amt) {
             awardResults.push({ label: tier.label, type:'basic', payTiming: tier.payTiming,
-              reward: amt, goldReward:null, threshold:0, currPrem:mp,
+              reward: amt, goldReward:null, threshold:0, currPrem:prem,
               nextThreshold:null, nextReward:null, needPrev:false });
             totalEstimate += amt;
           }

@@ -297,10 +297,10 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
         <div class="kpi-foot">기본 522% 기준</div>
       </div>
       <div class="kpi-card" style="--kc:var(--amber);--kc-bg:rgba(217,119,6,.1);">
-        <div class="kpi-ico">👥</div>
-        <div class="kpi-label">활동 설계사</div>
-        <div class="kpi-value"><span id="kpi-agents">0</span><span class="unit">명</span></div>
-        <div class="kpi-foot" id="kpi-agents-foot">전체 0명 중</div>
+        <div class="kpi-ico">🏆</div>
+        <div class="kpi-label">예상 시상</div>
+        <div class="kpi-value"><span id="kpi-award">0</span><span class="unit">만원</span></div>
+        <div class="kpi-foot" id="kpi-award-foot">기본+익월시상</div>
       </div>
     </div>
 
@@ -518,8 +518,26 @@ function renderDash(){
   document.getElementById('kpi-contracts-foot').textContent = `손보 ${nonlifeCount} · 생보 ${lifeCount}`;
   countUp('kpi-premium', Math.round(totalPrem/10000));
   countUp('kpi-comm', Math.round(commEst/10000));
-  countUp('kpi-agents', activeAgents.size);
-  document.getElementById('kpi-agents-foot').textContent = `전체 ${totalAgents}명 중`;
+  // 팀 익월 시상 = 회사별 보험료 × 인보험 기본시상 + 익월 구간시상 (해당 월 등록 시상 기준)
+  let awBase = 0, awBand = 0;
+  Object.keys(coMap).forEach(co => {
+    const award = awardsCache.find(a => a.company === co && a.year === CUR_YEAR && a.month === CUR_MONTH);
+    if (!award) return;
+    const prem = coMap[co].prem;
+    (award.tiers||[]).forEach(t => {
+      if (t.type === 'basic' && t.payTiming === 'next_month') {
+        const rate = (t.periods?.[0]?.totalRate ?? t.periods?.[0]?.ownRate ?? 0);
+        if (rate && window.AwardsCore.classifyProduct(t.label) === '인보험') awBase += prem * rate / 100;
+        return;
+      }
+      if (['consecutive','club'].includes(t.type) || !(t.tiers||[]).length) return;
+      const steps = [...t.tiers].filter(s => s.threshold != null).sort((a,b) => a.threshold - b.threshold);
+      const best = [...steps].reverse().find(s => prem >= s.threshold);
+      if (best && best.reward && t.payTiming === 'next_month') awBand += best.reward;
+    });
+  });
+  countUp('kpi-award', Math.round((awBase + awBand)/10000));
+  document.getElementById('kpi-award-foot').textContent = `기본 ${Math.round(awBase/10000)} + 익월 ${Math.round(awBand/10000)}만`;
 
   renderRanking();
   renderCoChart(coMap);
