@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>시상 관리</title>
+<meta name="theme-color" content="#3B5BDB">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#F4F5F8; --paper:#FFFFFF; --surface:#FAFAFC;
+  --ink:#1A1C22; --ink2:#4A4F5A; --ink3:#9AA0AA;
+  --line:#E7E8EE; --line2:#D8DAE4;
+  --accent:#3B5BDB; --accent-light:rgba(59,91,219,.08);
+  --green:#1A7F4B; --amber:#B45309; --red:#C2402A; --purple:#7C3AED;
+  --radius:16px; --radius-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:880px;margin:0 auto;padding:18px 16px 60px;}
+header{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.back{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--ink2);text-decoration:none;background:var(--paper);border:1px solid var(--line);}
+h1{font-size:19px;font-weight:800;letter-spacing:-.3px;}
+.sub{font-size:12px;color:var(--ink3);margin-top:2px;}
+
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,22,30,.04);}
+.sec-title{font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:10px;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{padding:8px 14px;border-radius:999px;border:1.5px solid var(--line2);background:var(--paper);font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;transition:all .15s;}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.chip:disabled{opacity:.35;cursor:default;}
+
+.co-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+.co-item:hover{border-color:var(--accent);}
+.co-item .nm{font-size:14px;font-weight:800;}
+.co-item .meta{font-size:11px;color:var(--ink3);margin-top:2px;}
+.co-item .go{color:var(--ink3);font-size:16px;}
+
+.edit-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.edit-head .t{font-size:16px;font-weight:800;}
+.edit-head .t small{display:block;font-size:11px;color:var(--ink3);font-weight:600;margin-top:2px;}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{font-family:inherit;font-size:13px;font-weight:800;border-radius:var(--radius-sm);padding:10px 16px;cursor:pointer;border:1.5px solid var(--line2);background:var(--paper);color:var(--ink2);transition:all .15s;}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.danger{color:var(--red);border-color:rgba(194,64,42,.35);}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink3);}
+.btn:disabled{opacity:.5;cursor:default;}
+
+.tier-card{border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);padding:13px;margin-bottom:10px;}
+.tier-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.type-chip{font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;background:var(--accent-light);color:var(--accent);white-space:nowrap;}
+.timing-sel{font-family:inherit;font-size:12px;font-weight:700;padding:5px 8px;border:1.5px solid var(--line2);border-radius:8px;background:var(--paper);color:var(--ink2);}
+.fld{margin-bottom:8px;}
+.fld label{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:4px;}
+.fld input[type=text],.fld textarea{width:100%;font-family:inherit;font-size:13px;padding:9px 11px;border:1.5px solid var(--line2);border-radius:8px;background:var(--paper);color:var(--ink);outline:none;}
+.fld textarea{resize:vertical;min-height:54px;line-height:1.5;}
+.fld input:focus,.fld textarea:focus{border-color:var(--accent);}
+.num-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;}
+.num-cell label{display:block;font-size:10px;font-weight:700;color:var(--ink3);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.num-cell .ib{display:flex;align-items:center;border:1.5px solid var(--line2);border-radius:8px;background:var(--paper);padding:7px 9px;}
+.num-cell input{flex:1;width:100%;border:none;outline:none;background:none;font-family:inherit;font-size:13px;font-weight:700;text-align:right;color:var(--ink);}
+.num-cell .u{font-size:11px;font-weight:700;color:var(--ink3);margin-left:4px;}
+.row-box{border:1px dashed var(--line2);border-radius:8px;padding:9px;margin-bottom:8px;background:var(--paper);}
+.row-box .rb-t{font-size:10px;font-weight:800;color:var(--ink3);margin-bottom:6px;}
+.elig-box{border:1.5px solid rgba(124,58,237,.3);border-radius:8px;padding:9px;margin-top:8px;background:rgba(124,58,237,.04);}
+.elig-box .rb-t{font-size:10px;font-weight:800;color:var(--purple);margin-bottom:6px;}
+.json-area{width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;padding:12px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);background:#1A1C22;color:#D7DAE2;min-height:300px;resize:vertical;outline:none;}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;font-weight:700;padding:11px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;}
+.toast.show{opacity:1;}
+.empty{font-size:13px;color:var(--ink3);padding:16px;text-align:center;}
+.hint{font-size:11px;color:var(--ink3);line-height:1.6;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="back" href="admin.html" title="관리자로">‹</a>
+    <div>
+      <h1>✏️ 시상 관리</h1>
+      <div class="sub">수치·문장을 직접 수정 — 저장하면 같은 회사·연월·주차 문서를 덮어씁니다</div>
+    </div>
+  </header>
+
+  <!-- 목록 화면 -->
+  <div id="browse">
+    <div class="card">
+      <div class="sec-title">연 · 월</div>
+      <div class="chips" id="ymChips"><span class="empty">불러오는 중…</span></div>
+    </div>
+    <div class="card" id="weekCard" style="display:none">
+      <div class="sec-title">주차</div>
+      <div class="chips" id="weekChips"></div>
+    </div>
+    <div class="card" id="listCard" style="display:none">
+      <div class="sec-title">회사 (눌러서 수정)</div>
+      <div id="coList"></div>
+    </div>
+  </div>
+
+  <!-- 편집 화면 -->
+  <div id="editor" style="display:none">
+    <div class="card">
+      <div class="edit-head">
+        <div class="t" id="editTitle">—<small id="editMeta"></small></div>
+        <div class="btnrow">
+          <button class="btn ghost" onclick="backToList()">‹ 목록</button>
+          <button class="btn" onclick="toggleJson()" id="jsonBtn">{ } JSON</button>
+          <button class="btn danger" onclick="deleteCurrent()">삭제</button>
+          <button class="btn primary" onclick="saveCurrent()" id="saveBtn">💾 저장</button>
+        </div>
+      </div>
+      <div class="hint">금액은 <b>만원 단위</b>로 입력해요 (저장 시 원 단위로 변환). %는 숫자만. 저장하면 시상 비교·실적 계산에 바로 반영됩니다.</div>
+    </div>
+    <div id="formArea"></div>
+    <div id="jsonArea" style="display:none">
+      <div class="card">
+        <div class="sec-title">JSON 직접 편집 (구조가 특이한 항목용)</div>
+        <textarea class="json-area" id="jsonText" spellcheck="false"></textarea>
+        <div class="btnrow" style="margin-top:10px;">
+          <button class="btn primary" onclick="applyJson()">JSON → 폼에 적용</button>
+        </div>
+        <div class="hint">적용 후에도 💾 저장을 눌러야 서버에 반영됩니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
+  authDomain:"insurance-manager-c4308.firebaseapp.com",
+  projectId:"insurance-manager-c4308",
+  storageBucket:"insurance-manager-c4308.firebasestorage.app",
+  messagingSenderId:"769412429451",
+  appId:"1:769412429451:web:0c3a31bb14430f8fe5068e"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let ALL = [];            // 전체 awards 문서 [{_docId, ...data}]
+let selYM = null;        // 'YYYY-M'
+let selWeek = null;      // number | 0(전체월) | 'all'
+let CUR = null;          // 편집 중 문서 (깊은 복사본)
+let CUR_DOCID = null;
+
+const $ = id => document.getElementById(id);
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2400); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// admin.html과 동일한 문서 ID 규칙 — 같은 회사·연월·주차면 덮어쓰기
+function awardDocId(year, month, company, week){
+  const wk = week ? `_w${week}` : '';
+  return `${year}_${String(month).padStart(2,'0')}${wk}_${company}`;
+}
+const man = v => { const n=(+v||0)/10000; return Number.isInteger(n)? n : +n.toFixed(2); };  // 원→만
+const won = v => Math.round((parseFloat(String(v).replace(/[^0-9.\-]/g,''))||0)*10000);     // 만→원
+const num = v => { const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; };
+
+/* ── 로드 & 목록 ───────────────────────────── */
+async function loadAll(){
+  ALL=[];
+  const snap = await getDocs(collection(db,'awards'));
+  snap.forEach(d=>ALL.push({_docId:d.id, ...d.data()}));
+  renderYM();
+}
+function renderYM(){
+  const yms=[...new Set(ALL.map(a=>a.year+'-'+a.month))].sort((a,b)=>{
+    const [ay,am]=a.split('-').map(Number), [by,bm]=b.split('-').map(Number);
+    return by-ay || bm-am;
+  });
+  $('ymChips').innerHTML = yms.length
+    ? yms.map(ym=>{ const [y,m]=ym.split('-'); return `<button class="chip ${ym===selYM?'on':''}" data-ym="${ym}">${y}년 ${m}월</button>`; }).join('')
+    : '<span class="empty">등록된 시상이 없어요</span>';
+  $('ymChips').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ selYM=b.dataset.ym; selWeek=null; renderYM(); renderWeeks(); });
+  if(selYM) renderWeeks();
+}
+function renderWeeks(){
+  const [y,m]=selYM.split('-').map(Number);
+  const docs = ALL.filter(a=>a.year===y && a.month===m);
+  const weeks=[...new Set(docs.map(a=>a.week||0))].sort((a,b)=>a-b);
+  $('weekCard').style.display='block';
+  $('weekChips').innerHTML = weeks.map(w=>
+    `<button class="chip ${selWeek===w?'on':''}" data-w="${w}">${w===0?'월 전체':w+'주차'}</button>`
+  ).join('');
+  $('weekChips').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ selWeek=+b.dataset.w; renderWeeks(); renderList(); });
+  if(selWeek!==null && weeks.includes(selWeek)) renderList();
+  else { $('listCard').style.display='none'; }
+}
+function renderList(){
+  const [y,m]=selYM.split('-').map(Number);
+  const docs = ALL.filter(a=>a.year===y && a.month===m && (a.week||0)===selWeek)
+                  .sort((a,b)=>String(a.company).localeCompare(String(b.company),'ko'));
+  $('listCard').style.display='block';
+  $('coList').innerHTML = docs.length ? docs.map(a=>`
+    <div class="co-item" data-id="${esc(a._docId)}">
+      <div><div class="nm">${esc(a.company)}</div>
+      <div class="meta">${(a.tiers||[]).length}개 항목 · ${esc(a._docId)}</div></div>
+      <div class="go">✏️ ›</div>
+    </div>`).join('') : '<div class="empty">해당 주차에 등록된 회사가 없어요</div>';
+  $('coList').querySelectorAll('.co-item').forEach(el=>el.onclick=()=>openEditor(el.dataset.id));
+}
+
+/* ── 편집 화면 ───────────────────────────── */
+function openEditor(docId){
+  const src = ALL.find(a=>a._docId===docId);
+  if(!src) return;
+  CUR = JSON.parse(JSON.stringify(src)); delete CUR._docId;
+  CUR_DOCID = docId;
+  $('browse').style.display='none'; $('editor').style.display='block';
+  $('editTitle').childNodes[0].nodeValue = CUR.company + ' ';
+  $('editMeta').textContent = `${CUR.year}년 ${CUR.month}월 ${CUR.week?CUR.week+'주차':'전체'} · 문서 ${docId}`;
+  $('jsonArea').style.display='none'; $('jsonBtn').classList.remove('primary');
+  renderForm();
+  window.scrollTo(0,0);
+}
+window.backToList = function(){ $('editor').style.display='none'; $('browse').style.display='block'; CUR=null; CUR_DOCID=null; };
+
+/* 폼은 "읽기: CUR → DOM" / "쓰기: DOM 이벤트 → CUR" 단방향으로 단순하게 */
+function renderForm(){
+  const t = CUR.tiers||[];
+  let html = '';
+
+  // 공통사항
+  html += `<div class="card"><div class="sec-title">공통사항 (commonNotes — 줄 단위)</div>
+    <div class="fld"><textarea data-path="commonNotes" rows="4">${esc((CUR.commonNotes||[]).join('\n'))}</textarea></div></div>`;
+
+  // tiers
+  html += t.map((tier,ti)=>{
+    let inner = '';
+    inner += `<div class="fld"><label>항목 이름 (label)</label><input type="text" data-path="tiers.${ti}.label" value="${esc(tier.label||'')}"></div>`;
+
+    // periods (basic형 %)
+    if(Array.isArray(tier.periods)){
+      inner += tier.periods.map((p,pi)=>`
+        <div class="row-box"><div class="rb-t">기간 ${pi+1} · ${esc(p.startDate||'?')} ~ ${esc(p.endDate||'?')}</div>
+          <div class="num-grid">
+            <div class="num-cell"><label>자체 %</label><div class="ib"><input data-path="tiers.${ti}.periods.${pi}.ownRate" data-kind="num" value="${p.ownRate??''}"><span class="u">%</span></div></div>
+            <div class="num-cell"><label>GAK %</label><div class="ib"><input data-path="tiers.${ti}.periods.${pi}.gakRate" data-kind="num" value="${p.gakRate??''}"><span class="u">%</span></div></div>
+            <div class="num-cell"><label>합계 %</label><div class="ib"><input data-path="tiers.${ti}.periods.${pi}.totalRate" data-kind="num" value="${p.totalRate??''}"><span class="u">%</span></div></div>
+          </div></div>`).join('');
+    }
+    // special형 rate
+    if(tier.type==='special' || (tier.rate!=null && !Array.isArray(tier.periods))){
+      inner += `<div class="num-grid" style="margin-bottom:8px;"><div class="num-cell"><label>시상률</label><div class="ib"><input data-path="tiers.${ti}.rate" data-kind="num" value="${tier.rate??''}"><span class="u">%</span></div></div></div>`;
+    }
+    // 구간(tiers[]) — threshold/prev/curr/reward
+    if(Array.isArray(tier.tiers)){
+      inner += tier.tiers.map((row,ri)=>{
+        let cells='';
+        if(row.prevThreshold!=null || row.currThreshold!=null){
+          cells += `<div class="num-cell"><label>전월 구간</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.prevThreshold" data-kind="man" value="${man(row.prevThreshold)}"><span class="u">만↑</span></div></div>`;
+          cells += `<div class="num-cell"><label>당월 구간</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.currThreshold" data-kind="man" value="${man(row.currThreshold)}"><span class="u">만↑</span></div></div>`;
+        } else if(row.threshold!=null){
+          cells += `<div class="num-cell"><label>구간</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.threshold" data-kind="man" value="${man(row.threshold)}"><span class="u">만↑</span></div></div>`;
+        }
+        cells += `<div class="num-cell"><label>시상금</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.reward" data-kind="man" value="${man(row.reward)}"><span class="u">만</span></div></div>`;
+        if(row.goldReward!==undefined) cells += `<div class="num-cell"><label>금 시상</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.goldReward" value="${esc(row.goldReward??'')}"></div></div>`;
+        return `<div class="row-box"><div class="rb-t">구간 ${ri+1}${row.formula?' · '+esc(row.formula):''}</div><div class="num-grid">${cells}</div></div>`;
+      }).join('');
+    }
+    // gift/condition
+    if(tier.type==='gift' || tier.gift!=null){
+      inner += `<div class="fld"><label>물품/내용 (gift)</label><textarea data-path="tiers.${ti}.gift" rows="2">${esc(tier.gift||'')}</textarea></div>`;
+      if(tier.giftThreshold!==undefined) inner += `<div class="num-grid" style="margin-bottom:8px;"><div class="num-cell"><label>달성 기준</label><div class="ib"><input data-path="tiers.${ti}.giftThreshold" data-kind="man" value="${man(tier.giftThreshold)}"><span class="u">만↑</span></div></div></div>`;
+    }
+    if(tier.condition!==undefined) inner += `<div class="fld"><label>조건 (condition)</label><textarea data-path="tiers.${ti}.condition" rows="2">${esc(tier.condition||'')}</textarea></div>`;
+    if(tier.notes!==undefined) inner += `<div class="fld"><label>비고 (notes)</label><textarea data-path="tiers.${ti}.notes" rows="2">${esc(tier.notes||'')}</textarea></div>`;
+    // eligibility
+    if(tier.eligibility){
+      const e=tier.eligibility;
+      let ecells='';
+      if(e.type==='monthly_min'){
+        ecells = `
+          <div class="num-cell"><label>연도</label><div class="ib"><input data-path="tiers.${ti}.eligibility.year" data-kind="num" value="${e.year??''}"></div></div>
+          <div class="num-cell"><label>월</label><div class="ib"><input data-path="tiers.${ti}.eligibility.month" data-kind="num" value="${e.month??''}"></div></div>
+          <div class="num-cell"><label>최소 실적</label><div class="ib"><input data-path="tiers.${ti}.eligibility.minPremium" data-kind="man" value="${man(e.minPremium)}"><span class="u">만↑</span></div></div>`;
+      } else if(e.type==='active_months_min'){
+        ecells = `
+          <div class="num-cell"><label>시작 연</label><div class="ib"><input data-path="tiers.${ti}.eligibility.fromYear" data-kind="num" value="${e.fromYear??''}"></div></div>
+          <div class="num-cell"><label>시작 월</label><div class="ib"><input data-path="tiers.${ti}.eligibility.fromMonth" data-kind="num" value="${e.fromMonth??''}"></div></div>
+          <div class="num-cell"><label>끝 연</label><div class="ib"><input data-path="tiers.${ti}.eligibility.toYear" data-kind="num" value="${e.toYear??''}"></div></div>
+          <div class="num-cell"><label>끝 월</label><div class="ib"><input data-path="tiers.${ti}.eligibility.toMonth" data-kind="num" value="${e.toMonth??''}"></div></div>
+          <div class="num-cell"><label>월 최소실적</label><div class="ib"><input data-path="tiers.${ti}.eligibility.minPremium" data-kind="man" value="${man(e.minPremium)}"><span class="u">만↑</span></div></div>
+          <div class="num-cell"><label>최소 개월수</label><div class="ib"><input data-path="tiers.${ti}.eligibility.minMonths" data-kind="num" value="${e.minMonths??''}"></div></div>`;
+      }
+      inner += `<div class="elig-box"><div class="rb-t">🎯 자격 조건 (본인 계약 데이터로 자동 판정 — 미달이면 숨김)</div>
+        <div class="num-grid">${ecells}</div>
+        <div class="fld" style="margin-top:8px;margin-bottom:0;"><label>설명 (label)</label><input type="text" data-path="tiers.${ti}.eligibility.label" value="${esc(e.label||'')}"></div></div>`;
+    }
+
+    const timing = tier.payTiming==='13th_payment' ? '13th_payment' : (tier.payTiming==null && tier.retention!==13 ? '' : (tier.retention===13?'13th_payment':'next_month'));
+    return `<div class="tier-card">
+      <div class="tier-top">
+        <span class="type-chip">${esc(tier.type||'?')}</span>
+        <select class="timing-sel" data-path="tiers.${ti}.payTiming" data-kind="timing">
+          <option value="next_month" ${timing==='next_month'?'selected':''}>익월 지급</option>
+          <option value="13th_payment" ${timing==='13th_payment'?'selected':''}>13회차 유지</option>
+          <option value="" ${timing===''?'selected':''}>미표기</option>
+        </select>
+      </div>
+      ${inner}
+    </div>`;
+  }).join('');
+
+  // rawText
+  html += `<div class="card"><div class="sec-title">원문 요약 (rawText)</div>
+    <div class="fld"><textarea data-path="rawText" rows="3">${esc(CUR.rawText||'')}</textarea></div></div>`;
+
+  $('formArea').innerHTML = html;
+
+  // 입력 → CUR 반영
+  $('formArea').querySelectorAll('[data-path]').forEach(el=>{
+    el.addEventListener('input', ()=>writeBack(el));
+    el.addEventListener('change', ()=>writeBack(el));
+  });
+}
+function writeBack(el){
+  const path = el.dataset.path.split('.');
+  const kind = el.dataset.kind||'';
+  let v = el.value;
+  if(kind==='num') v = num(v);
+  else if(kind==='man') v = (String(el.value).trim()==='' ? null : won(el.value));
+  else if(kind==='timing'){
+    // payTiming + retention 동기화
+    let o=CUR; for(let i=0;i<path.length-1;i++) o=o[path[i]];
+    if(v==='13th_payment'){ o.payTiming='13th_payment'; o.retention=13; }
+    else if(v==='next_month'){ o.payTiming='next_month'; o.retention=null; }
+    else { o.payTiming=null; o.retention=null; }
+    return;
+  }
+  if(path[0]==='commonNotes'){ CUR.commonNotes = el.value.split('\n').map(s=>s.trim()).filter(Boolean); return; }
+  let o=CUR;
+  for(let i=0;i<path.length-1;i++) o=o[path[i]];
+  o[path[path.length-1]] = v;
+}
+
+/* ── JSON 토글 ───────────────────────────── */
+window.toggleJson = function(){
+  const show = $('jsonArea').style.display==='none';
+  $('jsonArea').style.display = show?'block':'none';
+  $('jsonBtn').classList.toggle('primary', show);
+  if(show) $('jsonText').value = JSON.stringify(CUR, null, 2);
+};
+window.applyJson = function(){
+  try{
+    const obj = JSON.parse($('jsonText').value);
+    if(!obj.company||!obj.year||!obj.month){ toast('⚠️ company/year/month는 필수예요'); return; }
+    CUR = obj; renderForm(); toast('폼에 적용했어요 — 저장을 눌러야 반영됩니다');
+  }catch(e){ toast('⚠️ JSON 문법 오류: '+e.message); }
+};
+
+/* ── 저장 / 삭제 ───────────────────────────── */
+window.saveCurrent = async function(){
+  if(!CUR) return;
+  const newId = awardDocId(CUR.year, CUR.month, CUR.company, CUR.week);
+  if(newId !== CUR_DOCID && !confirm(`회사/연월/주차가 바뀌어 문서 ID가 ${CUR_DOCID} → ${newId} 로 바뀝니다. 새 문서로 저장할까요? (기존 문서는 남습니다)`)) return;
+  $('saveBtn').disabled = true;
+  try{
+    await setDoc(doc(db,'awards',newId), {...CUR, editedAt:new Date().toISOString()});
+    toast('✅ 저장됐어요 — 시상 비교·실적 계산에 바로 반영됩니다');
+    CUR_DOCID = newId;
+    await loadAll();
+  }catch(e){ toast('⚠️ 저장 실패: '+(e.code||e.message)); }
+  $('saveBtn').disabled = false;
+};
+window.deleteCurrent = async function(){
+  if(!CUR_DOCID) return;
+  if(!confirm(`"${CUR.company}" ${CUR.year}년 ${CUR.month}월 ${CUR.week?CUR.week+'주차':''} 시상을 삭제할까요?`)) return;
+  try{
+    await deleteDoc(doc(db,'awards',CUR_DOCID));
+    toast('🗑 삭제됐어요'); backToList(); await loadAll();
+  }catch(e){ toast('⚠️ 삭제 실패: '+(e.code||e.message)); }
+};
+
+/* ── 인증: 관리자 로그인 세션 재사용 ── */
+onAuthStateChanged(auth, async(user)=>{
+  if(!user){ $('ymChips').innerHTML = '<span class="empty">로그인이 필요해요 — 관리자 화면에서 로그인 후 다시 열어주세요</span>'; return; }
+  try{ await loadAll(); }
+  catch(e){ $('ymChips').innerHTML = `<span class="empty">불러오기 실패 (${esc(e.code||e.message)})</span>`; }
+});
+</script>
+<script>
+/* ── 화면 폭에 맞춰 UI 비례 확대 (모바일·데스크탑·대형 4K 한 코드 대응) ──
+   스크롤형 도구 페이지라 폭 기준으로만 확대. 1배 미만 축소 없음, 최대 2.6배. */
+(function(){
+  var DESIGN_W = 1440, MAX_ZOOM = 2.6;
+  function applyScale(){
+    var vw = document.documentElement.clientWidth || window.innerWidth;
+    var z = (vw / DESIGN_W) * 0.985;
+    z = Math.max(1, Math.min(z, MAX_ZOOM));
+    document.body.style.zoom = z;
+  }
+  applyScale();
+  window.addEventListener("resize", applyScale);
+  window.addEventListener("orientationchange", applyScale);
+})();
+</script>
+</body>
+</html>
