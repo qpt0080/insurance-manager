@@ -46,7 +46,7 @@ self.addEventListener('notificationclick', function(event){
 });
 
 /* ── 앱 셸 캐시 ───────────────────────────────────── */
-const CACHE = 'mujin-shell-v29';
+const CACHE = 'mujin-shell-v30';
 const SHELL = [
   'index.html','admin.html','viewer.html','dashboard.html',
   'income-simulator.html','notice.html','awards-compare.html','awards-manage.html',
@@ -80,21 +80,27 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Firebase 등 외부는 건드리지 않음
 
+  // stale-while-revalidate:
+  //  - 캐시에 있으면 "즉시" 내주고(=빠름), 뒤에서 네트워크로 조용히 갱신 → 다음 로딩이 최신
+  //  - 캐시에 없으면 네트워크를 기다림
+  //  - 네트워크 실패 시 캐시 폴백(페이지 이동이면 index.html까지)
+  //  배포 때마다 CACHE 버전을 올리면 install이 새 셸을 미리 받고 activate가 옛 캐시를 지워
+  //  최신 버전으로 수렴합니다. (직후 1회는 직전 버전이 보일 수 있음)
   e.respondWith(
-    fetch(req).then(res => {
-      // 정상 응답만 캐시 (404/500이 캐시에 박히는 것 방지)
-      if (res.ok) {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
-      }
-      return res;
-    }).catch(() =>
-      caches.match(req).then(r => {
-        if (r) return r;
-        // 페이지 이동일 때만 index.html 폴백 (JS/이미지 요청에 HTML을 주면 안 됨)
+    caches.match(req).then(cached => {
+      const fetching = fetch(req).then(res => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
+        }
+        return res;
+      }).catch(() => {
+        if (cached) return cached;
         if (req.mode === 'navigate') return caches.match('index.html');
         return Response.error();
-      })
-    )
+      });
+      // 캐시가 있으면 즉시 반환(네트워크는 백그라운드로 진행), 없으면 네트워크 대기
+      return cached || fetching;
+    })
   );
 });

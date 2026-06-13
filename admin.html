@@ -431,6 +431,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <script>if(!window.InsSearch){window.InsSearch={matchAll:function(h,q){var t=(q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);var s=(h||"").toLowerCase();return t.every(function(x){return s.indexOf(x)!==-1;});},touches:function(t,q){return window.InsSearch.matchAll(t,q);},termsInText:function(){return[];},tokenize:function(q){return (q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);}};console.warn("search-engine.js가 로드되지 않아 기본 검색으로 동작합니다(동의어 미적용). 같은 폴더에 search-engine.js를 올려주세요.");}</script>
 <script src="coverage-summary.js"></script>
 <script>if(!window.CovAgg){window.CovAgg={renderHTML:function(){return'';},toggle:function(){},view:function(){}};console.warn("coverage-summary.js가 로드되지 않아 보장 합산이 표시되지 않습니다. 같은 폴더에 coverage-summary.js를 올려주세요.");}</script>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
   <link rel="manifest" href="manifest-admin.webmanifest">
   <meta name="theme-color" content="#3B5BDB">
   <link rel="icon" href="favicon.png">
@@ -1378,7 +1380,12 @@ window.deleteAwardGroup = async function(groupId) {
 };
 
 async function loadAgents() {
-  const snap = await getDocs(collection(db,'agents'));
+  // agents 와 agentSecrets 는 서로 의존이 없어 병렬로 읽음 (왕복 1회 절약)
+  // agentSecrets 는 권한에 따라 실패할 수 있으므로 개별 catch 로 기존 동작 유지
+  const [snap, sec] = await Promise.all([
+    getDocs(collection(db,'agents')),
+    getDocs(collection(db,'agentSecrets')).catch(() => null)
+  ]);
   agentsCache = [];
   snap.forEach(d => agentsCache.push({...d.data(), _docId: d.id}));
   agentsCache.sort((a,b)=>{
@@ -1388,10 +1395,7 @@ async function loadAgents() {
   });
   // 토큰(자격증명) 비밀정보 — 규칙상 관리자만 읽기 가능
   secretsCache = {};
-  try {
-    const sec = await getDocs(collection(db,'agentSecrets'));
-    sec.forEach(d => secretsCache[d.id] = d.data());
-  } catch(e) {}
+  if (sec) sec.forEach(d => secretsCache[d.id] = d.data());
 }
 
 async function loadCustomers() {
