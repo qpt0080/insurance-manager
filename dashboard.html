@@ -154,7 +154,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 .quick-btn{flex:1;padding:9px 6px;border-radius:11px;font-size:12px;font-weight:700;border:1px solid var(--glass-border);background:var(--bg0);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;}
 .quick-btn:hover{border-color:var(--cyan);color:var(--cyan);}
 
-.result-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px;}
+.result-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
 .rs-card{position:relative;background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:16px 14px;text-align:center;overflow:hidden;box-shadow:var(--shadow-sm);}
 .rs-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--rsc,var(--cyan));}
 .rs-ico{font-size:18px;margin-bottom:8px;}
@@ -368,12 +368,20 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
             <div class="rs-sub">522% · 익월 25일</div>
           </div>
         </div>
+        <div class="rs-card" style="--rsc:var(--purple);">
+          <div class="rs-ico">📌</div>
+          <div>
+            <div class="rs-label">기본시상</div>
+            <div class="rs-value"><span id="rs-base">0</span><span class="u">만</span></div>
+            <div class="rs-sub">인보험 기본 · 익월</div>
+          </div>
+        </div>
         <div class="rs-card" style="--rsc:var(--cyan);">
           <div class="rs-ico">🏆</div>
           <div>
             <div class="rs-label">익월 시상</div>
             <div class="rs-value"><span id="rs-nm">0</span><span class="u">만</span></div>
-            <div class="rs-sub">익월 말일 지급</div>
+            <div class="rs-sub">가동·추가 · 익월 말</div>
           </div>
         </div>
         <div class="rs-card" style="--rsc:var(--amber);">
@@ -754,17 +762,18 @@ function renderSim(){
   if(!award || !(award.tiers||[]).length){
     tiersEl.innerHTML = `<div class="empty-state"><div class="ico">📭</div><div style="font-size:14px;">이 보험사·월의 시상 항목이 없어요</div></div>`;
     document.getElementById('rs-nm').textContent = '0';
+    document.getElementById('rs-base').textContent = '0';
     document.getElementById('rs-th').textContent = '0';
     return;
   }
 
-  let nmTotal = 0, thTotal = 0;
+  let nmTotal = 0, thTotal = 0, baseTotal = 0;
   const cards = [];
   (award.tiers||[]).forEach(t => {
     // 기본시상(인보험 430% 등): 시뮬 보험료 × 요율 (익월). 단일 보험료 시뮬이라 인보험 기본만 적용
     if (t.type === 'basic' && t.payTiming === 'next_month') {
       const rate = (t.periods?.[0]?.totalRate ?? t.periods?.[0]?.ownRate ?? 0);
-      if (rate && window.AwardsCore.classifyProduct(t.label) === '인보험') nmTotal += curPrem * rate / 100;
+      if (rate && window.AwardsCore.classifyProduct(t.label) === '인보험') baseTotal += curPrem * rate / 100;
       return;
     }
     if(['consecutive','club'].includes(t.type) || !(t.tiers||[]).length) return;
@@ -816,6 +825,7 @@ function renderSim(){
   });
 
   document.getElementById('rs-nm').textContent = Math.round(nmTotal/10000).toLocaleString();
+  document.getElementById('rs-base').textContent = Math.round(baseTotal/10000).toLocaleString();
   document.getElementById('rs-th').textContent = Math.round(thTotal/10000).toLocaleString();
 
   tiersEl.innerHTML = cards.length ? cards.join('') :

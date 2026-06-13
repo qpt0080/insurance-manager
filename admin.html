@@ -555,18 +555,18 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
     <!-- 월별 실적 섹션 -->
     <div class="card">
-      <div class="card-title">📊 월별 실적</div>
+      <div class="card-title">📊 실적</div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <select id="admin-year-sel" onchange="onAdminYearChange()" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;cursor:pointer;transition:border-color .18s;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22%3E%3Cpath fill=%22%23A09EA3%22 d=%22M5 6L0 0h10z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;"></select>
         <select id="admin-month-sel" onchange="onAdminMonthChange()" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;font-family:inherit;background:var(--surface);color:var(--text);outline:none;cursor:pointer;transition:border-color .18s;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22%3E%3Cpath fill=%22%23A09EA3%22 d=%22M5 6L0 0h10z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;"></select>
       </div>
-      <!-- 통합 KPI -->
+      <!-- 총 계약 + 총 월보험료 (가로) -->
       <div id="admin-perf-kpi"></div>
-    </div>
-
-    <!-- 설계사별 실적 — 별도 카드로 분리해 구분감 부여 -->
-    <div class="card" style="border-color:rgba(59,91,219,.22);border-top:3px solid var(--accent);">
-      <div class="card-title" style="color:var(--accent);border-bottom-color:rgba(59,91,219,.12);">👤 설계사별 실적</div>
+      <!-- 설계사별 실적 (같은 카드 안) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 12px;padding-top:16px;border-top:1px solid var(--border);">
+        <span style="font-size:14px;font-weight:800;color:var(--accent);">👤 설계사별 실적</span>
+        <span id="admin-agent-count" style="font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);border-radius:20px;padding:3px 10px;"></span>
+      </div>
       <div id="admin-perf-agents"></div>
     </div>
   </div>
@@ -1441,10 +1441,10 @@ function calcPerfStats(cts) {
 
 // 설계사 1명의 '익월 지급' 시상 합산 (시상은 설계사별 실적 기준이라 한 명씩 계산)
 function calcAgentNextMonthAward(agentId, year, month) {
-  if (!year || !month) return 0;
+  const z = { base: 0, band: 0, get total(){ return this.base + this.band; } };
+  if (!year || !month) return z;
   const awards = awardsCache.filter(a => a.year === year && a.month === month);
-  if (!awards.length) return 0;
-  let nextTotal = 0;
+  if (!awards.length) return z;
   awards.forEach(award => {
     const co = award.company;
     const coCts = customersCache.filter(c => c.agentId === agentId)
@@ -1460,7 +1460,7 @@ function calcAgentNextMonthAward(agentId, year, month) {
           const prod = window.AwardsCore.classifyProduct(tier.label);
           const mp = coCts.filter(ct => window.AwardsCore.classifyProduct(ct.product || ct.rawJson?.상품명 || ct.rawJson?.상품 || '') === prod)
             .reduce((s, ct) => s + (parseFloat(String(ct.premium || '').replace(/[^0-9.]/g, '')) || 0), 0);
-          nextTotal += mp * rate / 100;
+          z.base += mp * rate / 100;
         }
         return;
       }
@@ -1473,10 +1473,10 @@ function calcAgentNextMonthAward(agentId, year, month) {
       if (!usePrem) return;
       const best = [...tier.tiers].reverse().find(t => usePrem >= t.threshold);
       if (!best || !best.reward) return;
-      if (tier.payTiming === 'next_month') nextTotal += best.reward;
+      if (tier.payTiming === 'next_month') z.band += best.reward;
     });
   });
-  return nextTotal;
+  return z;
 }
 
 function renderAdminPerf() {
@@ -1492,42 +1492,26 @@ function renderAdminPerf() {
 
   const activeAgents = agentsCache.filter(a => !a.disabled);
 
-  // 시상 합산(익월 지급분) — 설계사별로 계산 후 합
-  const totalAward = periodValid
-    ? activeAgents.reduce((sum, a) => sum + calcAgentNextMonthAward(a.uid, adminPerfYear, adminPerfMonth), 0)
-    : null;
-
   const fmt = n => Math.round(n).toLocaleString();
-  const commStr  = stats.commEst  > 0 ? fmt(stats.commEst)  + '원' : '—';
-  const awardStr = (totalAward && totalAward > 0) ? fmt(totalAward) + '원' : '—';
   const premStr  = stats.totalPrem > 0 ? fmt(stats.totalPrem) + '원' : '—';
 
-  // ── KPI: 수수료·시상(강조 2칸) + 총계약·월보험료(보조 2칸) ──
+  // ── 상단: 총 계약 + 총 월보험료 (가로) — 수수료·시상은 설계사별로 이동 ──
   kpiEl.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-      <div style="background:var(--accent-light);border-radius:12px;padding:14px 13px;">
-        <div style="font-size:11px;font-weight:700;color:var(--accent-dark);margin-bottom:7px;">💰 수수료</div>
-        <div style="font-size:21px;font-weight:900;color:var(--accent);letter-spacing:-.6px;line-height:1.05;margin-bottom:6px;word-break:keep-all;">${commStr}</div>
-        <div style="font-size:10px;color:var(--text2);">기본 522% · 25일 지급</div>
-      </div>
-      <div style="background:var(--amber-light);border-radius:12px;padding:14px 13px;">
-        <div style="font-size:11px;font-weight:700;color:#92600A;margin-bottom:7px;">🏆 시상</div>
-        <div style="font-size:21px;font-weight:900;color:var(--amber);letter-spacing:-.6px;line-height:1.05;margin-bottom:6px;word-break:keep-all;">${awardStr}</div>
-        <div style="font-size:10px;color:#92600A;">${periodValid ? '익월 말 지급' : '월 선택 시 표시'}</div>
-      </div>
-    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div style="background:var(--surface2);border-radius:10px;padding:11px 13px;">
-        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;">총 계약</div>
-        <div style="font-size:18px;font-weight:900;color:var(--text);line-height:1;margin-bottom:4px;">${stats.total}<span style="font-size:12px;font-weight:600;color:var(--text2);margin-left:1px;">건</span></div>
+      <div style="background:var(--surface2);border-radius:11px;padding:13px 14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;">총 계약</div>
+        <div style="font-size:20px;font-weight:900;color:var(--text);line-height:1;margin-bottom:4px;">${stats.total}<span style="font-size:12px;font-weight:600;color:var(--text2);margin-left:1px;">건</span></div>
         <div style="font-size:10px;color:var(--text3);">손보 ${stats.nonlifeCount} · 생보 ${stats.lifeCount}</div>
       </div>
-      <div style="background:var(--surface2);border-radius:10px;padding:11px 13px;">
-        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;">월 보험료</div>
-        <div style="font-size:18px;font-weight:900;color:var(--green);line-height:1.05;margin-bottom:4px;word-break:keep-all;">${premStr}</div>
-        <div style="font-size:10px;color:var(--text3);">합계</div>
+      <div style="background:var(--surface2);border-radius:11px;padding:13px 14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;">총 월보험료</div>
+        <div style="font-size:20px;font-weight:900;color:var(--green);line-height:1.05;margin-bottom:4px;word-break:keep-all;">${premStr}</div>
+        <div style="font-size:10px;color:var(--text3);">모든 설계사 합계</div>
       </div>
     </div>`;
+
+  const countEl = document.getElementById('admin-agent-count');
+  if (countEl) countEl.textContent = activeAgents.length + '명';
 
   // ── 설계사별: 세로 막대 2개 + 2열 바둑판 그리드 ──
   if (!activeAgents.length) { agentsEl.innerHTML = '<div class="empty">설계사 없음</div>'; return; }
@@ -1536,7 +1520,7 @@ function renderAdminPerf() {
     const myCusts = customersCache.filter(c => c.agentId === a.uid);
     const myCts = getContractsForPeriod(myCusts, adminPerfYear, adminPerfMonth, adminPerfYear === 0);
     const s = calcPerfStats(myCts);
-    const award = periodValid ? calcAgentNextMonthAward(a.uid, adminPerfYear, adminPerfMonth) : 0;
+    const award = periodValid ? calcAgentNextMonthAward(a.uid, adminPerfYear, adminPerfMonth) : {base:0, band:0, total:0};
     return { a, s, award };
   }).sort((x, y) => y.s.total - x.s.total);
 
@@ -1571,7 +1555,8 @@ function renderAdminPerf() {
     const premPct  = Math.round(s.totalPrem / maxPrem * 100);
     const premMan  = s.totalPrem > 0 ? Math.round(s.totalPrem / 10000) + '만' : '—';
     const commMan  = s.commEst > 0 ? '≈' + Math.round(s.commEst / 10000) + '만원' : '—';
-    const awardMan = (award && award > 0) ? '≈' + Math.round(award / 10000) + '만원' : '—';
+    const baseMan  = award.base > 0 ? '≈' + Math.round(award.base / 10000) + '만원' : '—';
+    const bandMan  = award.band > 0 ? '≈' + Math.round(award.band / 10000) + '만원' : '—';
 
     const cardBg = isTop ? 'var(--accent-light)' : 'var(--surface)';
     const cardBd = isTop ? '2px solid rgba(59,91,219,.4)' : '1px solid var(--border)';
@@ -1595,9 +1580,13 @@ function renderAdminPerf() {
           <span style="font-size:11px;font-weight:600;color:var(--text3);">수수료</span>
           <span style="font-size:11px;font-weight:800;color:${s.commEst > 0 ? 'var(--text)' : 'var(--text3)'};">${commMan}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-          <span style="font-size:11px;font-weight:600;color:var(--text3);">시상</span>
-          <span style="font-size:11px;font-weight:800;color:${(award && award > 0) ? 'var(--amber)' : 'var(--text3)'};">${awardMan}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">
+          <span style="font-size:11px;font-weight:600;color:var(--text3);">기본시상</span>
+          <span style="font-size:11px;font-weight:800;color:${award.base > 0 ? 'var(--purple)' : 'var(--text3)'};">${baseMan}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">
+          <span style="font-size:11px;font-weight:600;color:var(--text3);">익월시상</span>
+          <span style="font-size:11px;font-weight:800;color:${award.band > 0 ? 'var(--amber)' : 'var(--text3)'};">${bandMan}</span>
         </div>
       </div>
     </div>`;
