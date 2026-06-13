@@ -4,9 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>시상 관리</title>
+<link rel="manifest" href="manifest-admin.webmanifest">
 <meta name="theme-color" content="#3B5BDB">
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="무진 관리">
 <style>
 :root{
   --bg:#F4F5F8; --paper:#FFFFFF; --surface:#FAFAFC;
@@ -71,6 +75,7 @@ h1{font-size:19px;font-weight:800;letter-spacing:-.3px;}
 .empty{font-size:13px;color:var(--ink3);padding:16px;text-align:center;}
 .hint{font-size:11px;color:var(--ink3);line-height:1.6;margin-top:8px;}
 </style>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </head>
 <body>
 <div class="wrap">
