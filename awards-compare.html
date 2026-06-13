@@ -146,6 +146,10 @@
       <button class="seg-btn on" id="segTotal" onclick="setViewMode('total')">🧮 총액</button>
       <button class="seg-btn" id="segNext" onclick="setViewMode('next')">⚡ 익월만</button>
     </div>
+    <div class="seg" role="tablist" aria-label="상품군" style="margin-top:8px;">
+      <button class="seg-btn on" id="segIns" onclick="setProdMode('인보험')">🛡 인보험만</button>
+      <button class="seg-btn" id="segAll" onclick="setProdMode('전체')">📦 전체 상품</button>
+    </div>
     <div class="comm-row">
       <label class="comm-type nl">🛡 손보</label>
       <label>기본</label>
@@ -166,9 +170,10 @@
   <div class="status" id="status">시상 불러오는 중…</div>
   <div class="co-grid" id="grid"></div>
 
-  <p class="disclaim">올려둔 시상안 기준 <b>참고용 예측</b>이에요. 실제 지급은 정책·유지 조건에 따라 달라집니다.<br>🧮 총액 = 계약 1건당 익월+13회차 시상과 수수료 전체 · ⚡ 익월만 = 다음 달에 받는 익월 시상+기본 수수료만</p>
+  <p class="disclaim">올려둔 시상안 기준 <b>참고용 예측</b>이에요. 실제 지급은 정책·유지 조건에 따라 달라집니다.<br>🧮 총액 = 계약 1건당 익월+13회차 시상과 수수료 전체 · ⚡ 익월만 = 다음 달에 받는 수수료+기본시상+익월 시상 · 기본은 인보험 기준(상단에서 전체 전환)</p>
 </div>
 
+<script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -197,73 +202,11 @@ const BANDS = [100000,200000,300000,500000];
 const BAND_KEYS = [100000,200000,300000,500000];
 const STEP = 50000; // +/- 5만
 
-// ── award-extract tiers[] → 시상 항목 변환 (income-simulator 로직 재사용) ──
-function bandsFromTiers(arr, keys){
-  const raw={100000:0,200000:0,300000:0,500000:0};
-  (arr||[]).forEach(t=>{
-    let th=null; for(const k of keys){ if(t[k]!=null){ th=+t[k]; break; } }
-    if(th!=null && raw[th]!==undefined && (+t.reward)>0) raw[th]=Math.max(raw[th],+t.reward);
-  });
-  let carry=0; const bands={};
-  for(const b of BAND_KEYS){ if(raw[b]>0) carry=raw[b]; bands[b]=carry; }
-  return bands;
-}
-function bandsFromConsecutive(arr){
-  const bands={100000:0,200000:0,300000:0,500000:0};
-  BAND_KEYS.forEach(B=>{
-    let best=0;
-    (arr||[]).forEach(t=>{
-      const pv=+(t.prevThreshold??t.threshold??0);
-      const cv=+(t.currThreshold??t.threshold??0);
-      const rw=+(t.reward||0);
-      if(rw>0 && pv<=B && cv<=B) best=Math.max(best,rw);
-    });
-    bands[B]=best;
-  });
-  return bands;
-}
-function bandsAllZero(b){ return BAND_KEYS.every(k=>!b[k]); }
-function bandSub(b){
-  const out=[]; let last=null;
-  for(const k of BAND_KEYS){ if(b[k]>0 && b[k]!==last){ out.push(`${man(k)}만→${man(b[k])}만`); last=b[k]; } }
-  return out.join(' · ');
-}
-function itemsFromDoc(d){
-  const out=[];
-  (d.tiers||[]).forEach((t,i)=>{
-    // 익월/13회차/미표기(tbd) 3분류 — 지급시기 미표기를 익월로 단정하지 않음
-    const timing=(t.payTiming==='13th_payment'||t.retention===13)?'13th':(t.payTiming==null?'tbd':'next_month');
-    const ag = t.audienceGroup || null; // ⭐ 그룹 한정 시상: 그룹 멤버에게만 보임
-    const el = t.eligibility || null;   // 🎯 자격 조건: 본인 계약 데이터로 자동 판정
-    if(t.type==='basic'){
-      const p=(t.periods&&t.periods[0])||{}; const rate=(p.totalRate??p.ownRate??0);
-      out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true, audienceGroup:ag, eligibility:el});
-    } else if(t.type==='special'){
-      // 특별시상: 보험료 대비 % (보통 그룹 한정)
-      const rate=+(t.rate||0); if(!rate) return;
-      out.push({id:t.id||('s'+i), label:t.label||'특별시상', sub:rate+'%', mode:'rate', rate, timing, on:true, audienceGroup:ag, eligibility:el, special:true});
-    } else if(t.type==='consecutive'){
-      const bands=bandsFromConsecutive(t.tiers);
-      if(bandsAllZero(bands)) return;
-      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true, audienceGroup:ag, eligibility:el});
-    } else if(['weekly','weekly_extra','flagship','club','membership'].includes(t.type)){
-      const bands=bandsFromTiers(t.tiers,['threshold']);
-      if(bandsAllZero(bands)) return;
-      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true, audienceGroup:ag, eligibility:el});
-    }
-    // gift(물품)·travel(여행) 등 현금 아님 → 시상 합계엔 제외, extras로 따로 표시
-  });
-  return out;
-}
-// 물품·여행 시상(현금 아님)은 따로 모아 카드에 "+ 항목" 표시
-function extrasFromDoc(d){
-  const ex=[];
-  (d.tiers||[]).forEach(t=>{
-    if(t.type==='gift' && t.gift) ex.push('🎁 '+t.gift);
-    else if(t.type==='travel' && (t.travel||t.gift)) ex.push('✈️ '+(t.travel||t.gift));
-  });
-  return ex;
-}
+// ── 시상 해석: 공통 모듈(awards-core.js) 사용 ──
+const itemsFromDoc  = window.AwardsCore.itemsFromDoc;
+const extrasFromDoc = window.AwardsCore.extrasFromDoc;
+const bandSub       = window.AwardsCore.bandSub;
+const bandPairs     = window.AwardsCore.bandPairs;
 
 // ── 상태 ──
 let POLICIES = []; // [{company, label, items, extras, _id}]
@@ -286,6 +229,14 @@ window.setViewMode = function(m){
   viewMode = m;
   document.getElementById('segTotal').classList.toggle('on', m==='total');
   document.getElementById('segNext').classList.toggle('on', m==='next');
+  render();
+};
+// 상품군: '인보험'(기본) = 인보험 시상만 합산 · '전체' = 펫·재물 등 모든 상품
+let prodMode = '인보험';
+window.setProdMode = function(p){
+  prodMode = p;
+  document.getElementById('segIns').classList.toggle('on', p==='인보험');
+  document.getElementById('segAll').classList.toggle('on', p==='전체');
   render();
 };
 const openSet = new Set();
@@ -355,26 +306,20 @@ function mySpecialItems(){
 // 그룹 특별시상은 모든 회사에 공통으로 더해짐. 수수료율은 손보/생보 자동 구분.
 function calc(items, company){
   const rt = ratesFor(company);
-  const band = matchBand(perf);
-  let next=0, r13=0, tbd=0;
-  const detail=[];
-  [...(items||[]), ...mySpecialItems()].forEach(it=>{
-    if(!inAudience(it.audienceGroup)) return; // 그룹 한정 — 비멤버에겐 숨김
-    if(!meetsEligibility(it.eligibility)) return; // 🎯 자격 미달(실데이터 판정) — 숨김
-    let v=0;
-    if(it.on){
-      v = it.mode==='rate' ? perf*(it.rate||0)/100 : (band?(it.bands[band]||0):0);
-    }
-    if(it.timing==='13th') r13+=v; else if(it.timing==='tbd') tbd+=v; else next+=v;
-    detail.push({label:it.label, sub:it.sub, timing:it.timing, on:it.on, amount:v, special:!!it.special});
+  const all = [...(items||[]), ...mySpecialItems()];
+  const r = window.AwardsCore.aggregate(all, perf, {
+    product: prodMode, commRate: rt.comm, keepRate: rt.keep,
+    keepFrom: KEEP_FROM, keepTo: KEEP_TO,
+    inAudience, meetsEligibility
   });
-  const commission = perf*rt.comm/100;                    // 기본 수수료
-  const keepTotal  = perf*rt.keep/100;                    // 유지 수수료 총액 (7~15회차 분할)
-  const keepN      = KEEP_TO - KEEP_FROM + 1;             // 분할 횟수 (9회)
-  const keepEach   = keepN ? keepTotal/keepN : 0;
-  return { next, r13, tbd, award:next+r13+tbd, commission, keepTotal, keepEach, keepN,
-           total:next+r13+tbd+commission+keepTotal, band, detail,
-           commRate:rt.comm, keepRate:rt.keep, life:isLife(company) };
+  return {
+    수수료:r.수수료, 기본시상:r.기본시상, 익월시상:r.익월시상, 익월합계:r.익월합계,
+    next: r.기본시상 + r.익월시상,                 // (구) 수수료 제외 익월 시상 합
+    r13:r.r13, tbd:r.tbd, award: r.기본시상 + r.익월시상 + r.r13 + r.tbd,
+    commission:r.수수료, keepTotal:r.keepTotal, keepEach:r.keepEach, keepN:r.keepN,
+    total:r.총액, band:r.band, detail:r.detail,
+    commRate:r.commRate, keepRate:r.keepRate, life:isLife(company)
+  };
 }
 
 // ── 렌더 ──
@@ -393,14 +338,14 @@ function render(){
       ? `<span class="comm-type life" style="font-size:10px;padding:2px 7px;">💙 생보</span>`
       : `<span class="comm-type nl" style="font-size:10px;padding:2px 7px;">🛡 손보</span>`;
 
-    const nextRows = r.detail.filter(d=>d.timing!=='13th' && d.timing!=='tbd');
+    const nextRows = r.detail.filter(d=>d.timing==='next' && d.kind!=='수수료');
     const r13Rows  = r.detail.filter(d=>d.timing==='13th');
     const tbdRows  = r.detail.filter(d=>d.timing==='tbd');
-    // ⚡ 익월만 모드: 익월 시상 + 기본 수수료만 (13회차·미정·유지 수수료 제외)
+    // ⚡ 익월만 모드: 익월 합계 = 수수료 + 기본시상 + 익월 시상
     const isNext = viewMode==='next';
-    const bigVal = isNext ? (r.next + r.commission) : r.total;
+    const bigVal = isNext ? r.익월합계 : r.total;
     const subHtml = isNext
-      ? `익월 시상 <b>${man(r.next)}만</b> + 기본 수수료 <b>${man(r.commission)}만</b> · <span class="band-now">${bandLabel}</span>`
+      ? `수수료 <b>${man(r.수수료)}만</b> + 기본시상 <b>${man(r.기본시상)}만</b> + 익월 시상 <b>${man(r.익월시상)}만</b> · <span class="band-now">${bandLabel}</span>`
       : `시상 <b>${man(r.award)}만</b> + 수수료 <b>${man(r.commission+r.keepTotal)}만</b> · <span class="band-now">${bandLabel}</span>`;
     const rowHtml = d => `<div class="dt-row ${d.on?'':'off'}">
         <div class="lab">${d.special?'⭐ ':''}${esc(d.label||'')}${d.sub?`<small>${esc(d.sub)}${d.special?' · 그룹 한정':''}</small>`:''}</div>
@@ -426,13 +371,13 @@ function render(){
         ${nextRows.length?`<div class="dt-sec">익월 지급 시상</div>${nextRows.map(rowHtml).join('')}`:''}
         ${isNext ? `
         <div class="dt-sec">수수료 <small style="font-weight:600;color:var(--ink3);">(${r.life?'생보':'손보'} 율 적용)</small></div>
-        <div class="dt-row"><div class="lab">기본 수수료 (${r.commRate}%)<small>회사 지급 방식에 따라 분할될 수 있어요</small></div><div class="amt">${man(r.commission)}만</div></div>
+        <div class="dt-row"><div class="lab">수수료 (${r.commRate}%)<small>회사 지급 방식에 따라 분할될 수 있어요</small></div><div class="amt">${man(r.commission)}만</div></div>
         <div class="dt-extra">13회차 시상·유지 수수료는 🧮 총액에서 확인</div>
         ` : `
         ${r13Rows.length?`<div class="dt-sec">13회차 지급 시상</div>${r13Rows.map(rowHtml).join('')}`:''}
         ${tbdRows.length?`<div class="dt-sec">지급시기 미정 시상 <small style="font-weight:600;color:var(--ink3);">(시상안에 미표기 — 합계 포함)</small></div>${tbdRows.map(rowHtml).join('')}`:''}
         <div class="dt-sec">수수료 <small style="font-weight:600;color:var(--ink3);">(${r.life?'생보':'손보'} 율 적용)</small></div>
-        <div class="dt-row"><div class="lab">기본 수수료 (${r.commRate}%)</div><div class="amt">${man(r.commission)}만</div></div>
+        <div class="dt-row"><div class="lab">수수료 (${r.commRate}%)</div><div class="amt">${man(r.commission)}만</div></div>
         <div class="dt-row"><div class="lab">유지 수수료 (${r.keepRate}%)<small>${KEEP_FROM}~${KEEP_TO}회차 분할 · 회차당 ${man(r.keepEach)}만 × ${r.keepN}회</small></div><div class="amt">${man(r.keepTotal)}만</div></div>
         `}
         ${extra}

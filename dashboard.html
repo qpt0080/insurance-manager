@@ -363,7 +363,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
         <div class="rs-card" style="--rsc:var(--cyan);">
           <div class="rs-ico">💵</div>
           <div>
-            <div class="rs-label">기본 수수료</div>
+            <div class="rs-label">수수료</div>
             <div class="rs-value"><span id="rs-comm">0</span><span class="u">만</span></div>
             <div class="rs-sub">522% · 익월 25일</div>
           </div>
@@ -399,6 +399,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
   </div>
 </div>
 
+<script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -760,6 +761,12 @@ function renderSim(){
   let nmTotal = 0, thTotal = 0;
   const cards = [];
   (award.tiers||[]).forEach(t => {
+    // 기본시상(인보험 430% 등): 시뮬 보험료 × 요율 (익월). 단일 보험료 시뮬이라 인보험 기본만 적용
+    if (t.type === 'basic' && t.payTiming === 'next_month') {
+      const rate = (t.periods?.[0]?.totalRate ?? t.periods?.[0]?.ownRate ?? 0);
+      if (rate && window.AwardsCore.classifyProduct(t.label) === '인보험') nmTotal += curPrem * rate / 100;
+      return;
+    }
     if(['consecutive','club'].includes(t.type) || !(t.tiers||[]).length) return;
     const steps = [...t.tiers].filter(s => s.threshold != null).sort((a,b) => a.threshold - b.threshold);
     if(!steps.length) return;

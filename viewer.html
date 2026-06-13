@@ -531,6 +531,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   </div>
 </div>
 
+<script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -1233,6 +1234,23 @@ function calcAwardEstimate(cts) {
               gift: tier.gift,
               needPrev: false,
             });
+          }
+          return;
+        }
+
+        // 기본시상(인보험 430% 등): 같은 상품군 계약 보험료 × 요율 (익월)
+        if (tier.type === 'basic' && tier.payTiming === 'next_month') {
+          const rate = (tier.periods?.[0]?.totalRate ?? tier.periods?.[0]?.ownRate ?? 0);
+          const prod = window.AwardsCore.classifyProduct(tier.label);
+          const mp = (companyContracts[co]||[])
+            .filter(ct => window.AwardsCore.classifyProduct(ct.product || ct.rawJson?.상품명 || '') === prod)
+            .reduce((s,ct)=>s+(parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0),0);
+          const amt = mp * rate / 100;
+          if (amt) {
+            awardResults.push({ label: tier.label, type:'basic', payTiming: tier.payTiming,
+              reward: amt, goldReward:null, threshold:0, currPrem:mp,
+              nextThreshold:null, nextReward:null, needPrev:false });
+            totalEstimate += amt;
           }
           return;
         }

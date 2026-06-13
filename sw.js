@@ -46,11 +46,11 @@ self.addEventListener('notificationclick', function(event){
 });
 
 /* ── 앱 셸 캐시 ───────────────────────────────────── */
-const CACHE = 'mujin-shell-v30';
+const CACHE = 'mujin-shell-v31';
 const SHELL = [
   'index.html','admin.html','viewer.html','dashboard.html',
   'income-simulator.html','notice.html','awards-compare.html','awards-manage.html',
-  'search-engine.js','coverage-summary.js',
+  'search-engine.js','coverage-summary.js','awards-core.js',
   'manifest-admin.webmanifest','manifest-viewer.webmanifest',
   'icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','favicon.png',
   'viewer-icon-192.png','viewer-icon-512.png','viewer-icon-maskable-512.png','viewer-apple-touch-icon.png','viewer-favicon.png'

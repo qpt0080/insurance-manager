@@ -6,6 +6,7 @@
 <title>예상수입 시뮬레이터</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="awards-core.js"></script>
 <style>
   :root{
     --ink:#191A1D; --ink2:#5B6068; --ink3:#9AA0AA;
@@ -175,6 +176,10 @@
   <!-- 시상 항목 -->
   <div class="card">
     <div class="card-h">🏆 시상 항목 <span class="right" id="band-tag"></span></div>
+    <div class="kbtns" id="prod-seg" style="margin-bottom:12px;">
+      <button class="kbtn on" data-p="인보험">🛡 인보험만</button>
+      <button class="kbtn" data-p="전체">📦 전체 상품</button>
+    </div>
     <div id="items"></div>
     <button class="add-item" id="add-item">+ 시상 항목 직접 추가</button>
     <div class="note">금액은 <b>선택한 실적 구간</b> 기준이에요. 지급 시점이 <b>익월</b>이면 다음 달에, <b>13회차</b>면 계약 12개월 뒤(13회차 도달)에 돈이 들어와요.</div>
@@ -420,6 +425,7 @@ function simulate(N){
   for(let m=1;m<=N;m++){
     const per={}; let recv=0, recvNext=0, recv13=0;
     items.forEach(it=>{
+      if(prodMode==='인보험' && !window.AwardsCore.isInsurance(it.label)) return; // 인보험만 모드: 펫·재물 제외
       const r=itemReward(it);
       const p = (it.timing==='13th') ? (m-12) : (m-1);
       const active = (p>=1 && p<=K);
@@ -449,9 +455,18 @@ function renderBands(){
 }
 
 // ── 시상 항목 UI ──
+let prodMode='인보험'; // 상품군: 인보험(기본) / 전체
+function bindProdSeg(){
+  F('prod-seg').querySelectorAll('.kbtn').forEach(el=>el.addEventListener('click',()=>{
+    prodMode=el.dataset.p;
+    F('prod-seg').querySelectorAll('.kbtn').forEach(b=>b.classList.toggle('on', b.dataset.p===prodMode));
+    renderItems(); renderAll();
+  }));
+}
 function renderItems(){
   const curBand = matchBand(perf);
   F('items').innerHTML = items.map((it,idx)=>{
+    if(prodMode==='인보험' && !window.AwardsCore.isInsurance(it.label)) return ''; // 인보험만 모드: 펫·재물 행 숨김
     const c=itemColor(idx);
     const isBand = it.mode==='band';
     const curAmt = isBand ? (curBand?(it.bands?.[curBand]||0):0) : 0;
@@ -607,6 +622,7 @@ F('i-k').addEventListener('input',()=>{ K=+F('i-k').value; renderK(); renderAll(
 
 // 초기화 — 먼저 예시 프리셋으로 즉시 렌더, Firebase 로드되면 자동 갱신
 rebuildCompanySelect(); renderBands(); renderK(); renderItems(); renderAll();
+bindProdSeg();
 </script>
 <script>
 /* ── 화면 폭에 맞춰 UI 비례 확대 (모바일·데스크탑·대형 4K 한 코드 대응) ──

@@ -1087,6 +1087,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 <div id="toast"></div>
 
+<script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -1452,6 +1453,17 @@ function calcAgentNextMonthAward(agentId, year, month) {
     const prem = coCts.reduce((s, ct) => s + (parseFloat(String(ct.premium || '').replace(/[^0-9.]/g, '')) || 0), 0);
     if (!prem) return;
     (award.tiers || []).forEach(tier => {
+      // 기본시상(인보험 430% 등): 같은 상품군 계약의 보험료 × 요율 (익월)
+      if (tier.type === 'basic' && tier.payTiming === 'next_month') {
+        const rate = (tier.periods?.[0]?.totalRate ?? tier.periods?.[0]?.ownRate ?? 0);
+        if (rate) {
+          const prod = window.AwardsCore.classifyProduct(tier.label);
+          const mp = coCts.filter(ct => window.AwardsCore.classifyProduct(ct.product || ct.rawJson?.상품명 || ct.rawJson?.상품 || '') === prod)
+            .reduce((s, ct) => s + (parseFloat(String(ct.premium || '').replace(/[^0-9.]/g, '')) || 0), 0);
+          nextTotal += mp * rate / 100;
+        }
+        return;
+      }
       if (['consecutive', 'club'].includes(tier.type) || !tier.tiers?.length) return;
       let usePrem = prem;
       if (tier.period && (tier.type === 'weekly' || tier.type === 'weekly_extra' || /주차/.test(tier.label || ''))) {
@@ -2885,7 +2897,7 @@ function renderCommCalc(agentId,year,month,cts) {
   const th13Str  =`${th13Date.getFullYear()}년 ${th13Date.getMonth()+1}월`;
 
   window._pendingCommData={agentId,year,month,totalPrem,basicComm,items:[
-    {id:`${year}_${month}_basic`,type:'basic_comm',label:'기본 수수료 (522%)',
+    {id:`${year}_${month}_basic`,type:'basic_comm',label:'수수료 (522%)',
      amount:basicComm,payType:'next_month_25',expectedPayDate:pay25Str,status:'pending',createdAt:new Date().toISOString()},
     ...nextMonthAwards.map((a,i)=>({
       id:`${year}_${month}_nm_${i}`,type:'award_next_month',label:`[${a.company}] ${a.label}`,
@@ -2904,7 +2916,7 @@ function renderCommCalc(agentId,year,month,cts) {
       <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">${year}년 ${month}월 실적 · ${cts.length}건 · ${Math.round(totalPrem/10000)}만원</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:${thTotal>0?'8px':'0'};">
         <div style="background:var(--surface);border-radius:var(--radius-sm);padding:12px;">
-          <div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:4px;">💵 기본 수수료</div>
+          <div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:4px;">💵 수수료</div>
           <div style="font-size:18px;font-weight:900;color:var(--accent);">${Math.round(basicComm/10000)}만원</div>
           <div style="font-size:10px;color:var(--text3);margin-top:3px;">${pay25Str}</div>
         </div>
