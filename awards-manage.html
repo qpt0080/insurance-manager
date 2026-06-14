@@ -165,7 +165,7 @@ h1{font-size:19px;font-weight:800;letter-spacing:-.3px;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -187,7 +187,7 @@ let CUR = null;          // 편집 중 문서 (깊은 복사본)
 let CUR_DOCID = null;
 let _slKeyword = '';     // 전체 저장 목록 검색어
 let _slOpen = false;     // 전체 저장 목록 펼침 여부 (기본 접힘)
-const ADMIN_UID = '63RduUYQTCWN9rooHqnXO7xPjYh1';
+// 관리자 판정은 하드코딩 UID가 아니라 agents/{uid}.role==='admin' 기준 (admin.html과 동일)
 
 const $ = id => document.getElementById(id);
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2400); }
@@ -545,7 +545,11 @@ onAuthStateChanged(auth, async(user)=>{
   const gate=$('gate-msg'), browse=$('browse');
   function showGate(msg){ if(gate){ gate.style.display='block'; gate.textContent=msg; } if(browse) browse.style.display='none'; }
   if(!user){ showGate('로그인이 필요해요 — 관리자 화면에서 로그인 후 다시 열어주세요.'); return; }
-  if(user.uid !== ADMIN_UID){ showGate('관리자 전용 페이지예요. 이 계정에는 권한이 없습니다.'); return; }
+  // admin.html과 동일 기준: agents/{uid}.role === 'admin' 인 계정만 허용
+  let isAdmin=false;
+  try{ const me=await getDoc(doc(db,'agents',user.uid)); isAdmin = me.exists() && me.data().role==='admin'; }
+  catch(e){ showGate('권한 확인 실패 ('+esc(e.code||e.message)+')'); return; }
+  if(!isAdmin){ showGate('관리자 전용 페이지예요. 이 계정에는 권한이 없습니다.'); return; }
   if(gate) gate.style.display='none'; if(browse) browse.style.display='block';
   try{ await loadAll(); }
   catch(e){ showGate('불러오기 실패 ('+esc(e.code||e.message)+')'); }
