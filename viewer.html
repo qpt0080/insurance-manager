@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>내 고객 계약 조회</title>
+<title>무진 보험</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
@@ -34,7 +34,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .header{background:var(--surface);border-bottom:1.5px solid var(--border);padding:calc(14px + env(safe-area-inset-top)) 16px 0;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border),0 2px 12px rgba(59,91,219,.08);}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .logo{font-size:17px;font-weight:800;letter-spacing:-.3px;}.logo span{color:var(--accent);}
-.agent-badge{font-size:11px;background:var(--accent-light);color:var(--accent);padding:4px 11px;border-radius:20px;font-weight:700;border:1.5px solid rgba(59,91,219,.2);}
+.agent-badge{font-size:11px;background:var(--accent-light);color:var(--accent);padding:4px 11px;border-radius:20px;font-weight:700;border:1.5px solid rgba(59,91,219,.2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.header-dday{flex:1;min-width:0;text-align:center;font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;letter-spacing:-.2px;}
+.header-dday b{color:var(--accent);font-weight:800;}
 
 /* ── 헤더 고정 기간 필터 ── */
 .header-period{padding:10px 0 8px;border-top:1px solid var(--border);}
@@ -294,6 +296,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   .content{padding:10px;}
   .stat-val{font-size:18px;}
   .tabs .tab{font-size:11px;padding:8px 2px 9px;}
+  .header-dday{font-size:11px;}
+  .agent-badge{padding:4px 8px;}
   .stats{gap:6px;}
   .stat-card{padding:10px 6px;}
   .cust-name{font-size:14px;}
@@ -415,8 +419,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <div class="app" id="app" style="display:none;">
   <header class="header">
     <div class="header-top">
-      <div class="logo">보험<span>Manager</span></div>
-      <div style="display:flex;align-items:center;gap:7px;">
+      <div class="logo">무진<span> 보험</span></div>
+      <div class="header-dday" id="hdr-dday" title="이번 달 마감까지 남은 일수"></div>
+      <div style="display:flex;align-items:center;gap:7px;flex-shrink:0;">
         <span class="agent-badge" id="agent-badge">로딩중</span>
         <button class="refresh-btn" onclick="refreshData()" title="새로고침">↻</button>
       </div>
@@ -441,6 +446,23 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
       <div class="tab" onclick="showTab('notice')" id="tab-notice">🔔 공지</div>
     </div>
   </header>
+  <script>
+    // 헤더 중앙: 이번 달 마감 D-day (말일까지 남은 일수)
+    (function(){
+      function updMonthDday(){
+        var el = document.getElementById('hdr-dday');
+        if (!el) return;
+        var d = new Date();
+        var last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+        var left = last - d.getDate();
+        el.innerHTML = left > 0
+          ? '📅 마감 <b>D-' + left + '</b>'
+          : '📅 <b>오늘 마감</b>';
+      }
+      updMonthDday();
+      setInterval(updMonthDday, 60*60*1000);
+    })();
+  </script>
 
   <div class="content pb">
     <!-- 홈 (요약 히어로) -->
@@ -3007,6 +3029,6 @@ window.enterWithCode = function() {
 
 init();
 </script>
-<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">보험Manager v2026.06.03-weekly-gift</div>
+<div style="text-align:center;padding:16px 0 calc(16px + env(safe-area-inset-bottom));font-size:10px;color:var(--text3);letter-spacing:.05em;">무진 보험 v2026.06.03-weekly-gift</div>
 </body>
 </html>
