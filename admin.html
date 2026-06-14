@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>보험Manager · 관리자</title>
+<title>무진 보험 · 관리자</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
@@ -34,6 +34,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .logo span{color:var(--accent);}
 .logo-sub{font-size:11px;color:var(--accent);margin-left:8px;font-weight:600;background:var(--accent-light);padding:3px 9px;border-radius:10px;border:1px solid rgba(59,91,219,.2);}
 .header-right{display:flex;align-items:center;gap:10px;}
+.header-left{display:flex;align-items:center;}
+.header-dday{flex:1;text-align:center;font-size:13px;font-weight:700;color:var(--text2);white-space:nowrap;letter-spacing:-.2px;}
+.header-dday b{color:var(--accent);font-weight:800;}
 
 /* ── 탭 네비 ── */
 .tab-nav{background:var(--surface);border-bottom:1.5px solid var(--border);padding:0 24px;display:flex;justify-content:center;gap:0;position:sticky;top:58px;z-index:40;overflow-x:auto;box-shadow:0 2px 8px rgba(59,91,219,.05);}
@@ -42,6 +45,17 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .tab-nav-item{padding:14px 20px;font-size:13px;font-weight:600;color:var(--text3);border-bottom:2.5px solid transparent;cursor:pointer;transition:all .18s;white-space:nowrap;display:flex;align-items:center;gap:6px;letter-spacing:-.1px;}
 .tab-nav-item.active{color:var(--accent);border-bottom-color:var(--accent);background:linear-gradient(to bottom,transparent 60%,rgba(59,91,219,.04));}
 .tab-nav-item:hover:not(.active){color:var(--text2);background:var(--surface2);}
+
+/* ── 2줄 바둑판 탭 그리드 ── */
+.tab-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);width:100%;}
+.tab-grid .tab-nav-item{flex-direction:column;justify-content:center;gap:3px;min-height:56px;padding:8px 4px;
+  border-bottom:none;border-radius:0;background:var(--surface);text-align:center;line-height:1.2;position:relative;}
+.tab-grid .tab-nav-item .ti{font-size:18px;line-height:1;}
+.tab-grid .tab-nav-item .tl{font-size:12px;font-weight:700;letter-spacing:-.2px;}
+.tab-grid .tab-nav-item.active{color:var(--accent);background:var(--accent-light);}
+.tab-grid .tab-nav-item:hover:not(.active):not(.ph){color:var(--text2);background:var(--surface2);}
+.tab-grid .tab-nav-item.ext .ext-mark{position:absolute;top:5px;right:7px;font-size:10px;font-weight:800;color:var(--text3);}
+.tab-grid .tab-nav-item.ph{background:var(--surface);cursor:default;pointer-events:none;}
 .tab-count{font-size:10px;background:var(--surface2);color:var(--text3);padding:2px 7px;border-radius:20px;font-weight:700;}
 .tab-count.blue{background:var(--accent-light);color:var(--accent);}
 
@@ -65,6 +79,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .stat-hero-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:relative;z-index:1;}
 .stat-box{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-sm);padding:12px 10px;text-align:center;backdrop-filter:blur(4px);transition:background .2s;}
 .stat-box:hover{background:rgba(255,255,255,.2);}
+/* 3칸(팀원·전체계약·총보험료) 1:1:2 — 4칸일 때와 가로폭 동일 */
+.stat-hero-grid-3{grid-template-columns:1fr 1fr 2fr;}
+.stat-hero-grid-3 .stat-box-wide{grid-column:span 1;}
 .stat-val{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.15;word-break:break-all;}
 .stat-lbl{font-size:10px;color:rgba(255,255,255,.6);margin-top:4px;font-weight:500;}
 
@@ -217,6 +234,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   .stat-hero-wrap{padding:18px 16px 16px;}
   .stat-hero-month{font-size:17px;}
   .stat-hero-grid{grid-template-columns:repeat(4,1fr);gap:7px;}
+  .stat-hero-grid-3{grid-template-columns:1fr 1fr 2fr;}
   .stat-val{font-size:18px;}
   .card{padding:16px;}
   .tab-nav{padding:0;top:52px;}
@@ -232,6 +250,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   .stats{grid-template-columns:1fr;}
   .stat-hero-wrap{padding:16px 14px 14px;}
   .stat-hero-grid{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .stat-hero-grid-3{grid-template-columns:1fr 1fr;}
+  .stat-hero-grid-3 .stat-box-wide{grid-column:span 2;}
   .stat-box{padding:11px 8px;}
   .stat-val{font-size:18px;}
   .stat-lbl{font-size:10px;}
@@ -244,6 +264,10 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   .logo-sub{white-space:nowrap;}
   .tab-nav{top:52px;padding:0;}
   .tab-nav-item{padding:10px 8px;font-size:12px;gap:4px;}
+  .tab-grid .tab-nav-item{min-height:50px;padding:7px 3px;}
+  .tab-grid .tab-nav-item .ti{font-size:16px;}
+  .tab-grid .tab-nav-item .tl{font-size:11px;}
+  .header-dday{font-size:12px;}
   .container{padding:12px 10px;}
   .card{padding:14px;}
   .card-title{font-size:12px;margin-bottom:14px;padding-bottom:12px;}
@@ -259,12 +283,18 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   .stat-hero-month{font-size:15px;}
   .stat-hero-sub{font-size:10px;margin-bottom:12px;}
   .stat-hero-grid{grid-template-columns:repeat(2,1fr);gap:5px;}
+  .stat-hero-grid-3{grid-template-columns:1fr 1fr;}
+  .stat-hero-grid-3 .stat-box-wide{grid-column:span 2;}
   .stat-box{padding:9px 6px;}
   .stat-val{font-size:16px;}
   .stat-lbl{font-size:9px;}
   .header .logo-sub{display:none;}
   .header-right .btn{padding:6px 9px;font-size:11px;}
   .tab-nav-item{font-size:11px;padding:9px 6px;}
+  .tab-grid .tab-nav-item{min-height:46px;padding:6px 2px;}
+  .tab-grid .tab-nav-item .ti{font-size:15px;}
+  .tab-grid .tab-nav-item .tl{font-size:10px;}
+  .header-dday{font-size:11px;}
   .tab-count{display:none;}
   .container{padding:10px 8px;}
   .card{padding:12px;}
@@ -473,26 +503,47 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <!-- 헤더 -->
 <header class="header">
   <div class="header-inner">
-    <div style="display:flex;align-items:center;">
-      <div class="logo">보험<span>Manager</span> <span class="logo-sub">관리자</span></div>
+    <div class="header-left">
+      <div class="logo">무진<span> 보험</span> <span class="logo-sub">관리자</span></div>
     </div>
+    <div class="header-dday" id="hdr-dday" title="이번 달 마감까지 남은 일수"></div>
     <div class="header-right">
-      <span id="admin-name-badge" style="font-size:12px;font-weight:600;color:var(--text2);"></span>
-      <a href="dashboard.html" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;background:var(--accent-light);color:var(--accent);border-color:rgba(59,91,219,.25);">📊<span class="hdr-label"> 대시보드</span></a>
       <button onclick="doLogout()" class="btn btn-sm">🚪<span class="hdr-label"> 로그아웃</span></button>
     </div>
   </div>
 </header>
+<script>
+  // 헤더 중앙: 이번 달 마감 D-day (말일까지 남은 일수)
+  (function(){
+    function updMonthDday(){
+      var el = document.getElementById('hdr-dday');
+      if (!el) return;
+      var d = new Date();
+      var last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+      var left = last - d.getDate();
+      el.innerHTML = left > 0
+        ? '📅 마감 <b>D-' + left + '</b>'
+        : '📅 <b>오늘 마감</b>';
+    }
+    updMonthDday();
+    // 자정 넘어가도 자동 갱신
+    setInterval(updMonthDday, 60*60*1000);
+  })();
+</script>
 
-<!-- 탭 네비 -->
+<!-- 탭 네비 (2줄 바둑판) -->
 <nav class="tab-nav">
-  <div class="tab-nav-inner">
-    <div class="tab-nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">📊 대시보드</div>
-    <div class="tab-nav-item" onclick="switchTab('upload')" id="nav-upload">📤 업로드</div>
-    <div class="tab-nav-item" onclick="switchTab('contracts')" id="nav-contracts">🗂 계약 관리</div>
-    <div class="tab-nav-item" onclick="switchTab('commission')" id="nav-commission">💰 수수료</div>
-    <div class="tab-nav-item" onclick="switchTab('agents')" id="nav-agents">👥 설계사 관리</div>
-    <div class="tab-nav-item" onclick="location.href='notice.html'" id="nav-notice">🔔 공지</div>
+  <div class="tab-nav-inner tab-grid">
+    <div class="tab-nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard"><span class="ti">🏠</span><span class="tl">홈</span></div>
+    <div class="tab-nav-item" onclick="switchTab('upload')" id="nav-upload"><span class="ti">📤</span><span class="tl">업로드</span></div>
+    <div class="tab-nav-item" onclick="switchTab('contracts')" id="nav-contracts"><span class="ti">🗂</span><span class="tl">계약 관리</span></div>
+    <div class="tab-nav-item" onclick="switchTab('commission')" id="nav-commission"><span class="ti">💰</span><span class="tl">수수료</span></div>
+    <div class="tab-nav-item" onclick="switchTab('agents')" id="nav-agents"><span class="ti">👥</span><span class="tl">설계사 관리</span></div>
+    <div class="tab-nav-item" onclick="location.href='notice.html'" id="nav-notice"><span class="ti">🔔</span><span class="tl">공지</span></div>
+    <div class="tab-nav-item ext" onclick="window.open('dashboard.html','_blank','noopener')"><span class="ti">📊</span><span class="tl">팀 대시보드</span><span class="ext-mark">↗</span></div>
+    <div class="tab-nav-item ext" onclick="window.open('income-simulator.html','_blank','noopener')"><span class="ti">🧮</span><span class="tl">시뮬레이션</span><span class="ext-mark">↗</span></div>
+    <div class="tab-nav-item ext" onclick="window.open('awards-compare.html','_blank','noopener')"><span class="ti">🏆</span><span class="tl">시상 비교</span><span class="ext-mark">↗</span></div>
+    <div class="tab-nav-item ph" aria-hidden="true"></div>
   </div>
 </nav>
 
@@ -509,22 +560,18 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <div class="stats">
       <div class="stat-hero-wrap">
         <div class="stat-hero-label">전체 누적</div>
-        <div class="stat-hero-month" id="stat-hero-month">대시보드</div>
+        <div class="stat-hero-month" id="stat-hero-month">전체 누적 현황</div>
         <div class="stat-hero-sub" id="stat-hero-sub">데이터 불러오는 중…</div>
-        <div class="stat-hero-grid">
+        <div class="stat-hero-grid stat-hero-grid-3">
           <div class="stat-box">
             <div class="stat-val" id="stat-agents">-</div>
             <div class="stat-lbl">팀원</div>
           </div>
           <div class="stat-box">
-            <div class="stat-val" id="stat-customers">-</div>
-            <div class="stat-lbl">전체 고객</div>
-          </div>
-          <div class="stat-box">
             <div class="stat-val" id="stat-contracts">-</div>
             <div class="stat-lbl">전체 계약</div>
           </div>
-          <div class="stat-box">
+          <div class="stat-box stat-box-wide">
             <div class="stat-val" id="stat-premium" style="font-size:17px;">-</div>
             <div class="stat-lbl">총 보험료</div>
           </div>
@@ -533,18 +580,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     </div>
     <!-- 이번달 시상 등록 현황 배너 -->
     <div id="award-status-banner" style="margin-bottom:16px;"></div>
-
-    <!-- 시뮬레이션 / 시상 비교 -->
-    <div style="display:flex;gap:10px;margin-bottom:16px;">
-      <a href="income-simulator.html" target="_blank" rel="noopener" class="card" style="flex:1;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text);margin-bottom:0;padding:16px 18px;">
-        <span style="font-size:15px;font-weight:800;">📊 시뮬레이션</span>
-        <span style="color:var(--text3);font-size:18px;">→</span>
-      </a>
-      <a href="awards-compare.html" target="_blank" rel="noopener" class="card" style="flex:1;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text);margin-bottom:0;padding:16px 18px;">
-        <span style="font-size:15px;font-weight:800;">🏆 시상 비교</span>
-        <span style="color:var(--text3);font-size:18px;">→</span>
-      </a>
-    </div>
 
     <!-- 미배정 고객 알림 -->
     <div class="card" id="orphan-card" style="display:none;border-color:var(--amber);border-left:4px solid var(--amber);background:linear-gradient(135deg,var(--amber-light) 0%,var(--surface) 60%);">
@@ -1156,7 +1191,7 @@ onAuthStateChanged(auth, async (user) => {
     } catch(e) { console.warn('uid 보정 실패:', e); }
     })();
     const badge = document.getElementById('admin-name-badge');
-    badge.textContent = agentData?.name || user.email;
+    if (badge) badge.textContent = agentData?.name || user.email;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-content').style.display = 'block';
     await loadAll();
@@ -1612,7 +1647,6 @@ function renderDashboard() {
     });
   });
   document.getElementById('stat-agents').textContent = agents.length;
-  document.getElementById('stat-customers').textContent = totalCust;
   document.getElementById('stat-contracts').textContent = totalContracts;
   const premEl = document.getElementById('stat-premium');
   premEl.textContent = fmtLargeNum(totalPremium);
