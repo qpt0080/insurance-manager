@@ -33,31 +33,52 @@
   h1{font-weight:600;font-size:clamp(26px,5.2vw,40px);line-height:1.08;letter-spacing:-.01em;}
   h1 em{font-style:italic;color:var(--gold-deep);}
 
-  /* 상단 고정 실적 입력 바 */
-  .perf-bar{position:sticky;top:0;z-index:30;margin-top:18px;
-    background:rgba(244,245,248,.86);backdrop-filter:saturate(160%) blur(10px);
+  /* 상단 고정 실적 입력 바 (슬림·불투명) */
+  .perf-bar{position:sticky;top:0;z-index:30;margin-top:16px;
+    background:var(--paper);
     border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
-    padding:16px;}
+    padding:14px;}
   .perf-bar .cap{font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--ink3);
-    text-transform:uppercase;margin-bottom:12px;}
-  .stepper{display:flex;align-items:center;gap:12px;}
-  .step-btn{flex-shrink:0;width:60px;height:60px;border-radius:16px;border:1.5px solid var(--line2);
-    background:var(--card);color:var(--gold-deep);font-size:30px;font-weight:600;line-height:1;
+    text-transform:uppercase;margin-bottom:10px;}
+  .stepper{display:flex;align-items:center;gap:10px;}
+  .step-btn{flex-shrink:0;width:52px;height:52px;border-radius:14px;border:1.5px solid var(--line2);
+    background:var(--card);color:var(--gold-deep);font-size:26px;font-weight:600;line-height:1;
     cursor:pointer;font-family:inherit;transition:.12s;display:flex;align-items:center;justify-content:center;
     -webkit-tap-highlight-color:transparent;}
   .step-btn:hover{border-color:var(--gold);background:var(--gold-soft);}
   .step-btn:active{transform:scale(.94);}
   .perf-display{flex:1;min-width:0;text-align:center;background:var(--paper);
-    border:1.5px solid var(--line2);border-radius:14px;padding:8px 6px;}
+    border:1.5px solid var(--line2);border-radius:14px;padding:7px 6px;}
   .perf-display input{width:100%;background:none;border:none;outline:none;text-align:center;
-    font-family:inherit;font-variant-numeric:tabular-nums;font-size:30px;font-weight:600;color:var(--ink);}
+    font-family:inherit;font-variant-numeric:tabular-nums;font-size:24px;font-weight:600;color:var(--ink);}
   .perf-display .u{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-top:1px;letter-spacing:.02em;}
   .perf-display:focus-within{border-color:var(--gold);}
   .comm-row{display:flex;align-items:center;gap:10px;margin-top:13px;}
   .seg{display:flex;gap:0;margin-top:12px;border:1.5px solid var(--line2);border-radius:11px;overflow:hidden;background:var(--card);}
-  .seg-btn{flex:1;font-family:inherit;font-size:13px;font-weight:700;padding:9px 8px;border:none;background:transparent;color:var(--ink);cursor:pointer;transition:all .15s;}
+  .seg-btn{flex:1;font-family:inherit;font-size:13px;font-weight:700;padding:9px 8px;border:none;background:transparent;color:var(--ink);cursor:pointer;transition:all .15s;white-space:nowrap;}
   .seg-btn.on{background:var(--ink);color:#fff;font-weight:800;}
   .seg-btn + .seg-btn{border-left:1.5px solid var(--line2);}
+  /* 두 세그먼트를 한 줄로 */
+  .seg-row{display:flex;gap:8px;margin-top:10px;}
+  .seg-row .seg{flex:1;min-width:0;margin-top:0;}
+  .seg-row .seg-btn{font-size:12px;padding:8px 4px;}
+  /* 수수료율 접이식 */
+  .rate-collapse{margin-top:9px;}
+  .rate-summary{display:flex;align-items:center;gap:8px;width:100%;background:var(--card);
+    border:1.5px solid var(--line2);border-radius:10px;padding:8px 11px;font-family:inherit;
+    font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;text-align:left;
+    -webkit-tap-highlight-color:transparent;transition:border-color .15s;}
+  .rate-summary:hover{border-color:var(--gold);}
+  .rs-item{white-space:nowrap;}
+  .rs-item.nl{color:#1A7F4B;}
+  .rs-item.life{color:#3B5BDB;}
+  .rs-item b{font-weight:800;}
+  .rs-arr{margin-left:auto;color:var(--gold-deep);font-weight:800;white-space:nowrap;}
+  .rate-summary .arr{display:inline-block;transition:transform .15s;}
+  .rate-collapse.open .rate-summary .arr{transform:rotate(180deg);}
+  .rate-body{display:none;margin-top:8px;}
+  .rate-collapse.open .rate-body{display:block;}
+  .rate-body .comm-row:first-child{margin-top:2px;}
   .comm-row + .comm-row{margin-top:8px;}
   .comm-type{font-size:12px;font-weight:800;padding:3px 9px;border-radius:8px;white-space:nowrap;flex:0 0 auto;}
   .comm-type.nl{background:rgba(26,127,75,.1);color:#1A7F4B;}
@@ -114,6 +135,11 @@
   .empty b{color:var(--ink2);}
 
   .disclaim{font-size:11px;color:var(--ink3);text-align:center;margin-top:22px;line-height:1.6;}
+  @media(max-width:380px){
+    .seg-row{gap:6px;}
+    .seg-row .seg-btn{font-size:11px;padding:8px 2px;}
+    .rate-summary{font-size:11px;gap:6px;padding:8px 9px;}
+  }
 </style>
   <link rel="manifest" href="manifest-admin.webmanifest">
   <meta name="theme-color" content="#3B5BDB">
@@ -131,7 +157,7 @@
     <h1>같은 실적, <em>회사마다</em> 다른 수익</h1>
   </header>
 
-  <!-- 상단 고정: 실적 입력 -->
+  <!-- 상단 고정: 실적 입력 (슬림) -->
   <div class="perf-bar">
     <div class="cap">💰 이만큼 팔았다면</div>
     <div class="stepper">
@@ -142,29 +168,41 @@
       </div>
       <button class="step-btn" id="plus" aria-label="5만원 올리기">＋</button>
     </div>
-    <div class="seg" role="tablist" aria-label="보기 방식">
-      <button class="seg-btn on" id="segTotal" onclick="setViewMode('total')">🧮 총액</button>
-      <button class="seg-btn" id="segNext" onclick="setViewMode('next')">⚡ 익월만</button>
+    <div class="seg-row">
+      <div class="seg" role="tablist" aria-label="보기 방식">
+        <button class="seg-btn on" id="segTotal" onclick="setViewMode('total')">🧮 총액</button>
+        <button class="seg-btn" id="segNext" onclick="setViewMode('next')">⚡ 익월만</button>
+      </div>
+      <div class="seg" role="tablist" aria-label="상품군">
+        <button class="seg-btn on" id="segIns" onclick="setProdMode('인보험')">🛡 인보험만</button>
+        <button class="seg-btn" id="segAll" onclick="setProdMode('전체')">📦 전체 상품</button>
+      </div>
     </div>
-    <div class="seg" role="tablist" aria-label="상품군" style="margin-top:8px;">
-      <button class="seg-btn on" id="segIns" onclick="setProdMode('인보험')">🛡 인보험만</button>
-      <button class="seg-btn" id="segAll" onclick="setProdMode('전체')">📦 전체 상품</button>
+    <!-- 수수료율: 평소엔 한 줄 요약, 누르면 펼쳐서 편집 -->
+    <div class="rate-collapse" id="rateCollapse">
+      <button class="rate-summary" id="rateToggle" onclick="toggleRates()" aria-expanded="false">
+        <span class="rs-item nl">🛡 손보 <b id="rsNL">522·200</b></span>
+        <span class="rs-item life">💙 생보 <b id="rsL">522·200</b></span>
+        <span class="rs-arr">설정 <span class="arr">▾</span></span>
+      </button>
+      <div class="rate-body" id="rateBody">
+        <div class="comm-row">
+          <label class="comm-type nl">🛡 손보</label>
+          <label>기본</label>
+          <div class="comm-ib"><input id="commNL" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
+          <label>유지</label>
+          <div class="comm-ib"><input id="keepNL" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
+        </div>
+        <div class="comm-row">
+          <label class="comm-type life">💙 생보</label>
+          <label>기본</label>
+          <div class="comm-ib"><input id="commL" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
+          <label>유지</label>
+          <div class="comm-ib"><input id="keepL" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
+        </div>
+        <div class="comm-hint">수수료율은 회사·상품마다 달라요. 회사명으로 손보/생보를 자동 구분해 각각의 율을 적용합니다. 유지 수수료는 <b>7~15회차 분할</b> 지급 기준 — 직접 조정하세요.</div>
+      </div>
     </div>
-    <div class="comm-row">
-      <label class="comm-type nl">🛡 손보</label>
-      <label>기본</label>
-      <div class="comm-ib"><input id="commNL" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
-      <label>유지</label>
-      <div class="comm-ib"><input id="keepNL" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
-    </div>
-    <div class="comm-row">
-      <label class="comm-type life">💙 생보</label>
-      <label>기본</label>
-      <div class="comm-ib"><input id="commL" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
-      <label>유지</label>
-      <div class="comm-ib"><input id="keepL" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
-    </div>
-    <div class="comm-hint">수수료율은 회사·상품마다 달라요. 회사명으로 손보/생보를 자동 구분해 각각의 율을 적용합니다. 유지 수수료는 <b>7~15회차 분할</b> 지급 기준 — 직접 조정하세요.</div>
   </div>
 
   <div class="status" id="status">시상 불러오는 중…</div>
@@ -240,6 +278,19 @@ window.setProdMode = function(p){
   render();
 };
 const openSet = new Set();
+
+// 수수료율 접이식 — 평소엔 한 줄 요약, 누르면 펼침
+window.toggleRates = function(){
+  const c = document.getElementById('rateCollapse');
+  const open = c.classList.toggle('open');
+  document.getElementById('rateToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+};
+// 요약 줄(손보·생보 기본·유지)을 현재 RATES 값으로 갱신
+function syncRateSummary(){
+  const n = document.getElementById('rsNL'), l = document.getElementById('rsL');
+  if (n) n.textContent = (RATES.nl.comm||0) + '·' + (RATES.nl.keep||0);
+  if (l) l.textContent = (RATES.life.comm||0) + '·' + (RATES.life.keep||0);
+}
 
 // ── 자격 조건(eligibility) 자동 판정 — 본인 계약 데이터 기반 ──
 // 시상 tier에 eligibility가 있으면, Firestore의 내 계약 월별 실적으로 달성 여부를 판정.
@@ -420,9 +471,11 @@ F('perf').addEventListener('blur',()=>{ F('perf').value = comma(perf); });
   F(id).addEventListener('input',()=>{
     RATES[type][key] = +onlyDigits(F(id).value)||0;
     F(id).value = comma(RATES[type][key]);
+    syncRateSummary();
     render();
   });
 });
+syncRateSummary();
 
 // ── Firestore 로드 (income-simulator와 동일 흐름) ──
 async function loadAwards(){
