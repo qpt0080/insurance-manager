@@ -609,6 +609,64 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   <!-- ───────────── 탭 2: 업로드 ───────────── -->
   <div id="tab-upload" class="tab-panel">
 
+    <!-- ⚙️ 자동추출 설정 (사진/PDF → Gemini) -->
+    <details id="extract-settings" class="card" style="margin-bottom:16px;">
+      <summary style="cursor:pointer;font-size:14px;font-weight:800;color:var(--text);">📸 자동추출 설정 <span style="font-size:11px;font-weight:600;color:var(--text3);">(Worker 주소·시크릿 · 1회 입력)</span></summary>
+      <div style="margin-top:12px;">
+        <div style="background:var(--amber-light);border:1px solid rgba(180,83,9,.25);color:var(--amber);border-radius:10px;padding:10px 12px;font-size:11.5px;font-weight:600;line-height:1.55;margin-bottom:12px;">⚠️ 무료 Gemini 키는 입력이 학습에 사용됩니다. 실제 고객 서류는 유료/Vertex 키로 전환 후 사용하세요.</div>
+        <div class="form-label" style="margin-bottom:6px;">Worker URL</div>
+        <input type="text" id="ext-cfg-url" placeholder="https://이름.계정.workers.dev" autocomplete="off"
+          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;margin-bottom:10px;">
+        <div class="form-label" style="margin-bottom:6px;">APP_SECRET</div>
+        <input type="password" id="ext-cfg-secret" placeholder="워커에 등록한 시크릿" autocomplete="off"
+          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;">
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;">이 브라우저에만 저장됩니다(localStorage).</div>
+      </div>
+    </details>
+
+    <!-- 📸 통합 자동추출 (계약·시상·고지) -->
+    <div class="card" style="margin-bottom:16px;">
+      <style>
+        .extx-seg{display:flex;border:1.5px solid var(--border);border-radius:11px;overflow:hidden;background:var(--surface);margin-bottom:12px;}
+        .extx-seg .extx-btn{flex:1;border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:700;padding:11px 6px;color:var(--text);cursor:pointer;transition:.15s;}
+        .extx-seg .extx-btn.on{background:var(--accent);color:#fff;font-weight:800;}
+        .extx-seg .extx-btn+.extx-btn{border-left:1.5px solid var(--border);}
+        .extx-drop{border:2px dashed var(--border);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:.18s;background:var(--bg);}
+        .extx-files{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+        .extx-chip{position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);}
+        .extx-chip img{width:100%;height:100%;object-fit:cover;}
+        .extx-chip .x{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;}
+      </style>
+      <div class="card-title">📸 사진·PDF로 자동추출</div>
+
+      <!-- 문서 종류 -->
+      <div class="extx-seg" id="extx-seg">
+        <button class="extx-btn on" data-type="insurance" onclick="MujinExtract.setType('insurance',this)">📄 계약/제안서</button>
+        <button class="extx-btn" data-type="award" onclick="MujinExtract.setType('award',this)">🏆 시상</button>
+        <button class="extx-btn" data-type="notice" onclick="MujinExtract.setType('notice',this)">📝 고지의무</button>
+      </div>
+
+      <!-- 드래그 앤 드롭 -->
+      <div class="extx-drop" id="extx-drop"
+        ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
+        ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
+        ondrop="MujinExtract.onDrop(event)"
+        onclick="MujinExtract.pick(false)">
+        <div style="font-size:22px;margin-bottom:4px;">📂</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text2);">사진·PDF를 드래그하거나 탭해서 선택</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;">여러 장·여러 페이지 가능</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button onclick="MujinExtract.pick(true)" class="btn" style="flex:1;font-size:13px;padding:10px;background:var(--accent-light);border-color:rgba(59,91,219,.22);color:var(--accent);font-weight:700;">📷 촬영</button>
+        <button onclick="MujinExtract.pick(false)" class="btn" style="flex:1;font-size:13px;padding:10px;background:var(--accent-light);border-color:rgba(59,91,219,.22);color:var(--accent);font-weight:700;">🖼 사진·PDF</button>
+      </div>
+
+      <div class="extx-files" id="extx-files"></div>
+
+      <button onclick="MujinExtract.run()" class="btn btn-primary btn-full" id="extx-run" style="margin-top:12px;font-size:14px;padding:13px;" disabled>추출하기</button>
+      <div id="extx-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
+    </div>
+
     <!-- ① 계약 업로드 -->
     <div class="upload-layout" style="grid-template-columns:1fr;">
       <div>
@@ -736,7 +794,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
           <!-- 사용법 안내 -->
           <div style="background:var(--accent-light);border:1px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.65;">
-            📸 시상 <b>이미지</b>는 <b>Claude 대화창</b>에 올려 JSON으로 변환한 뒤, 아래에 붙여넣어 저장하세요.<br>
+            📸 위쪽 <b>자동추출</b>에서 사진·PDF로 바로 등록하거나, JSON을 직접 붙여넣어 저장하세요.<br>
             <span style="color:var(--text3);">여러 보험사를 배열 <b>[ {…}, {…} ]</b> 로 한 번에 올릴 수 있어요.</span>
           </div>
 
@@ -836,7 +894,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
           <!-- 사용법 안내 -->
           <div style="background:var(--accent-light);border:1px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.65;">
-            📸 고지의무 <b>이미지</b>는 <b>Claude 대화창</b>에 올려 JSON으로 변환한 뒤, 아래에 붙여넣어 저장하세요.<br>
+            📸 위쪽 <b>자동추출</b>에서 사진·PDF로 바로 등록하거나, JSON을 직접 붙여넣어 저장하세요.<br>
             <span style="color:var(--text3);">여러 개를 배열 <b>[ {…}, {…} ]</b> 로 한 번에 올릴 수 있어요. 같은 키 항목은 자동으로 중복 제거돼요.</span>
           </div>
 
@@ -4483,6 +4541,103 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">보험Manager v2026.06.04-hero</div>
+<script>
+/* ── 자동추출(MujinExtract): 통합 패널 — 타입선택 + 드래그/촬영/파일 → Worker(Gemini) → 해당 저장흐름 ── */
+(function(){
+  'use strict';
+  var LSU='mujinExtractWorkerUrl', LSS='mujinExtractAppSecret';
+  var ROUTE={
+    insurance:{ ta:'upload-json-input',  fn:'applyUploadJson' },
+    award:    { ta:'award-paste-input',  fn:'applyAwardPasteJson' },
+    notice:   { ta:'notice-paste-input', fn:'applyNoticePasteJson' }
+  };
+  var state={ type:'insurance', files:[] }; // files: {mimeType,data,dataUrl,isImg}
+
+  function $(id){ return document.getElementById(id); }
+  function cfg(){ var url='',sec=''; try{ url=localStorage.getItem(LSU)||''; sec=localStorage.getItem(LSS)||''; }catch(e){} return { url:(url||'').trim(), sec:sec||'' }; }
+  function saveCfg(u,s){ try{ localStorage.setItem(LSU,(u||'').trim()); localStorage.setItem(LSS,s||''); }catch(e){} }
+  function status(msg,kind){ var el=$('extx-status'); if(!el)return; el.style.display='block'; el.innerHTML=msg;
+    el.style.color = kind==='err'?'var(--red)':kind==='warn'?'var(--amber)':kind==='ok'?'var(--green)':'var(--text2)'; }
+
+  function toB64(file){ return new Promise(function(res,rej){ var r=new FileReader();
+    r.onload=function(){ res({ mimeType:file.type||'image/jpeg', data:String(r.result).split(',')[1], dataUrl:r.result, isImg:/^image\//.test(file.type||'') }); };
+    r.onerror=function(){ rej(new Error('읽기 실패')); }; r.readAsDataURL(file); }); }
+
+  function addFiles(list){
+    var fs=[].slice.call(list||[]).filter(function(f){ return /^image\//.test(f.type)||f.type==='application/pdf'; });
+    if(!fs.length) return;
+    var remain=10-state.files.length;
+    Promise.all(fs.slice(0,Math.max(0,remain)).map(toB64)).then(function(items){
+      items.forEach(function(it){ state.files.push(it); }); renderFiles();
+    });
+  }
+  function renderFiles(){
+    var box=$('extx-files'); if(!box)return; box.innerHTML='';
+    state.files.forEach(function(f,i){
+      var d=document.createElement('div'); d.className='extx-chip';
+      if(f.isImg){ var im=new Image(); im.src=f.dataUrl; d.appendChild(im); } else { d.textContent='PDF'; }
+      var x=document.createElement('div'); x.className='x'; x.textContent='\u00d7';
+      x.onclick=function(ev){ ev.stopPropagation(); state.files.splice(i,1); renderFiles(); };
+      d.appendChild(x); box.appendChild(d);
+    });
+    var run=$('extx-run'); if(run) run.disabled = state.files.length===0;
+  }
+
+  window.openExtractSettings=function(){ var d=$('extract-settings'); if(d){ d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'}); } };
+
+  window.MujinExtract={
+    cfg:cfg, saveCfg:saveCfg,
+    setType:function(t, btn){ state.type=t; var seg=$('extx-seg');
+      if(seg){ [].forEach.call(seg.querySelectorAll('.extx-btn'), function(b){ b.classList.toggle('on', b===btn); }); } },
+    pick:function(useCamera){
+      var inp=document.createElement('input'); inp.type='file';
+      inp.accept = useCamera?'image/*':'image/*,application/pdf';
+      if(useCamera) inp.capture='environment';
+      inp.multiple=true; inp.style.display='none'; document.body.appendChild(inp);
+      inp.onchange=function(){ var fs=inp.files; try{ document.body.removeChild(inp); }catch(e){} addFiles(fs); };
+      inp.click();
+    },
+    onDrop:function(ev){
+      ev.preventDefault();
+      var dz=$('extx-drop'); if(dz){ dz.style.borderColor='var(--border)'; dz.style.background='var(--bg)'; }
+      if(ev.dataTransfer && ev.dataTransfer.files) addFiles(ev.dataTransfer.files);
+    },
+    run:function(){
+      var c=cfg();
+      if(!c.url){ status('\u26a0\ufe0f \uba3c\uc800 \uc124\uc815\uc5d0\uc11c Worker \uc8fc\uc18c\ub97c \uc785\ub825\ud558\uc138\uc694.','warn'); window.openExtractSettings(); return; }
+      if(!state.files.length) return;
+      var route=ROUTE[state.type], type=state.type;
+      var run=$('extx-run'); if(run) run.disabled=true;
+      status('\u23f3 Gemini \ucd94\ucd9c \uc911\u2026 ('+state.files.length+'\uc7a5)','');
+      fetch(c.url,{ method:'POST', headers:{ 'Content-Type':'application/json','x-app-secret':c.sec },
+        body:JSON.stringify({ type:type, files:state.files.map(function(f){ return {mimeType:f.mimeType, data:f.data}; }) })
+      }).then(function(res){ return res.json().catch(function(){ return {ok:false,error:'\uc751\ub2f5 \ud30c\uc2f1 \uc2e4\ud328('+res.status+')'}; }); })
+      .then(function(j){
+        if(run) run.disabled=false;
+        var ta=$(route.ta);
+        if(j && j.ok){
+          if(ta) ta.value=JSON.stringify(j.data,null,2);
+          status('\u2705 \ucd94\ucd9c \uc644\ub8cc \u2014 \uc544\ub798\uc5d0\uc11c \uac80\ud1a0 \ud6c4 \uc801\uc6a9/\uc800\uc7a5\ud558\uc138\uc694.','ok');
+          if(typeof window[route.fn]==='function'){ try{ window[route.fn](); }catch(e){} }
+          if(ta) ta.scrollIntoView({behavior:'smooth',block:'center'});
+          state.files=[]; renderFiles();
+        } else if(j && j.raw){
+          if(ta){ ta.value=j.raw; ta.scrollIntoView({behavior:'smooth',block:'center'}); }
+          status('\u26a0\ufe0f JSON \ud30c\uc2f1 \uc2e4\ud328 \u2014 \uc544\ub798 \uce78\uc5d0\uc11c \uc6d0\ubb38\uc744 \ub2e4\ub4ec\uc5b4 \uc801\uc6a9\ud558\uc138\uc694.','warn');
+        } else {
+          status('\u274c '+((j&&j.error)||'\ucd94\ucd9c \uc2e4\ud328'),'err');
+        }
+      }).catch(function(e){ if(run) run.disabled=false; status('\u274c \ub124\ud2b8\uc6cc\ud06c \uc624\ub958: '+e.message,'err'); });
+    }
+  };
+
+  function initCfg(){ var u=$('ext-cfg-url'), s=$('ext-cfg-secret'); if(!u||!s)return;
+    var c=cfg(); u.value=c.url; s.value=c.sec;
+    u.addEventListener('input',function(){ saveCfg(u.value,s.value); });
+    s.addEventListener('input',function(){ saveCfg(u.value,s.value); }); }
+  if(document.readyState!=='loading') initCfg(); else document.addEventListener('DOMContentLoaded', initCfg);
+})();
+</script>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">무진 보험 v2026.06.14-extract</div>
 </body>
 </html>
