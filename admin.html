@@ -617,7 +617,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
         <div class="form-label" style="margin-bottom:6px;">내 관리자 UID <span style="font-weight:600;color:var(--text3);">(워커 ADMIN_UID에 넣을 값 · 1회)</span></div>
         <div style="display:flex;gap:8px;align-items:center;">
           <code id="ext-admin-uid" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text2);">로그인 후 표시됩니다</code>
-          <button onclick="MujinExtract.copyUid()" class="btn btn-sm" style="white-space:nowrap;">📋 복사</button>
+          <button onclick="MujinExtract.copyUid(event)" class="btn btn-sm" style="white-space:nowrap;">📋 복사</button>
         </div>
         <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;">워커 주소는 코드에 내장되어 있고, 호출 시 로그인 토큰으로 본인만 인증됩니다. <b>기기마다 설정할 필요 없어요.</b></div>
       </div>
@@ -3234,9 +3234,9 @@ function showNoticeStatus(elId, html, color){
 window.applyNoticePasteJson = function(){
   const raw=(document.getElementById('notice-paste-input').value||'').trim();
   if(!raw){ showNoticeStatus('notice-paste-status','⚠️ JSON을 먼저 붙여넣어 주세요.','var(--amber)'); return; }
-  let parsed;
-  try{ parsed=JSON.parse(raw); }
-  catch(e){ showNoticeStatus('notice-paste-status','❌ JSON 형식 오류: '+escHtml(e.message),'var(--red)'); return; }
+  const r = window.safeParseJson(raw);
+  if(!r.ok){ showNoticeStatus('notice-paste-status','❌ JSON 형식 오류 — 끝부분이 잘렸는지 확인 후 다시 붙여넣어 주세요.','var(--red)'); return; }
+  const parsed = r.data;
   const merged=normalizeNoticeJson(parsed);
   if(!merged){ showNoticeStatus('notice-paste-status','❌ 항목(items)이 없어요. label이 있는 항목이 필요합니다.','var(--red)'); return; }
   noticeExtracted=merged;
@@ -3488,7 +3488,9 @@ window.applyAwardPasteJson = async function() {
   if (!raw) { status.textContent = '❌ JSON을 붙여넣어 주세요.'; status.style.color = 'var(--red)'; return; }
 
   try {
-    const parsed = JSON.parse(raw);
+    const pr = window.safeParseJson(raw);
+    if (!pr.ok) { status.textContent = '❌ JSON 형식 오류 — 끝부분이 잘렸는지 확인하세요.'; status.style.color = 'var(--red)'; return; }
+    const parsed = pr.data;
 
     // 배열이면 순서대로 저장
     if (Array.isArray(parsed)) {
@@ -4559,19 +4561,51 @@ function escHtml(str) {
   var state={ type:'insurance', files:[] };
 
   function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function status(msg,kind){ var el=$('extx-status'); if(!el)return; el.style.display='block'; el.innerHTML=msg;
     el.style.color = kind==='err'?'var(--red)':kind==='warn'?'var(--amber)':kind==='ok'?'var(--green)':'var(--text2)'; }
 
-  function toB64(file){ return new Promise(function(res,rej){ var r=new FileReader();
-    r.onload=function(){ res({ mimeType:file.type||'image/jpeg', data:String(r.result).split(',')[1], dataUrl:r.result, isImg:/^image\//.test(file.type||'') }); };
-    r.onerror=function(){ rej(new Error('읽기 실패')); }; r.readAsDataURL(file); }); }
+  // 이미지 다운스케일: Gemini inline 요청 한도(약 20MB) 회피 + 속도/정확도 향상.
+  // 긴 변 1600px로 줄이고 JPEG로 재인코딩. PDF는 원본 그대로 통과.
+  var MAX_DIM=1600, JPEG_Q=0.82;
+  function readDataUrl(file){ return new Promise(function(res,rej){ var r=new FileReader();
+    r.onload=function(){ res(String(r.result)); }; r.onerror=function(){ rej(new Error('읽기 실패')); }; r.readAsDataURL(file); }); }
+  function resizeImage(dataUrl){ return new Promise(function(res){
+    var im=new Image();
+    im.onload=function(){
+      var w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
+      var scale=Math.min(1, MAX_DIM/Math.max(w||1,h||1));
+      if(scale>=1){ res({ dataUrl:dataUrl, mimeType:(dataUrl.match(/^data:([^;]+)/)||[])[1]||'image/jpeg' }); return; }
+      try{
+        var cw=Math.round(w*scale), ch=Math.round(h*scale);
+        var c=document.createElement('canvas'); c.width=cw; c.height=ch;
+        c.getContext('2d').drawImage(im,0,0,cw,ch);
+        res({ dataUrl:c.toDataURL('image/jpeg', JPEG_Q), mimeType:'image/jpeg' });
+      }catch(e){ res({ dataUrl:dataUrl, mimeType:'image/jpeg' }); }
+    };
+    im.onerror=function(){ res({ dataUrl:dataUrl, mimeType:'image/jpeg' }); }; // 실패 시 원본 사용
+    im.src=dataUrl;
+  }); }
+  function toB64(file){
+    var isImg=/^image\//.test(file.type||'');
+    return readDataUrl(file).then(function(durl){
+      if(!isImg) return { mimeType:file.type||'application/pdf', data:durl.split(',')[1], dataUrl:durl, isImg:false };
+      return resizeImage(durl).then(function(r){
+        return { mimeType:r.mimeType, data:(r.dataUrl.split(',')[1]||''), dataUrl:r.dataUrl, isImg:true };
+      });
+    });
+  }
+  function approxBytes(){ var n=0; state.files.forEach(function(f){ n += (f.data?f.data.length:0)*0.75; }); return n; }
 
   function addFiles(list){
     var fs=[].slice.call(list||[]).filter(function(f){ return /^image\//.test(f.type)||f.type==='application/pdf'; });
     if(!fs.length) return;
     var remain=10-state.files.length;
+    if(remain<=0){ status('\u26a0\ufe0f \ucd5c\ub300 10\uc7a5\uae4c\uc9c0\uc608\uc694. \uc77c\ubd80\ub97c \uc9c0\uc6b0\uace0 \ucd94\uac00\ud558\uc138\uc694.','warn'); return; }
     Promise.all(fs.slice(0,Math.max(0,remain)).map(toB64)).then(function(items){
       items.forEach(function(it){ state.files.push(it); }); renderFiles();
+      var mb=approxBytes()/1048576;
+      if(mb>18){ status('\u26a0\ufe0f \ucca8\ubd80 \uc6a9\ub7c9\uc774 \ucee4\uc694('+mb.toFixed(1)+'MB). \uc7a5\uc218\ub97c \uc904\uc774\uba74 \ucd94\ucd9c \uc131\uacf5\ub960\uc774 \uc62c\ub77c\uac00\uc694.','warn'); }
     });
   }
   function renderFiles(){
@@ -4594,10 +4628,10 @@ function escHtml(str) {
     fillUid:function(){ var el=$('ext-admin-uid'); if(!el)return;
       var uid = (window.__getAdminUid && window.__getAdminUid()) || null;
       el.textContent = uid || '로그인 후 표시됩니다'; },
-    copyUid:function(){ var uid=(window.__getAdminUid && window.__getAdminUid())||'';
+    copyUid:function(ev){ var uid=(window.__getAdminUid && window.__getAdminUid())||'';
       if(!uid){ alert('로그인 후 다시 시도하세요.'); return; }
       if(navigator.clipboard){ navigator.clipboard.writeText(uid); } else { var t=document.createElement('textarea'); t.value=uid; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); }
-      var b=event&&event.target; if(b){ var o=b.textContent; b.textContent='✓ 복사됨'; setTimeout(function(){ b.textContent=o; },1200); } },
+      var b=ev&&ev.target; if(b){ var o=b.textContent; b.textContent='✓ 복사됨'; setTimeout(function(){ b.textContent=o; },1200); } },
     pick:function(useCamera){
       var inp=document.createElement('input'); inp.type='file';
       inp.accept = useCamera?'image/*':'image/*,application/pdf';
@@ -4620,10 +4654,12 @@ function escHtml(str) {
       Promise.resolve(getTok).then(function(token){
         if(!token){ status('\u26a0\ufe0f \ub85c\uadf8\uc778 \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uc138\uc694.','warn'); if(run) run.disabled=false; throw new Error('no-token'); }
         status('\u23f3 Gemini \ucd94\ucd9c \uc911\u2026 ('+state.files.length+'\uc7a5)','');
-        return fetch(WORKER_URL,{ method:'POST',
+        var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+        var timer=ctrl?setTimeout(function(){ ctrl.abort(); },90000):null;
+        return fetch(WORKER_URL,{ method:'POST', signal:ctrl?ctrl.signal:undefined,
           headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
           body:JSON.stringify({ type:type, files:state.files.map(function(f){ return {mimeType:f.mimeType, data:f.data}; }) })
-        });
+        }).then(function(r){ if(timer) clearTimeout(timer); return r; }, function(err){ if(timer) clearTimeout(timer); throw err; });
       }).then(function(res){ return res.json().catch(function(){ return {ok:false,error:'\uc751\ub2f5 \ud30c\uc2f1 \uc2e4\ud328('+res.status+')'}; }); })
       .then(function(j){
         if(run) run.disabled=false;
@@ -4638,11 +4674,13 @@ function escHtml(str) {
           if(ta){ ta.value=j.raw; ta.scrollIntoView({behavior:'smooth',block:'center'}); }
           status('\u26a0\ufe0f JSON \ud30c\uc2f1 \uc2e4\ud328 \u2014 \uc544\ub798 \uce78\uc5d0\uc11c \uc6d0\ubb38\uc744 \ub2e4\ub4ec\uc5b4 \uc801\uc6a9\ud558\uc138\uc694.','warn');
         } else if(j && j.yourUid){
-          status('\u26a0\ufe0f \uc6cc\ucee4\uc5d0 ADMIN_UID \ubbf8\uc124\uc815. \uc544\ub798 UID\ub97c \ub123\uc73c\uc138\uc694: '+j.yourUid,'warn');
+          status('\u26a0\ufe0f \uc6cc\ucee4\uc5d0 ADMIN_UID \ubbf8\uc124\uc815. \uc544\ub798 UID\ub97c \ub123\uc73c\uc138\uc694: '+esc(j.yourUid),'warn');
         } else {
-          status('\u274c '+((j&&j.error)||'\ucd94\ucd9c \uc2e4\ud328'),'err');
+          status('\u274c '+esc((j&&j.error)||'\ucd94\ucd9c \uc2e4\ud328'),'err');
         }
-      }).catch(function(e){ if(e&&e.message==='no-token') return; if(run) run.disabled=false; status('\u274c \uc624\ub958: '+e.message,'err'); });
+      }).catch(function(e){ if(e&&e.message==='no-token') return; if(run) run.disabled=false;
+        if(e&&e.name==='AbortError'){ status('\u23f1\ufe0f \uc2dc\uac04 \ucd08\uacfc(90\ucd08) \u2014 \uc7a5\uc218\ub97c \uc904\uc774\uac70\ub098 \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uc138\uc694.','err'); return; }
+        status('\u274c \uc624\ub958: '+esc(e&&e.message),'err'); });
     }
   };
 
@@ -4656,6 +4694,6 @@ function escHtml(str) {
   });
 })();
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">무진 보험 v2026.06.14-extract</div>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">무진 보험 v2026.06.14-extract2</div>
 </body>
 </html>
