@@ -589,6 +589,7 @@ let listView = 'cust'; // 'cust' | 'insured'
 let selYears = new Set();
 let selMonths = new Set();
 let awardsCache = [];
+let myAwardSpecials = []; // ⭐ 내가 멤버인 추가시상 그룹의 특별시상 [{label,rate,timing}]
 let commissionsCache = [];
 let noticesCache = []; // 고지의무 캐시
 
@@ -1147,6 +1148,24 @@ async function loadAwards() {
     awardsCache = [];
     snap.forEach(d => awardsCache.push(d.data()));
   } catch(e) { awardsCache = []; }
+  // ⭐ 내가 멤버인 추가시상 그룹의 특별시상 (모든 회사 공통 적용 · 보안규칙상 내 그룹만 조회)
+  myAwardSpecials = [];
+  try {
+    const uid = auth.currentUser && auth.currentUser.uid;
+    if (uid) {
+      const gs = await getDocs(query(collection(db,'awardGroups'), where('memberUids','array-contains',uid)));
+      gs.forEach(d => {
+        const g = d.data();
+        if (g.special && +g.special.rate > 0) {
+          myAwardSpecials.push({
+            label: g.special.label || '그룹 특별시상',
+            rate: +g.special.rate,
+            timing: g.special.timing === '13th' ? '13th_payment' : 'next_month'
+          });
+        }
+      });
+    }
+  } catch(e) { myAwardSpecials = []; }
 }
 
 // ── 고지의무 로드 ──
@@ -1393,6 +1412,13 @@ function calcAwardEstimate(cts) {
     });
 
     if (awardResults.length) {
+      // ⭐ 그룹 특별시상 — 이 회사 보험료에 rate% 적용 (모든 회사 공통 추가, 시상 비교 화면과 동일)
+      myAwardSpecials.forEach(sp => {
+        const reward = Math.round(prem * sp.rate / 100);
+        if (!reward) return;
+        awardResults.push({ type:'special', label: sp.label, reward, payTiming: sp.timing, special:true });
+        totalEstimate += reward;
+      });
       results.push({ company: co, prem, prevPrem, items: awardResults });
     }
   });
@@ -1605,10 +1631,11 @@ function renderHome() {
       ${topChances.map((ch,i)=>{
         const remainMan = Math.round(ch.remain/10000);
         const gainMan = Math.round(ch.gain/10000);
+        const commMan = Math.round(ch.remain*5.22/10000);
         return `
         <div style="${i>0?'margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.2);':''}">
           <div style="font-size:14px;font-weight:800;color:#fff;line-height:1.5;">
-            ${escHtml(ch.company)} <span style="font-size:16px;">${remainMan}만원</span> 더 하면 <span style="font-size:16px;">+${gainMan}만원</span>
+            ${escHtml(ch.company)} <span style="font-size:16px;">${remainMan}만원</span> 더 하면<br>시상 <span style="font-size:16px;">+${gainMan}만원</span> · 수수료 <span style="font-size:16px;">+${commMan}만원</span>
           </div>
           <div style="font-size:11px;color:#fff;opacity:.85;margin-top:2px;">
             <span style="background:rgba(255,255,255,.22);padding:1px 7px;border-radius:8px;font-weight:700;">${ch.kind}</span>
@@ -1773,6 +1800,14 @@ function renderPerformance() {
     ? Math.min(100, Math.round(totalCount / nextTier.goal * 100))
     : 100;
 
+  // 익월 시상 합계 (next_month 시상만 — 13회차·물품·전월필요 제외)
+  const _awEst = calcAwardEstimate(cts);
+  let awardNextSum = 0;
+  if (_awEst) _awEst.results.forEach(r => r.items.forEach(it => {
+    if (it.needPrev || it.type === 'gift' || !it.reward) return;
+    if (it.payTiming === 'next_month') awardNextSum += it.reward;
+  }));
+
   let html = statsHtml + `
   <div class="perf-kpi-grid">
     <div class="perf-kpi main" style="padding:10px 12px;">
@@ -1808,18 +1843,10 @@ function renderPerformance() {
       <div class="perf-reward-note" style="font-size:11px;margin-top:6px;">익월 25일 지급 예정</div>
     </div>
     <div class="perf-reward-card award">
-      <span class="perf-reward-icon" style="font-size:26px;">${totalCount>=20?'🥇':totalCount>=10?'🥈':totalCount>=5?'🎖':'🎯'}</span>
-      <div class="perf-reward-lbl" style="font-size:11px;margin-bottom:6px;">기본 예상 시상</div>
-      <div class="perf-reward-val" style="font-size:22px;font-weight:900;">${incentiveTier.lv}</div>
-      <div class="perf-award-bar-wrap" style="margin-top:8px;">
-        <div class="perf-award-bar-track">
-          <div class="perf-award-bar-fill" style="width:${awardBarPct}%"></div>
-        </div>
-        <div class="perf-award-bar-label" style="font-size:11px;">
-          <span>${totalCount}건</span>
-          <span>${nextTier ? nextTier.goal+'건 ('+nextTier.lbl+')' : '달성 ✓'}</span>
-        </div>
-      </div>
+      <span class="perf-reward-icon" style="font-size:26px;">${awardNextSum>=2000000?'🥇':awardNextSum>=1000000?'🥈':awardNextSum>0?'🎖':'🎯'}</span>
+      <div class="perf-reward-lbl" style="font-size:11px;margin-bottom:6px;">익월 예상 시상</div>
+      <div class="perf-reward-val" style="font-size:28px;font-weight:900;">${awardNextSum > 0 ? Math.round(awardNextSum/10000)+'만원' : '-'}</div>
+      <div class="perf-reward-note" style="font-size:11px;margin-top:6px;">익월 25일 지급 · 13회차 제외</div>
     </div>
   </div>
 
@@ -1827,8 +1854,8 @@ function renderPerformance() {
   ${(() => {
     const est = calcAwardEstimate(cts);
     if (!est || !est.results.length) return '';
-    const typeLabel = {basic:'기본시상',weekly:'주간가동',weekly_extra:'주간추가',flagship:'주력상품',membership:'멤버십',consecutive:'연속가동',club:'클럽시상',gift:'물품'};
-    const typeColor = {basic:'var(--accent)',weekly:'var(--green)',weekly_extra:'var(--purple)',flagship:'var(--green)',membership:'var(--amber)',consecutive:'var(--amber)',club:'var(--gold)',gift:'var(--purple)'};
+    const typeLabel = {basic:'기본시상',weekly:'주간가동',weekly_extra:'주간추가',flagship:'주력상품',membership:'멤버십',consecutive:'연속가동',club:'클럽시상',gift:'물품',special:'⭐ 그룹 특별'};
+    const typeColor = {basic:'var(--accent)',weekly:'var(--green)',weekly_extra:'var(--purple)',flagship:'var(--green)',membership:'var(--amber)',consecutive:'var(--amber)',club:'var(--gold)',gift:'var(--purple)',special:'var(--purple)'};
     return `
     <div class="perf-section-title" style="margin-top:4px;">🏆 보험사별 예상 시상 <span style="font-size:10px;font-weight:500;color:var(--text3);">(참고용)</span></div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow);">
@@ -1869,7 +1896,7 @@ function renderPerformance() {
                   <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .5s ease;"></div>
                 </div>
                 <div style="font-size:9.5px;color:var(--text3);margin-top:3px;text-align:right;">
-                  ${Math.round(remain/10000)}만원 더 하면 → ${Math.round((item.nextReward||0)/10000)}만원 시상 💪
+                  ${Math.round(remain/10000)}만원 더 하면 → 시상 ${Math.round((item.nextReward||0)/10000)}만원 + 수수료 ${Math.round(remain*5.22/10000)}만원 💪
                 </div>
               </div>`;
             })() : ''}`).join('')}
