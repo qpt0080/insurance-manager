@@ -83,23 +83,54 @@ h1{font-size:19px;font-weight:800;letter-spacing:-.3px;}
     <a class="back" href="admin.html" title="관리자로">‹</a>
     <div>
       <h1>✏️ 시상 관리</h1>
-      <div class="sub">수치·문장을 직접 수정 — 저장하면 같은 회사·연월·주차 문서를 덮어씁니다</div>
+      <div class="sub">등록 현황 · 전체 목록 · 추가시상 그룹 — 항목을 누르면 직접 수정 · <b>관리자 전용</b></div>
     </div>
   </header>
 
   <!-- 목록 화면 -->
+  <div id="gate-msg" class="empty" style="display:none;"></div>
+
   <div id="browse">
+    <!-- ① 시상 등록 현황 -->
     <div class="card">
-      <div class="sec-title">연 · 월</div>
-      <div class="chips" id="ymChips"><span class="empty">불러오는 중…</span></div>
+      <div class="sec-title">📅 시상 등록 현황</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <select id="st-year" style="flex:1;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
+        <select id="st-month" style="width:92px;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:12px;color:var(--ink2);">등록된 보험사</span>
+        <span id="st-count" style="font-size:11px;font-weight:700;color:var(--green);background:rgba(26,127,75,.1);padding:2px 9px;border-radius:999px;">0개사</span>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--ink3);">↔ 좌우로 스크롤</span>
+      </div>
+      <div id="st-strip" style="display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding:2px 0 6px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);scrollbar-width:none;"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+        <button class="btn ghost" onclick="deleteAwardsByMonth()" style="font-size:11px;padding:5px 10px;color:var(--ink3);">🗑 이 달 전체 삭제</button>
+      </div>
     </div>
-    <div class="card" id="weekCard" style="display:none">
-      <div class="sec-title">주차</div>
-      <div class="chips" id="weekChips"></div>
+
+    <!-- ② 전체 저장 목록 (기본 접힘) -->
+    <div class="card">
+      <div onclick="toggleSavedList()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+        <span class="sec-title" style="margin-bottom:0;">📁 전체 저장 목록 <span id="sl-count" style="font-size:11px;font-weight:600;color:var(--ink3);"></span></span>
+        <span id="sl-toggle-top" style="font-size:12px;color:var(--ink3);">펴기 ▾</span>
+      </div>
+      <div id="sl-body" style="display:none;margin-top:12px;">
+        <input id="sl-search" type="text" placeholder="🔍 보험사 검색" oninput="renderSavedList(this.value)" style="width:100%;padding:9px 12px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;margin-bottom:10px;">
+        <div id="sl-list"></div>
+        <div onclick="toggleSavedList()" style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px;text-align:center;cursor:pointer;font-size:12px;color:var(--ink2);">목록 접기 ▴</div>
+      </div>
     </div>
-    <div class="card" id="listCard" style="display:none">
-      <div class="sec-title">회사 (눌러서 수정)</div>
-      <div id="coList"></div>
+
+    <!-- ③ 추가시상 그룹 -->
+    <div class="card">
+      <div class="sec-title">⭐ 추가시상 그룹</div>
+      <div class="hint" style="margin-top:0;margin-bottom:10px;">특정 설계사에게만 주는 특별시상을 설정해요. 그룹 멤버의 모든 회사 시상 비교 화면에 자동 추가됩니다.</div>
+      <div id="award-groups-list"><div class="empty">불러오는 중…</div></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <input id="new-group-name" type="text" placeholder="새 그룹 이름 (예: 추가시상)" style="flex:1;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;">
+        <button class="btn" onclick="createAwardGroup()" style="white-space:nowrap;">+ 만들기</button>
+      </div>
     </div>
   </div>
 
@@ -134,7 +165,7 @@ h1{font-size:19px;font-weight:800;letter-spacing:-.3px;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -150,10 +181,13 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 let ALL = [];            // 전체 awards 문서 [{_docId, ...data}]
-let selYM = null;        // 'YYYY-M'
-let selWeek = null;      // number | 0(전체월) | 'all'
+let agentsCache = [];    // 설계사 (그룹 멤버용)
+let awardGroupsCache = [];// 추가시상 그룹
 let CUR = null;          // 편집 중 문서 (깊은 복사본)
 let CUR_DOCID = null;
+let _slKeyword = '';     // 전체 저장 목록 검색어
+let _slOpen = false;     // 전체 저장 목록 펼침 여부 (기본 접힘)
+const ADMIN_UID = '63RduUYQTCWN9rooHqnXO7xPjYh1';
 
 const $ = id => document.getElementById(id);
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2400); }
@@ -167,50 +201,173 @@ const man = v => { const n=(+v||0)/10000; return Number.isInteger(n)? n : +n.toF
 const won = v => Math.round((parseFloat(String(v).replace(/[^0-9.\-]/g,''))||0)*10000);     // 만→원
 const num = v => { const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; };
 
-/* ── 로드 & 목록 ───────────────────────────── */
+/* ── 로드 ───────────────────────────── */
 async function loadAll(){
-  ALL=[];
-  const snap = await getDocs(collection(db,'awards'));
-  snap.forEach(d=>ALL.push({_docId:d.id, ...d.data()}));
-  renderYM();
+  const [aw] = await Promise.all([ getDocs(collection(db,'awards')), loadAgents(), loadAwardGroups() ]);
+  ALL = []; aw.forEach(d=>ALL.push({_docId:d.id, ...d.data()}));
+  initStatusSelects();
+  renderStatus();
+  renderSavedList(_slKeyword);
+  renderAwardGroups();
 }
-function renderYM(){
-  const yms=[...new Set(ALL.map(a=>a.year+'-'+a.month))].sort((a,b)=>{
-    const [ay,am]=a.split('-').map(Number), [by,bm]=b.split('-').map(Number);
-    return by-ay || bm-am;
-  });
-  $('ymChips').innerHTML = yms.length
-    ? yms.map(ym=>{ const [y,m]=ym.split('-'); return `<button class="chip ${ym===selYM?'on':''}" data-ym="${ym}">${y}년 ${m}월</button>`; }).join('')
-    : '<span class="empty">등록된 시상이 없어요</span>';
-  $('ymChips').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ selYM=b.dataset.ym; selWeek=null; renderYM(); renderWeeks(); });
-  if(selYM) renderWeeks();
+async function loadAgents(){
+  try{
+    const snap = await getDocs(collection(db,'agents'));
+    agentsCache = []; snap.forEach(d=>agentsCache.push({...d.data(), _docId:d.id}));
+    agentsCache.sort((a,b)=>{
+      if(a.role==='admin' && b.role!=='admin') return -1;
+      if(b.role==='admin' && a.role!=='admin') return 1;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+  }catch(e){ agentsCache = []; }
 }
-function renderWeeks(){
-  const [y,m]=selYM.split('-').map(Number);
-  const docs = ALL.filter(a=>a.year===y && a.month===m);
-  const weeks=[...new Set(docs.map(a=>a.week||0))].sort((a,b)=>a-b);
-  $('weekCard').style.display='block';
-  $('weekChips').innerHTML = weeks.map(w=>
-    `<button class="chip ${selWeek===w?'on':''}" data-w="${w}">${w===0?'월 전체':w+'주차'}</button>`
-  ).join('');
-  $('weekChips').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ selWeek=+b.dataset.w; renderWeeks(); renderList(); });
-  if(selWeek!==null && weeks.includes(selWeek)) renderList();
-  else { $('listCard').style.display='none'; }
-}
-function renderList(){
-  const [y,m]=selYM.split('-').map(Number);
-  const docs = ALL.filter(a=>a.year===y && a.month===m && (a.week||0)===selWeek)
-                  .sort((a,b)=>String(a.company).localeCompare(String(b.company),'ko'));
-  $('listCard').style.display='block';
-  $('coList').innerHTML = docs.length ? docs.map(a=>`
-    <div class="co-item" data-id="${esc(a._docId)}">
-      <div><div class="nm">${esc(a.company)}</div>
-      <div class="meta">${(a.tiers||[]).length}개 항목 · ${esc(a._docId)}</div></div>
-      <div class="go">✏️ ›</div>
-    </div>`).join('') : '<div class="empty">해당 주차에 등록된 회사가 없어요</div>';
-  $('coList').querySelectorAll('.co-item').forEach(el=>el.onclick=()=>openEditor(el.dataset.id));
+async function loadAwardGroups(){
+  try{
+    const snap = await getDocs(collection(db,'awardGroups'));
+    awardGroupsCache = []; snap.forEach(d=>awardGroupsCache.push({...d.data(), _docId:d.id}));
+    awardGroupsCache.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  }catch(e){ awardGroupsCache = []; }
 }
 
+/* ── ① 시상 등록 현황 ───────────────────── */
+function initStatusSelects(){
+  const ySel=$('st-year'), mSel=$('st-month'); if(!ySel||!mSel) return;
+  const now=new Date();
+  let years=[...new Set(ALL.map(a=>a.year).filter(Boolean))].sort((a,b)=>b-a);
+  if(!years.includes(now.getFullYear())) years.unshift(now.getFullYear());
+  const curY = +ySel.value || (years[0]||now.getFullYear());
+  ySel.innerHTML = years.map(y=>`<option value="${y}" ${y===curY?'selected':''}>${y}년</option>`).join('');
+  const curM = +mSel.value || (now.getMonth()+1);
+  mSel.innerHTML = [1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<option value="${m}" ${m===curM?'selected':''}>${m}월</option>`).join('');
+  ySel.onchange=renderStatus; mSel.onchange=renderStatus;
+}
+function renderStatus(){
+  if(!$('st-year')||!$('st-month')) return;
+  const y=+$('st-year').value, m=+$('st-month').value;
+  const cos=[...new Set(ALL.filter(a=>a.year===y && a.month===m).map(a=>a.company).filter(Boolean))]
+              .sort((a,b)=>String(a).localeCompare(String(b),'ko'));
+  $('st-count').textContent = cos.length+'개사';
+  $('st-strip').innerHTML = cos.length
+    ? cos.map(co=>`<span style="flex-shrink:0;white-space:nowrap;padding:7px 15px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:1.5px solid var(--line2);background:var(--surface);color:var(--ink);">${esc(co)}</span>`).join('')
+    : '<span class="empty" style="padding:6px 0;">이 달 등록된 시상이 없어요</span>';
+}
+window.deleteAwardsByMonth = async function(){
+  const y=+$('st-year').value, m=+$('st-month').value;
+  const targets=ALL.filter(a=>a.year===y && a.month===m);
+  if(!targets.length){ toast(`${y}년 ${m}월에 삭제할 시상이 없어요.`); return; }
+  if(!confirm(`${y}년 ${m}월 시상 ${targets.length}건을 모두 삭제할까요?\n(주차·회사 구분 없이 그 달 전부. 되돌릴 수 없어요.)`)) return;
+  let ok=0, fail=0;
+  for(const a of targets){ try{ await deleteDoc(doc(db,'awards',a._docId)); ok++; }catch(e){ fail++; } }
+  toast(`✅ ${y}년 ${m}월 ${ok}건 삭제${fail?` (${fail} 실패)`:''}`);
+  await loadAll();
+};
+
+/* ── ② 전체 저장 목록 ───────────────────── */
+window.toggleSavedList = function(){
+  _slOpen = !_slOpen;
+  $('sl-body').style.display = _slOpen?'block':'none';
+  $('sl-toggle-top').textContent = _slOpen?'접기 ▴':'펴기 ▾';
+};
+window.renderSavedList = function(keyword){
+  _slKeyword = keyword==null ? _slKeyword : keyword;
+  const el=$('sl-list'); if(!el) return;
+  $('sl-count').textContent = '· '+ new Set(ALL.map(a=>a.company).filter(Boolean)).size +'개사';
+  const kw=String(_slKeyword||'').toLowerCase().trim();
+  const list = ALL.filter(a=>!kw || String(a.company||'').toLowerCase().includes(kw))
+                  .sort((a,b)=>String(b._docId||'').localeCompare(String(a._docId||'')));
+  el.innerHTML = list.length ? list.map(a=>`
+    <div class="co-item" style="cursor:default;">
+      <div style="cursor:pointer;flex:1;" onclick="openEditorById('${esc(a._docId)}')">
+        <div class="nm">${esc(a.company)} <span style="font-size:11px;font-weight:600;color:var(--ink3);">${(a.tiers||[]).length}개 항목</span></div>
+        <div class="meta">${a.year}년 ${a.month}월 ${a.week?a.week+'주차':'전체'}</div>
+      </div>
+      <button class="btn" onclick="openEditorById('${esc(a._docId)}')" style="padding:7px 9px;" aria-label="편집">✏️</button>
+      <button class="btn danger" onclick="deleteOneAward('${esc(a._docId)}')" style="padding:7px 9px;" aria-label="삭제">🗑</button>
+    </div>`).join('') : '<div class="empty">저장된 시상이 없어요</div>';
+};
+window.openEditorById = function(id){ openEditor(id); };
+window.deleteOneAward = async function(id){
+  const a=ALL.find(x=>x._docId===id); if(!a) return;
+  if(!confirm(`"${a.company}" ${a.year}년 ${a.month}월 ${a.week?a.week+'주차':''} 시상을 삭제할까요?`)) return;
+  try{ await deleteDoc(doc(db,'awards',id)); toast('🗑 삭제됐어요'); await loadAll(); }
+  catch(e){ toast('⚠️ 삭제 실패: '+(e.code||e.message)); }
+};
+
+/* ── ③ 추가시상 그룹 ───────────────────── */
+window.renderAwardGroups = function(){
+  const box = $('award-groups-list'); if(!box) return;
+  if(!awardGroupsCache.length){ box.innerHTML = '<div class="empty" style="padding:14px;">아직 그룹이 없어요. 아래에서 만들어보세요.</div>'; return; }
+  const activeAgents = agentsCache.filter(a=>!a.disabled);
+  box.innerHTML = awardGroupsCache.map(g=>{
+    const members = g.memberUids||[]; const sp = g.special||{};
+    const chips = activeAgents.map(a=>{
+      const uid=a.uid||a._docId; const on=members.includes(uid);
+      return `<label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid ${on?'var(--accent)':'var(--line2)'};border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;background:${on?'var(--accent-light)':'var(--surface)'};color:${on?'var(--accent)':'var(--ink2)'};">
+        <input type="checkbox" ${on?'checked':''} onchange="toggleGroupMember('${g._docId}','${uid}',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;">
+        ${esc(a.name||'(이름없음)')}</label>`;
+    }).join(' ');
+    return `<div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;background:var(--surface);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+        <span style="font-size:13px;font-weight:800;">⭐ ${esc(g.name||'')}</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;font-weight:700;color:var(--ink3);">${members.length}명</span>
+          <button class="btn danger" onclick="deleteAwardGroup('${g._docId}')" style="font-size:11px;padding:4px 8px;">삭제</button>
+        </span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || '<span style="font-size:12px;color:var(--ink3);">활성 설계사가 없어요</span>'}</div>
+      <div style="margin-top:11px;padding-top:11px;border-top:1px dashed var(--line2);">
+        <div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:7px;">특별시상 — 이 그룹 멤버의 모든 회사 시상에 자동 추가</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <input id="sp-label-${g._docId}" type="text" placeholder="시상 이름" value="${esc(sp.label||'')}" style="flex:2;min-width:110px;padding:8px 10px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:12px;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;">
+          <span style="display:inline-flex;align-items:center;border:1.5px solid var(--line2);border-radius:var(--radius-sm);background:var(--paper);padding:0 8px;">
+            <input id="sp-rate-${g._docId}" type="text" inputmode="numeric" placeholder="0" value="${sp.rate||''}" style="width:48px;padding:8px 0;border:none;font-size:12px;font-weight:700;font-family:inherit;background:none;color:var(--ink);outline:none;text-align:right;">
+            <span style="font-size:11px;font-weight:700;color:var(--ink3);margin-left:2px;">%</span>
+          </span>
+          <select id="sp-timing-${g._docId}" style="padding:8px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:12px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;">
+            <option value="next_month" ${sp.timing!=='13th'?'selected':''}>익월</option>
+            <option value="13th" ${sp.timing==='13th'?'selected':''}>13회차</option>
+          </select>
+          <button class="btn" onclick="saveGroupSpecial('${g._docId}')" style="font-size:11px;padding:8px 12px;">저장</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--ink3);margin-top:6px;">${sp.rate?`현재: <b>${esc(sp.label||'특별시상')} ${sp.rate}% · ${sp.timing==='13th'?'13회차':'익월'}</b> 적용 중 — 비율을 0으로 저장하면 꺼져요.`:'비율을 넣고 저장하면 켜져요. (예: 그룹 특별시상 · 100% · 13회차)'}</div>
+      </div>
+    </div>`;
+  }).join('');
+};
+window.createAwardGroup = async function(){
+  const inp = $('new-group-name');
+  const name = (inp.value||'').trim();
+  if(!name){ alert('그룹 이름을 입력하세요'); return; }
+  if(awardGroupsCache.some(g=>g.name===name)){ alert('같은 이름의 그룹이 이미 있어요'); return; }
+  try{
+    await addDoc(collection(db,'awardGroups'), { name, memberUids:[], createdAt:new Date().toISOString() });
+    inp.value='';
+    await loadAwardGroups(); renderAwardGroups();
+  }catch(e){ alert('그룹 생성 실패: '+e.message); }
+};
+window.toggleGroupMember = async function(groupId, uid, on){
+  const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
+  const set = new Set(g.memberUids||[]);
+  if(on) set.add(uid); else set.delete(uid);
+  const memberUids = [...set];
+  try{ await updateDoc(doc(db,'awardGroups',groupId), { memberUids }); g.memberUids=memberUids; renderAwardGroups(); }
+  catch(e){ alert('저장 실패: '+e.message); renderAwardGroups(); }
+};
+window.saveGroupSpecial = async function(groupId){
+  const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
+  const label  = ($('sp-label-'+groupId).value||'').trim() || '그룹 특별시상';
+  const rate   = +String($('sp-rate-'+groupId).value||'').replace(/[^0-9]/g,'') || 0;
+  const timing = $('sp-timing-'+groupId).value==='13th' ? '13th' : 'next_month';
+  const special = rate>0 ? { label, rate, timing } : null;
+  try{ await updateDoc(doc(db,'awardGroups',groupId), { special }); g.special=special; renderAwardGroups(); }
+  catch(e){ alert('저장 실패: '+e.message); }
+};
+window.deleteAwardGroup = async function(groupId){
+  const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
+  if(!confirm(`'${g.name}' 그룹을 삭제할까요?\n이 그룹을 가리키는 특별시상 항목은 아무에게도 보이지 않게 됩니다.`)) return;
+  try{ await deleteDoc(doc(db,'awardGroups',groupId)); await loadAwardGroups(); renderAwardGroups(); }
+  catch(e){ alert('삭제 실패: '+e.message); }
+};
 /* ── 편집 화면 ───────────────────────────── */
 function openEditor(docId){
   const src = ALL.find(a=>a._docId===docId);
@@ -385,9 +542,13 @@ window.deleteCurrent = async function(){
 
 /* ── 인증: 관리자 로그인 세션 재사용 ── */
 onAuthStateChanged(auth, async(user)=>{
-  if(!user){ $('ymChips').innerHTML = '<span class="empty">로그인이 필요해요 — 관리자 화면에서 로그인 후 다시 열어주세요</span>'; return; }
+  const gate=$('gate-msg'), browse=$('browse');
+  function showGate(msg){ if(gate){ gate.style.display='block'; gate.textContent=msg; } if(browse) browse.style.display='none'; }
+  if(!user){ showGate('로그인이 필요해요 — 관리자 화면에서 로그인 후 다시 열어주세요.'); return; }
+  if(user.uid !== ADMIN_UID){ showGate('관리자 전용 페이지예요. 이 계정에는 권한이 없습니다.'); return; }
+  if(gate) gate.style.display='none'; if(browse) browse.style.display='block';
   try{ await loadAll(); }
-  catch(e){ $('ymChips').innerHTML = `<span class="empty">불러오기 실패 (${esc(e.code||e.message)})</span>`; }
+  catch(e){ showGate('불러오기 실패 ('+esc(e.code||e.message)+')'); }
 });
 </script>
 <script>
