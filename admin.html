@@ -609,18 +609,17 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   <!-- ───────────── 탭 2: 업로드 ───────────── -->
   <div id="tab-upload" class="tab-panel">
 
-    <!-- ⚙️ 자동추출 설정 (사진/PDF → Gemini) -->
-    <details id="extract-settings" class="card" style="margin-bottom:16px;">
-      <summary style="cursor:pointer;font-size:14px;font-weight:800;color:var(--text);">📸 자동추출 설정 <span style="font-size:11px;font-weight:600;color:var(--text3);">(Worker 주소·시크릿 · 1회 입력)</span></summary>
+    <!-- 📸 자동추출 정보 (워커 주소는 코드 내장 · 로그인 토큰으로 인증) -->
+    <details id="extract-settings" class="card" style="margin-bottom:16px;" ontoggle="window.MujinExtract&&MujinExtract.fillUid&&MujinExtract.fillUid()">
+      <summary style="cursor:pointer;font-size:14px;font-weight:800;color:var(--text);">📸 자동추출 정보 <span style="font-size:11px;font-weight:600;color:var(--text3);">(워커 설정용)</span></summary>
       <div style="margin-top:12px;">
         <div style="background:var(--amber-light);border:1px solid rgba(180,83,9,.25);color:var(--amber);border-radius:10px;padding:10px 12px;font-size:11.5px;font-weight:600;line-height:1.55;margin-bottom:12px;">⚠️ 무료 Gemini 키는 입력이 학습에 사용됩니다. 실제 고객 서류는 유료/Vertex 키로 전환 후 사용하세요.</div>
-        <div class="form-label" style="margin-bottom:6px;">Worker URL</div>
-        <input type="text" id="ext-cfg-url" placeholder="https://이름.계정.workers.dev" autocomplete="off"
-          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;margin-bottom:10px;">
-        <div class="form-label" style="margin-bottom:6px;">APP_SECRET</div>
-        <input type="password" id="ext-cfg-secret" placeholder="워커에 등록한 시크릿" autocomplete="off"
-          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;">
-        <div style="font-size:11px;color:var(--text3);margin-top:6px;">이 브라우저에만 저장됩니다(localStorage).</div>
+        <div class="form-label" style="margin-bottom:6px;">내 관리자 UID <span style="font-weight:600;color:var(--text3);">(워커 ADMIN_UID에 넣을 값 · 1회)</span></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <code id="ext-admin-uid" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text2);">로그인 후 표시됩니다</code>
+          <button onclick="MujinExtract.copyUid()" class="btn btn-sm" style="white-space:nowrap;">📋 복사</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;">워커 주소는 코드에 내장되어 있고, 호출 시 로그인 토큰으로 본인만 인증됩니다. <b>기기마다 설정할 필요 없어요.</b></div>
       </div>
     </details>
 
@@ -1204,6 +1203,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+// 자동추출 워커 호출용: 현재 로그인 토큰/UID를 외부(plain) 스크립트에 노출
+window.__getAdminIdToken = async function(){ try{ return auth.currentUser ? await auth.currentUser.getIdToken() : null; }catch(e){ return null; } };
+window.__getAdminUid = function(){ return auth.currentUser ? auth.currentUser.uid : null; };
 // 서브앱: 설계사 계정 생성 시 관리자 로그아웃 방지
 const subApp = initializeApp(firebaseConfig, "sub");
 const subAuth = getAuth(subApp);
@@ -4542,20 +4544,21 @@ function escHtml(str) {
 }
 </script>
 <script>
-/* ── 자동추출(MujinExtract): 통합 패널 — 타입선택 + 드래그/촬영/파일 → Worker(Gemini) → 해당 저장흐름 ── */
+/* ── 자동추출(MujinExtract): 통합 패널 — 타입선택 + 드래그/촬영/파일 → Worker(Gemini) → 해당 저장흐름
+      인증: 워커 주소 내장 + 로그인 토큰(본인 UID만 통과). 기기별 설정 불필요. ── */
 (function(){
   'use strict';
-  var LSU='mujinExtractWorkerUrl', LSS='mujinExtractAppSecret';
+  // ▼ 워커 주소(코드 내장). 워커 이름이 바뀌면 이 한 줄만 수정.
+  var WORKER_URL = 'https://mujin-extract.0080qpt-3b9.workers.dev';
+
   var ROUTE={
     insurance:{ ta:'upload-json-input',  fn:'applyUploadJson' },
     award:    { ta:'award-paste-input',  fn:'applyAwardPasteJson' },
     notice:   { ta:'notice-paste-input', fn:'applyNoticePasteJson' }
   };
-  var state={ type:'insurance', files:[] }; // files: {mimeType,data,dataUrl,isImg}
+  var state={ type:'insurance', files:[] };
 
   function $(id){ return document.getElementById(id); }
-  function cfg(){ var url='',sec=''; try{ url=localStorage.getItem(LSU)||''; sec=localStorage.getItem(LSS)||''; }catch(e){} return { url:(url||'').trim(), sec:sec||'' }; }
-  function saveCfg(u,s){ try{ localStorage.setItem(LSU,(u||'').trim()); localStorage.setItem(LSS,s||''); }catch(e){} }
   function status(msg,kind){ var el=$('extx-status'); if(!el)return; el.style.display='block'; el.innerHTML=msg;
     el.style.color = kind==='err'?'var(--red)':kind==='warn'?'var(--amber)':kind==='ok'?'var(--green)':'var(--text2)'; }
 
@@ -4583,12 +4586,18 @@ function escHtml(str) {
     var run=$('extx-run'); if(run) run.disabled = state.files.length===0;
   }
 
-  window.openExtractSettings=function(){ var d=$('extract-settings'); if(d){ d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'}); } };
+  window.openExtractSettings=function(){ var d=$('extract-settings'); if(d){ d.open=true; if(window.MujinExtract.fillUid) window.MujinExtract.fillUid(); d.scrollIntoView({behavior:'smooth',block:'start'}); } };
 
   window.MujinExtract={
-    cfg:cfg, saveCfg:saveCfg,
     setType:function(t, btn){ state.type=t; var seg=$('extx-seg');
       if(seg){ [].forEach.call(seg.querySelectorAll('.extx-btn'), function(b){ b.classList.toggle('on', b===btn); }); } },
+    fillUid:function(){ var el=$('ext-admin-uid'); if(!el)return;
+      var uid = (window.__getAdminUid && window.__getAdminUid()) || null;
+      el.textContent = uid || '로그인 후 표시됩니다'; },
+    copyUid:function(){ var uid=(window.__getAdminUid && window.__getAdminUid())||'';
+      if(!uid){ alert('로그인 후 다시 시도하세요.'); return; }
+      if(navigator.clipboard){ navigator.clipboard.writeText(uid); } else { var t=document.createElement('textarea'); t.value=uid; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); }
+      var b=event&&event.target; if(b){ var o=b.textContent; b.textContent='✓ 복사됨'; setTimeout(function(){ b.textContent=o; },1200); } },
     pick:function(useCamera){
       var inp=document.createElement('input'); inp.type='file';
       inp.accept = useCamera?'image/*':'image/*,application/pdf';
@@ -4603,14 +4612,18 @@ function escHtml(str) {
       if(ev.dataTransfer && ev.dataTransfer.files) addFiles(ev.dataTransfer.files);
     },
     run:function(){
-      var c=cfg();
-      if(!c.url){ status('\u26a0\ufe0f \uba3c\uc800 \uc124\uc815\uc5d0\uc11c Worker \uc8fc\uc18c\ub97c \uc785\ub825\ud558\uc138\uc694.','warn'); window.openExtractSettings(); return; }
       if(!state.files.length) return;
       var route=ROUTE[state.type], type=state.type;
       var run=$('extx-run'); if(run) run.disabled=true;
-      status('\u23f3 Gemini \ucd94\ucd9c \uc911\u2026 ('+state.files.length+'\uc7a5)','');
-      fetch(c.url,{ method:'POST', headers:{ 'Content-Type':'application/json','x-app-secret':c.sec },
-        body:JSON.stringify({ type:type, files:state.files.map(function(f){ return {mimeType:f.mimeType, data:f.data}; }) })
+      status('\u23f3 \uc778\uc99d \ud655\uc778 \uc911\u2026','');
+      var getTok = window.__getAdminIdToken ? window.__getAdminIdToken() : Promise.resolve(null);
+      Promise.resolve(getTok).then(function(token){
+        if(!token){ status('\u26a0\ufe0f \ub85c\uadf8\uc778 \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uc138\uc694.','warn'); if(run) run.disabled=false; throw new Error('no-token'); }
+        status('\u23f3 Gemini \ucd94\ucd9c \uc911\u2026 ('+state.files.length+'\uc7a5)','');
+        return fetch(WORKER_URL,{ method:'POST',
+          headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+          body:JSON.stringify({ type:type, files:state.files.map(function(f){ return {mimeType:f.mimeType, data:f.data}; }) })
+        });
       }).then(function(res){ return res.json().catch(function(){ return {ok:false,error:'\uc751\ub2f5 \ud30c\uc2f1 \uc2e4\ud328('+res.status+')'}; }); })
       .then(function(j){
         if(run) run.disabled=false;
@@ -4624,18 +4637,23 @@ function escHtml(str) {
         } else if(j && j.raw){
           if(ta){ ta.value=j.raw; ta.scrollIntoView({behavior:'smooth',block:'center'}); }
           status('\u26a0\ufe0f JSON \ud30c\uc2f1 \uc2e4\ud328 \u2014 \uc544\ub798 \uce78\uc5d0\uc11c \uc6d0\ubb38\uc744 \ub2e4\ub4ec\uc5b4 \uc801\uc6a9\ud558\uc138\uc694.','warn');
+        } else if(j && j.yourUid){
+          status('\u26a0\ufe0f \uc6cc\ucee4\uc5d0 ADMIN_UID \ubbf8\uc124\uc815. \uc544\ub798 UID\ub97c \ub123\uc73c\uc138\uc694: '+j.yourUid,'warn');
         } else {
           status('\u274c '+((j&&j.error)||'\ucd94\ucd9c \uc2e4\ud328'),'err');
         }
-      }).catch(function(e){ if(run) run.disabled=false; status('\u274c \ub124\ud2b8\uc6cc\ud06c \uc624\ub958: '+e.message,'err'); });
+      }).catch(function(e){ if(e&&e.message==='no-token') return; if(run) run.disabled=false; status('\u274c \uc624\ub958: '+e.message,'err'); });
     }
   };
 
-  function initCfg(){ var u=$('ext-cfg-url'), s=$('ext-cfg-secret'); if(!u||!s)return;
-    var c=cfg(); u.value=c.url; s.value=c.sec;
-    u.addEventListener('input',function(){ saveCfg(u.value,s.value); });
-    s.addEventListener('input',function(){ saveCfg(u.value,s.value); }); }
-  if(document.readyState!=='loading') initCfg(); else document.addEventListener('DOMContentLoaded', initCfg);
+  // 로그인 완료 시점에 UID 표시 갱신(설정 패널 열려 있으면)
+  document.addEventListener('DOMContentLoaded', function(){
+    var tries=0; var iv=setInterval(function(){
+      tries++;
+      if(window.__getAdminUid && window.__getAdminUid()){ window.MujinExtract.fillUid(); clearInterval(iv); }
+      if(tries>40) clearInterval(iv);
+    }, 500);
+  });
 })();
 </script>
 <div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">무진 보험 v2026.06.14-extract</div>
