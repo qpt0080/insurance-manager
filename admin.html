@@ -671,24 +671,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
       <div>
         <div class="card" style="margin-bottom:0;">
           <div class="card-title">📋 계약 업로드</div>
-          <!-- 계약 JSON 드롭존 -->
-          <div id="contract-drop-zone"
-            ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
-            ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
-            ondrop="onContractFileDrop(event)"
-            onclick="document.getElementById('contract-file-input').click()"
-            style="border:2px dashed var(--border);border-radius:var(--radius);padding:22px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);margin-bottom:10px;">
-            <input type="file" id="contract-file-input" accept=".json,application/json"
-              style="display:none;" onchange="onContractFileSelect(event)"/>
-            <div style="font-size:24px;margin-bottom:6px;">📂</div>
-            <div id="contract-drop-label" style="font-size:13px;font-weight:600;color:var(--text2);">JSON 파일을 드래그하거나 탭해서 선택</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px;">.json 파일 지원</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-            <span style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap;">또는 직접 입력</span>
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-          </div>
           <div class="form-row" style="margin-bottom:10px;">
             <textarea class="form-textarea" id="upload-json-input"
               placeholder='여기에 Claude가 추출한 JSON을 붙여넣으세요 (붙여넣으면 자동 적용돼요)'
@@ -791,12 +773,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
             <a href="awards-manage.html" target="_blank" rel="noopener" style="font-size:12px;font-weight:800;color:var(--accent);text-decoration:none;">✏️ 시상 관리 →</a>
           </div>
 
-          <!-- 사용법 안내 -->
-          <div style="background:var(--accent-light);border:1px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.65;">
-            📸 위쪽 <b>자동추출</b>에서 사진·PDF로 바로 등록하거나, JSON을 직접 붙여넣어 저장하세요.<br>
-            <span style="color:var(--text3);">여러 보험사를 배열 <b>[ {…}, {…} ]</b> 로 한 번에 올릴 수 있어요.</span>
-          </div>
-
           <!-- JSON 붙여넣기 (메인) -->
           <div class="form-label" style="margin-bottom:6px;">시상 JSON 붙여넣기</div>
           <textarea id="award-paste-input" class="form-textarea"
@@ -806,26 +782,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
             ✅ 적용하기
           </button>
           <div id="award-paste-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
-
-          <!-- 또는 JSON 파일 -->
-          <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px;">
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-            <span style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap;">또는 JSON 파일</span>
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-          </div>
-          <input type="file" id="award-json-file" accept=".json,application/json" multiple
-            style="display:none;" onchange="onAwardJsonFiles(event)"/>
-          <div id="award-json-drop"
-            ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
-            ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
-            ondrop="onAwardFileDrop(event)"
-            onclick="document.getElementById('award-json-file').click()"
-            style="border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);">
-            <div style="font-size:24px;margin-bottom:6px;">🔧</div>
-            <div style="font-size:13px;font-weight:600;color:var(--text2);">.json 파일을 드래그하거나 탭해서 선택</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:4px;">여러 개 한 번에 가능</div>
-          </div>
-          <div id="award-json-file-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
 
           <!-- 추출 결과 미리보기 -->
           <div id="award-json-preview" style="display:none;">
@@ -891,12 +847,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
         <div class="card" style="margin-bottom:0;">
           <div class="card-title">📋 고지의무 업로드</div>
 
-          <!-- 사용법 안내 -->
-          <div style="background:var(--accent-light);border:1px solid rgba(59,91,219,.2);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.65;">
-            📸 위쪽 <b>자동추출</b>에서 사진·PDF로 바로 등록하거나, JSON을 직접 붙여넣어 저장하세요.<br>
-            <span style="color:var(--text3);">여러 개를 배열 <b>[ {…}, {…} ]</b> 로 한 번에 올릴 수 있어요. 같은 키 항목은 자동으로 중복 제거돼요.</span>
-          </div>
-
           <!-- JSON 붙여넣기 (메인) -->
           <div class="form-label" style="margin-bottom:6px;">고지의무 JSON 붙여넣기</div>
           <textarea id="notice-paste-input" class="form-textarea"
@@ -906,26 +856,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
             ✅ 적용하기
           </button>
           <div id="notice-paste-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
-
-          <!-- 또는 JSON 파일 -->
-          <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px;">
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-            <span style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap;">또는 JSON 파일</span>
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-          </div>
-          <input type="file" id="notice-json-file" accept=".json,application/json" multiple
-            style="display:none;" onchange="onNoticeJsonFiles(event)"/>
-          <div id="notice-json-drop"
-            ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)';"
-            ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)';"
-            ondrop="onNoticeFileDrop(event)"
-            onclick="document.getElementById('notice-json-file').click()"
-            style="border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg);">
-            <div style="font-size:24px;margin-bottom:6px;">🔧</div>
-            <div style="font-size:13px;font-weight:600;color:var(--text2);">.json 파일을 드래그하거나 탭해서 선택</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:4px;">여러 개 한 번에 가능</div>
-          </div>
-          <div id="notice-json-file-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;"></div>
 
           <!-- 적용 결과 미리보기 → 저장 -->
           <div id="notice-json-preview" style="display:none;">
@@ -4694,6 +4624,6 @@ function escHtml(str) {
   });
 })();
 </script>
-<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">무진 보험 v2026.06.14-extract2</div>
+<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;letter-spacing:.05em;">무진 보험 v2026.06.14-extract3</div>
 </body>
 </html>
