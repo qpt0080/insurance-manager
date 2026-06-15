@@ -231,6 +231,10 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 @keyframes spin{to{transform:rotate(360deg);}}
 #error-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;padding:24px;text-align:center;}
 #error-screen.show{display:flex;}
+.auth-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;margin-bottom:8px;box-sizing:border-box;transition:border-color .15s;}
+.auth-input:focus{border-color:var(--accent);}
+.auth-btn{width:100%;margin-top:4px;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;}
+.auth-btn:disabled{cursor:default;}
 .refresh-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;font-weight:600;transition:all .15s;}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
 .empty{text-align:center;padding:44px 0;color:var(--text3);}
@@ -403,16 +407,22 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 </head>
 <body>
 <div id="loading-screen"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--text2);">데이터 불러오는 중...</div></div>
-<div id="error-screen"><div style="width:100%;max-width:360px;"><div style="font-size:48px;margin-bottom:16px;">🔒</div><div style="font-size:18px;font-weight:700;margin-bottom:8px;">접근 불가</div><div style="font-size:13px;color:var(--text2);line-height:1.7;" id="error-msg">유효하지 않은 링크입니다.</div>
-  <div id="error-code-entry" style="display:none;margin-top:18px;text-align:left;">
-    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">🔑 접근 코드 입력</div>
-    <input id="error-code-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-      placeholder="받은 코드 또는 링크를 붙여넣기"
-      style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;"
-      onkeydown="if(event.key==='Enter')enterWithCode()"/>
-    <button onclick="enterWithCode()" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">입장하기</button>
-    <div style="font-size:11px;color:var(--text3);margin-top:9px;line-height:1.5;">담당 관리자가 보내준 링크를 통째로 붙여넣어도 코드만 자동 인식해요. 한 번 입장하면 이 기기에 저장됩니다.</div>
+<div id="error-screen"><div style="width:100%;max-width:360px;">
+  <div id="auth-icon" style="font-size:44px;margin-bottom:14px;">🔐</div>
+  <div id="auth-title" style="font-size:18px;font-weight:700;margin-bottom:6px;">무진 설계사</div>
+  <div id="error-msg" style="font-size:13px;color:var(--text2);line-height:1.7;display:none;"></div>
+
+  <div id="auth-box" style="margin-top:16px;text-align:left;display:none;">
+    <div id="auth-invite-wrap" style="display:none;">
+      <input id="auth-invite" class="auth-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="초대코드"/>
+    </div>
+    <input id="auth-id" class="auth-input" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="아이디"/>
+    <input id="auth-pw" class="auth-input" type="password" autocomplete="current-password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')authSubmit()"/>
+    <div id="auth-msg" style="font-size:12px;color:#e5484d;margin:2px 2px 0;min-height:16px;line-height:1.5;"></div>
+    <button id="auth-btn" class="auth-btn" onclick="authSubmit()">로그인</button>
+    <div id="auth-toggle" style="font-size:12px;color:var(--text3);margin-top:12px;text-align:center;"></div>
   </div>
+
   <a href="admin.html" style="display:inline-block;margin-top:18px;font-size:12px;font-weight:600;color:var(--text3);text-decoration:none;">관리자이신가요? 관리자 로그인 →</a>
 </div></div>
 
@@ -556,8 +566,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
@@ -571,13 +581,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-// 설계사 접근코드를 커스텀 토큰으로 교환하는 워커(extract-worker.js)와 동일 주소.
-const WORKER_URL = 'https://mujin-extract.0080qpt-3b9.workers.dev';
 const urlParams = new URLSearchParams(location.search);
-let token = urlParams.get('token');
-// 설치형(PWA)으로 아이콘 실행 시엔 URL에 token이 없으므로 저장해둔 코드를 사용.
-// (저장은 init()에서 '검증 성공 후'에만 — 틀린 코드가 저장되어 갇히는 것을 방지)
-if (!token) { try { token = localStorage.getItem('mujinViewerToken'); } catch (e) {} }
 
 let customers = [];
 let currentFilter = 'all';
@@ -595,73 +599,39 @@ let myAwardSpecials = []; // ⭐ 내가 멤버인 추가시상 그룹의 특별�
 let commissionsCache = [];
 let noticesCache = []; // 고지의무 캐시
 
-// 접근코드 = "<uid>.<무작위secret>" (비밀번호 미포함).
-// 워커 /session 이 codeHash 대조 후 그 uid의 커스텀 토큰을 발급한다.
-async function exchangeCodeForToken(code){
-  const res = await fetch(WORKER_URL.replace(/\/+$/,'') + '/session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: String(code||'') })
-  });
-  let data = {};
-  try { data = await res.json(); } catch(e){}
-  if (!res.ok || !data.ok || !data.token) {
-    const err = new Error(data.error || ('세션 발급 실패 (' + res.status + ')'));
-    err.status = res.status;
-    throw err;
-  }
-  return data.token;
-}
+// 아이디 형식: 영문·숫자·특수문자(@ 제외) 6자 이상
+const ID_RE = /^[A-Za-z0-9~!#$%^&*()_+\-.]{6,}$/;
 
 // ── 초기화 ──
 async function init() {
-  if (token) {
-    // 1) 코드로 입장 — 설계사 경로 (코드 → 커스텀 토큰 → 로그인)
-    let customToken;
-    try {
-      customToken = await exchangeCodeForToken(token);
-    } catch(e) {
-      // 형식 오류·만료·무효 코드 → 저장 비우고 새 코드 받도록 안내
-      // (네트워크 오류 등 5xx는 코드 문제가 아닐 수 있어 저장은 남겨둠)
-      if (!e.status || (e.status >= 400 && e.status < 500)) {
-        try { localStorage.removeItem('mujinViewerToken'); } catch(e2){}
-      }
-      showError((e.message || '사용할 수 없는 코드입니다.') +
-        '\n담당자에게 새 코드를 받아 아래에 붙여넣어 주세요.', true);
-      return;
-    }
-    try {
-      await signInWithCustomToken(auth, customToken);
-    } catch(e) {
-      try { localStorage.removeItem('mujinViewerToken'); } catch(e2){}
-      showError('로그인에 실패했습니다.\n담당자에게 새 코드를 받아 아래에 붙여넣어 주세요.', true);
-      return;
-    }
-  } else {
-    // 2) 코드 없음 → 이미 로그인된 세션 활용 (관리자가 본인 뷰어를 볼 때)
-    const user = await new Promise(res => {
-      const un = onAuthStateChanged(auth, u => { un(); res(u); });
-    });
-    if (!user) {
-      showError('접근 코드가 없습니다.\n담당 관리자가 보내준 코드(또는 링크)를 아래에 붙여넣어 주세요.', true);
-      return;
-    }
-  }
+  const inviteCode = urlParams.get('invite');
+  // 이미 로그인된 세션이면 바로 입장 (앱이 세션을 영속 저장 — PWA 재실행 포함)
+  const user = await new Promise(res => {
+    const un = onAuthStateChanged(auth, u => { un(); res(u); });
+  });
+  if (user) { return enterApp(); }
+  // 세션 없음 → 초대코드가 있으면 가입 화면, 없으면 로그인 화면
+  if (inviteCode) showAuth('signup', inviteCode);
+  else showAuth('login');
+}
+
+// 로그인된 사용자로 앱 진입 (승인·비활성 확인 후 데이터 로드)
+async function enterApp() {
   try {
     const meSnap = await getDoc(doc(db, 'agents', auth.currentUser.uid));
     if (!meSnap.exists()) { showError('설계사 정보를 찾을 수 없습니다.\n담당자에게 문의해주세요.'); return; }
     agentInfo = meSnap.data();
-    if (agentInfo.disabled) { showError('비활성화된 계정입니다.'); return; }
-    if (token) { try { localStorage.setItem('mujinViewerToken', token); } catch(e){} } // 검증 성공 → 이 기기에 저장
-    document.getElementById('agent-badge').textContent = agentInfo.name || agentInfo.email;
+    if (agentInfo.disabled) { showError('비활성화된 계정입니다.\n담당자에게 문의해주세요.'); return; }
+    if (agentInfo.approved === false) { showError('승인 대기 중인 계정입니다.\n담당자에게 문의해주세요.'); return; }
+    document.getElementById('agent-badge').textContent = agentInfo.name || agentInfo.loginId || '설계사';
     await loadCustomers();
     await loadAwards();
     await loadCommissions();
     await loadNotices();
     document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('error-screen').classList.remove('show');
     document.getElementById('app').style.display = 'block';
     buildPeriodChips();
-    // 이번 연도·이번 달 기본 선택
     const _now = new Date();
     selYears.add(_now.getFullYear());
     selMonths.add(_now.getMonth() + 1);
@@ -670,8 +640,69 @@ async function init() {
     renderNoticeFilterChips();
     history.replaceState({view:'tab', tab:'home'}, '');
     setupSwipeNav();
-  } catch(e) { showError('데이터를 불러오지 못했습니다.'); }
+  } catch(e) { showError('데이터를 불러오지 못했습니다.\n잠시 후 다시 시도해주세요.'); }
 }
+
+// ── 아이디 로그인 ──
+window.doLogin = async function() {
+  const id = (document.getElementById('auth-id').value || '').trim();
+  const pw = document.getElementById('auth-pw').value || '';
+  if (!id || !pw) { authMsg('아이디와 비밀번호를 입력해주세요.'); return; }
+  authBusy(true);
+  try {
+    const snap = await getDoc(doc(db, 'loginIds', id));
+    if (!snap.exists()) { authMsg('아이디 또는 비밀번호가 올바르지 않습니다.'); authBusy(false); return; }
+    const email = snap.data().email;
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+    } catch(e) {
+      authMsg('아이디 또는 비밀번호가 올바르지 않습니다.'); authBusy(false); return;
+    }
+    await enterApp();
+  } catch(e) {
+    authMsg('로그인 처리 중 오류가 발생했습니다.'); authBusy(false);
+  }
+};
+
+// ── 초대코드 가입 (아이디·비번 설정) ──
+window.doSignup = async function() {
+  const code = (document.getElementById('auth-invite').value || '').trim();
+  const id   = (document.getElementById('auth-id').value || '').trim();
+  const pw   = document.getElementById('auth-pw').value || '';
+  if (!code) { authMsg('초대코드를 입력해주세요.'); return; }
+  if (!ID_RE.test(id)) { authMsg('아이디는 영문·숫자·특수문자(@ 제외) 6자 이상이어야 해요.'); return; }
+  if (pw.length < 6) { authMsg('비밀번호는 6자 이상으로 정해주세요.'); return; }
+  authBusy(true);
+  try {
+    const inv = await getDoc(doc(db, 'invites', code));
+    if (!inv.exists() || inv.data().used) { authMsg('사용할 수 없는 초대코드입니다.\n담당자에게 새 코드를 받아주세요.'); authBusy(false); return; }
+    const taken = await getDoc(doc(db, 'loginIds', id));
+    if (taken.exists()) { authMsg('이미 사용 중인 아이디예요. 다른 아이디를 정해주세요.'); authBusy(false); return; }
+    const email = inv.data().email;
+    const name  = inv.data().name || '';
+    // 1) 임의 이메일+정한 비번으로 Firebase 계정 생성 (= 로그인 상태가 됨)
+    let cred;
+    try {
+      cred = await createUserWithEmailAndPassword(auth, email, pw);
+    } catch(e) {
+      const m = e.code === 'auth/email-already-in-use'
+        ? '이미 가입이 완료된 초대코드입니다.\n아이디·비밀번호로 로그인해주세요.'
+        : '가입 처리 중 오류가 발생했습니다. (' + (e.code||e.message) + ')';
+      authMsg(m); authBusy(false); return;
+    }
+    const uid = cred.user.uid;
+    // 2) 본인 프로필·아이디매핑 생성 + 초대 소진 처리
+    await setDoc(doc(db, 'agents', uid), {
+      uid, name, email, role: 'agent', approved: true, disabled: false,
+      loginId: id, inviteCode: code, createdAt: new Date().toISOString()
+    });
+    await setDoc(doc(db, 'loginIds', id), { email, uid });
+    try { await updateDoc(doc(db, 'invites', code), { used: true, usedAt: new Date().toISOString() }); } catch(e){}
+    await enterApp();
+  } catch(e) {
+    authMsg('가입 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.'); authBusy(false);
+  }
+};
 
 async function loadCustomers() {
   const snap = await getDocs(query(collection(db,'customers'), where('agentId','==',auth.currentUser.uid)));
@@ -3050,23 +3081,62 @@ function fmt(n) { return Number(String(n).replace(/,/g,'')).toLocaleString()+'�
 function ic(k,v) { if(!v) return ''; const long = ['상품명','특이사항','납입면제조건'].includes(k)||String(v).length>14; return `<div class="info-cell${long?' full':''}"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v))}</div></div>`; }
 function icEdit(k,v,editFn) { return `<div class="info-cell info-cell-editable" style="position:relative;"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v||''))}</div><button class="info-edit-btn" onclick="${editFn}" title="편집">✏️</button></div>`; }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function showError(msg, withCodeEntry) {
+// 하드 에러(데이터 로드 실패·비활성 등) — 폼 숨기고 메시지만
+function showError(msg) {
   document.getElementById('loading-screen').style.display='none';
-  document.getElementById('error-msg').innerHTML=msg.replace(/\n/g,'<br>');
-  const entry = document.getElementById('error-code-entry');
-  if (entry) entry.style.display = withCodeEntry ? 'block' : 'none';
+  document.getElementById('app').style.display='none';
+  const box = document.getElementById('auth-box'); if (box) box.style.display='none';
+  const em = document.getElementById('error-msg');
+  em.style.display='block';
+  em.innerHTML = String(msg||'').replace(/\n/g,'<br>');
+  document.getElementById('auth-icon').textContent='🔒';
+  document.getElementById('auth-title').textContent='접근 불가';
   document.getElementById('error-screen').classList.add('show');
 }
 
-// 에러 화면에서 코드로 바로 입장 (링크 전체를 붙여넣어도 token만 추출)
-window.enterWithCode = function() {
-  let raw = (document.getElementById('error-code-input').value||'').trim();
-  if (!raw) return;
-  const m = raw.match(/[?&#]token=([^&\s#]+)/i);
-  let code = m ? m[1] : raw.replace(/\s+/g,'');
-  try { code = decodeURIComponent(code); } catch(e) {}
-  location.href = 'viewer.html?token=' + encodeURIComponent(code);
-};
+// ── 인증 화면(로그인/가입) ──
+let authMode = 'login';
+function showAuth(mode, inviteCode){
+  authMode = (mode === 'signup') ? 'signup' : 'login';
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('error-msg').style.display='none';
+  document.getElementById('auth-box').style.display='block';
+  document.getElementById('auth-icon').textContent = authMode==='signup' ? '✍️' : '🔐';
+  const title  = document.getElementById('auth-title');
+  const btn    = document.getElementById('auth-btn');
+  const toggle = document.getElementById('auth-toggle');
+  const idEl   = document.getElementById('auth-id');
+  const pwEl   = document.getElementById('auth-pw');
+  document.getElementById('auth-msg').textContent = '';
+  if (authMode === 'signup') {
+    document.getElementById('auth-invite-wrap').style.display='block';
+    if (inviteCode) document.getElementById('auth-invite').value = inviteCode;
+    title.textContent = '설계사 가입';
+    idEl.placeholder = '사용할 아이디 (6자 이상)';
+    pwEl.placeholder = '사용할 비밀번호 (6자 이상)';
+    pwEl.setAttribute('autocomplete','new-password');
+    btn.textContent = '가입하기';
+    toggle.innerHTML = '이미 가입하셨나요? <a href="#" onclick="showAuth(\'login\');return false;" style="color:var(--accent);font-weight:600;text-decoration:none;">로그인</a>';
+  } else {
+    document.getElementById('auth-invite-wrap').style.display='none';
+    title.textContent = '무진 설계사 로그인';
+    idEl.placeholder = '아이디';
+    pwEl.placeholder = '비밀번호';
+    pwEl.setAttribute('autocomplete','current-password');
+    btn.textContent = '로그인';
+    toggle.innerHTML = '초대코드를 받으셨나요? <a href="#" onclick="showAuth(\'signup\');return false;" style="color:var(--accent);font-weight:600;text-decoration:none;">가입하기</a>';
+  }
+  document.getElementById('error-screen').classList.add('show');
+}
+window.showAuth = showAuth;
+window.authSubmit = function(){ (authMode === 'signup') ? doSignup() : doLogin(); };
+function authMsg(t){ const el=document.getElementById('auth-msg'); if(el) el.textContent = t || ''; }
+function authBusy(b){
+  const btn=document.getElementById('auth-btn'); if(!btn) return;
+  btn.disabled = !!b;
+  btn.style.opacity = b ? '0.6' : '1';
+  btn.textContent = b ? '처리 중...' : (authMode==='signup' ? '가입하기' : '로그인');
+}
 
 init();
 </script>
