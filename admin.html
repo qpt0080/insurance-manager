@@ -1018,18 +1018,17 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
       <!-- 계정 생성 -->
       <div class="card">
-        <div class="card-title">➕ 새 설계사 계정 생성</div>
+        <div class="card-title">➕ 설계사 초대</div>
         <div class="form-grid">
           <div class="form-row">
             <label class="form-label">이름</label>
             <input class="form-input" id="new-name" placeholder="홍길동"/>
           </div>
           <div class="form-row" style="display:flex;align-items:flex-end;">
-            <button onclick="createAgent()" class="btn btn-primary btn-full">계정 생성</button>
+            <button onclick="inviteAgent()" class="btn btn-primary btn-full">초대 만들기</button>
           </div>
         </div>
-        <input type="hidden" id="new-email"/>
-        <input type="hidden" id="new-password"/>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;">초대를 만들면 아래 "초대/링크"에 가입용 링크가 생겨요. 그 링크를 설계사에게 보내면, 설계사가 직접 아이디·비밀번호를 정해 가입합니다.</div>
         <div id="create-status" style="display:none;"></div>
       </div>
 
@@ -1046,9 +1045,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
       <div class="card" style="background:var(--accent-light);border-color:#C7D9FF;">
         <div style="font-size:13px;color:var(--accent);line-height:1.7;">
-          <strong>🔗 뷰어 링크 안내</strong><br>
-          각 설계사에게 고유 링크를 발급해주세요. 설계사는 이 링크로 본인 담당 계약만 조회할 수 있어요.<br>
-          링크를 잃어버리면 여기서 재발급(토큰 재생성)하면 됩니다.
+          <strong>🔗 초대/링크 안내</strong><br>
+          설계사를 초대하면 가입용 링크가 생깁니다. 그 링크를 전달하면 설계사가 직접 아이디·비밀번호를 정해 가입해요.<br>
+          가입 전에는 "가입 대기"로 표시되고, 가입이 끝나면 "가입 완료"로 바뀝니다. 비밀번호 분실 시엔 초대를 다시 만들어 재가입하면 됩니다.
         </div>
       </div>
 
@@ -1108,7 +1107,8 @@ const subApp = initializeApp(firebaseConfig, "sub");
 const subAuth = getAuth(subApp);
 
 let agentsCache = [];
-let secretsCache = {}; // uid → {email, password} (agentSecrets, 관리자 전용)
+let secretsCache = {}; // (구) 미사용 — 초대 방식 전환
+let invitesCache = []; // 발급한 초대 목록 [{code,email,name,used,...}]
 let customersCache = [];
 let awardsCache = []; // 시상 정책 캐시
 let currentAdmin = null;
@@ -1317,9 +1317,9 @@ window.deleteAwardGroup = async function(groupId) {
 async function loadAgents() {
   // agents 와 agentSecrets 는 서로 의존이 없어 병렬로 읽음 (왕복 1회 절약)
   // agentSecrets 는 권한에 따라 실패할 수 있으므로 개별 catch 로 기존 동작 유지
-  const [snap, sec] = await Promise.all([
+  const [snap, inv] = await Promise.all([
     getDocs(collection(db,'agents')),
-    getDocs(collection(db,'agentSecrets')).catch(() => null)
+    getDocs(collection(db,'invites')).catch(() => null)
   ]);
   agentsCache = [];
   snap.forEach(d => agentsCache.push({...d.data(), _docId: d.id}));
@@ -1328,9 +1328,9 @@ async function loadAgents() {
     if (b.role==='admin' && a.role!=='admin') return 1;
     return (a.name||'').localeCompare(b.name||'');
   });
-  // 토큰(자격증명) 비밀정보 — 규칙상 관리자만 읽기 가능
-  secretsCache = {};
-  if (sec) sec.forEach(d => secretsCache[d.id] = d.data());
+  // 발급한 초대 목록 (가입 대기 표시·링크 재전송용)
+  invitesCache = [];
+  if (inv) inv.forEach(d => invitesCache.push({ ...d.data(), code: d.id }));
 }
 
 async function loadCustomers() {
@@ -1890,46 +1890,51 @@ function renderAgents() {
   }).join('');
 }
 
-// ── 뷰어 링크 ──
+// ── 초대 / 가입 현황 ──
+function inviteBase() {
+  // admin.html(쿼리·해시 포함)을 viewer.html로 치환, 쿼리/해시 제거
+  return location.href.replace(/admin\.html[^/]*$/, 'viewer.html');
+}
 function renderLinks() {
   const el = document.getElementById('link-list');
-  if (!agentsCache.length) { el.innerHTML='<div class="empty">설계사 없음</div>'; return; }
+  const base = inviteBase();
 
-  // viewer.html의 예상 URL (현재 admin.html과 같은 폴더)
-  const base = location.href.replace('admin.html','viewer.html');
+  const pending = (invitesCache || []).filter(v => v.used !== true);
+  const joined  = (agentsCache || []).filter(a => a.role !== 'admin');
 
-  el.innerHTML = agentsCache.map(a => {
-    const token = tokenFor(a.uid);
-    const custCount = customersCache.filter(c => c.agentId === a.uid).length;
-    const contractCount = customersCache
-      .filter(c => c.agentId === a.uid)
-      .reduce((s,c)=>s+(c.contracts||[]).length,0);
-    const linkUrl = token ? `${base}?token=${token}` : null;
-    return `
-    <div class="link-item">
-      <div class="link-agent-name">
-        ${a.role==='admin'?'👑':'👤'} ${escHtml(a.name||'이름없음')}
-        ${a.role==='admin'?'<span class="chip blue">관리자</span>':'<span class="chip">설계사</span>'}
-      </div>
-      <div class="link-stats">
-        <div class="link-stat">고객 <span>${custCount}명</span></div>
-        <div class="link-stat">계약 <span>${contractCount}건</span></div>
-      </div>
-      <div class="link-url-wrap" style="flex-wrap:wrap;">
-        ${a.role==='admin'
-          ? `<div class="link-url" style="color:var(--text3);font-family:inherit;">관리자는 로그인으로 입장 (뷰어 링크 없음)</div>`
-          : token
-          ? `<div class="link-url" title="${linkUrl}" style="flex:1 1 100%;min-width:0;">${linkUrl}</div>
-             <button class="btn btn-sm" onclick="copyLink('${linkUrl}')">📋 링크 복사</button>
-             <button class="btn btn-sm" onclick="copyToken('${token}')">🔑 코드 복사</button>
-             <button class="btn btn-sm btn-danger" onclick="regenToken('${a.uid}')">🔄 재발급</button>
-             <button class="btn btn-sm" onclick="revokeToken('${a.uid}','${escHtml(a.name||'')}')" style="color:var(--red);border-color:var(--red);">🚫 삭제</button>`
-          : `<div class="link-url" style="color:var(--text3);font-family:inherit;">링크 미발급</div>
-             <button class="btn btn-sm btn-primary" onclick="genToken('${a.uid}')">🔗 링크 발급</button>`
-        }
-      </div>
-    </div>`;
-  }).join('');
+  let html = '';
+  if (pending.length) {
+    html += pending.map(v => {
+      const link = base + '?invite=' + v.code;
+      return `
+      <div class="link-item">
+        <div class="link-agent-name">✉️ ${escHtml(v.name||'(이름없음)')} <span class="chip amber">가입 대기</span></div>
+        <div class="link-url-wrap" style="flex-wrap:wrap;">
+          <div class="link-url" title="${link}" style="flex:1 1 100%;min-width:0;">${link}</div>
+          <button class="btn btn-sm btn-primary" onclick="copyLink('${link}')">📋 링크 복사</button>
+          <button class="btn btn-sm" onclick="copyToken('${v.code}')">🔑 코드 복사</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteInvite('${v.code}','${escHtml(v.name||'')}')">🗑 초대 취소</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  if (joined.length) {
+    html += joined.map(a => {
+      const custCount = customersCache.filter(c => c.agentId === a.uid).length;
+      const contractCount = customersCache.filter(c => c.agentId === a.uid)
+        .reduce((s,c)=>s+(c.contracts||[]).length,0);
+      return `
+      <div class="link-item">
+        <div class="link-agent-name">👤 ${escHtml(a.name||'이름없음')} <span class="chip green">가입 완료</span>${a.disabled?' <span class="chip red">비활성</span>':''}</div>
+        <div class="link-stats">
+          <div class="link-stat">아이디 <span>${escHtml(a.loginId||'-')}</span></div>
+          <div class="link-stat">고객 <span>${custCount}명</span></div>
+          <div class="link-stat">계약 <span>${contractCount}건</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  el.innerHTML = html || '<div class="empty">아직 초대/설계사가 없어요. 위에서 설계사를 초대하세요.</div>';
 }
 
 // ── 설계사 선택 버튼 (업로드 탭 — 미리보기 아래) ──
@@ -2586,6 +2591,37 @@ window.copyPerfReport = function() {
   navigator.clipboard.writeText(report)
     .then(() => showToast('📋 실적 리포트가 복사됐어요!'))
     .catch(() => showToast('❌ 복사 실패'));
+};
+
+// ── 설계사 초대 (계정은 설계사가 가입 시 직접 생성) ──
+function randHex(n){ const a=crypto.getRandomValues(new Uint8Array(n)); return Array.from(a,b=>b.toString(16).padStart(2,'0')).join(''); }
+
+window.inviteAgent = async function() {
+  const name = document.getElementById('new-name').value.trim();
+  if (!name) { showCreateStatus('error','이름을 입력해주세요.'); return; }
+  showCreateStatus('loading','초대 생성 중...');
+  try {
+    const email = 'a' + randHex(6) + '@agent.insuremgr.com'; // 내부 식별자(설계사에겐 안 보임)
+    const code  = randHex(16);                               // 추측 불가 초대코드
+    await setDoc(doc(db,'invites',code), {
+      email, name, used:false, createdAt:new Date().toISOString()
+    });
+    document.getElementById('new-name').value='';
+    showCreateStatus('done', `✅ ${name}님 초대를 만들었어요. 아래 "초대/링크"에서 링크를 복사해 전달하세요.`);
+    await loadAll();
+    renderLinks();
+  } catch(e) {
+    showCreateStatus('error', '초대 생성 실패: ' + (e.message||e));
+  }
+};
+
+window.deleteInvite = async function(code, name) {
+  if (!confirm(`"${name}" 초대를 취소할까요?\n이 링크는 더 이상 가입에 쓸 수 없게 됩니다.`)) return;
+  try {
+    await deleteDoc(doc(db,'invites',code));
+    showToast('🗑 초대를 취소했어요.');
+    await loadAll(); renderLinks();
+  } catch(e) { showToast('❌ 취소 실패: ' + (e.message||e)); }
 };
 
 // ── 계정 생성 ──
