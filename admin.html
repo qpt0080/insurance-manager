@@ -508,6 +508,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     </div>
     <div class="header-dday" id="hdr-dday" title="이번 달 마감까지 남은 일수"></div>
     <div class="header-right">
+      <button onclick="goViewer()" class="btn btn-sm" title="뷰어로 내 계약 보기">👁</button>
       <button onclick="doLogout()" class="btn btn-sm">🚪<span class="hdr-label"> 로그아웃</span></button>
     </div>
   </div>
@@ -1051,6 +1052,16 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
         </div>
       </div>
 
+      <div class="card">
+        <div class="card-title">📱 로그인 주소 (모든 설계사 공통)</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px;">가입을 마친 설계사가 폰·PC 등 어느 기기에서나 아이디·비밀번호로 로그인할 때 쓰는 주소예요. 한 번 안내해두면 됩니다.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div id="viewer-addr" class="link-url" style="flex:1 1 100%;min-width:0;"></div>
+          <button class="btn btn-sm btn-primary" onclick="copyViewerAddr()">📋 로그인 주소 복사</button>
+          <button class="btn btn-sm" onclick="copyViewerGuide()">📝 안내문 복사</button>
+        </div>
+      </div>
+
       <div id="link-list"><div class="empty">불러오는 중...</div></div>
 
     </div><!-- /agents-sub-links -->
@@ -1084,7 +1095,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-  sendPasswordResetEmail, createUserWithEmailAndPassword, updatePassword
+  sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1102,12 +1113,8 @@ const auth = getAuth(app);
 // 자동추출 워커 호출용: 현재 로그인 토큰/UID를 외부(plain) 스크립트에 노출
 window.__getAdminIdToken = async function(){ try{ return auth.currentUser ? await auth.currentUser.getIdToken() : null; }catch(e){ return null; } };
 window.__getAdminUid = function(){ return auth.currentUser ? auth.currentUser.uid : null; };
-// 서브앱: 설계사 계정 생성 시 관리자 로그아웃 방지
-const subApp = initializeApp(firebaseConfig, "sub");
-const subAuth = getAuth(subApp);
 
 let agentsCache = [];
-let secretsCache = {}; // (구) 미사용 — 초대 방식 전환
 let invitesCache = []; // 발급한 초대 목록 [{code,email,name,used,...}]
 let customersCache = [];
 let awardsCache = []; // 시상 정책 캐시
@@ -1832,18 +1839,10 @@ window.mergeAgentIntoAdmin = async function(uid, name) {
     const comms = await getDocs(query(collection(db,'commissions'), where('agentId','==',uid)));
     for (const d of comms.docs) { await updateDoc(doc(db,'commissions',d.id), {agentId: myUid}); moved++; }
 
-    // 2) 뷰어 링크 무효화 (비밀번호 회전 후 비밀정보 삭제)
+    // 2) 로그인 아이디 매핑 정리 (초대형에선 비번 회전 불필요)
     try {
-      const secSnap = await getDoc(doc(db,'agentSecrets',uid));
-      if (secSnap.exists()) {
-        const sec = secSnap.data();
-        try {
-          await signInWithEmailAndPassword(subAuth, sec.email, sec.password);
-          await updatePassword(subAuth.currentUser, randomPw());
-          await subAuth.signOut();
-        } catch(e) { try { await subAuth.signOut(); } catch(e2){} }
-        await deleteDoc(doc(db,'agentSecrets',uid));
-      }
+      const ag = agentsCache.find(x => x.uid === uid);
+      if (ag && ag.loginId) await deleteDoc(doc(db,'loginIds', ag.loginId));
     } catch(e) {}
 
     // 3) 설계사 문서 제거
@@ -1898,6 +1897,8 @@ function inviteBase() {
 function renderLinks() {
   const el = document.getElementById('link-list');
   const base = inviteBase();
+  const addr = document.getElementById('viewer-addr');
+  if (addr) addr.textContent = base;
 
   const pending = (invitesCache || []).filter(v => v.used !== true);
   const joined  = (agentsCache || []).filter(a => a.role !== 'admin');
@@ -2436,114 +2437,23 @@ window.saveUploadContract = async function() {
   }
 };
 
-// ── 뷰어 토큰 ──
-// 새 방식: 토큰 = base64url(이메일:비밀번호).
-// 설계사는 이 코드로 자기 계정에 실제 로그인하므로,
-// Firestore 규칙이 "본인 고객만" 읽기를 서버 차원에서 강제할 수 있음.
-function encodeToken(email, pw) {
-  return btoa(email + ':' + pw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
-function randomPw() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const a = crypto.getRandomValues(new Uint8Array(20));
-  return Array.from(a, b => chars[b % chars.length]).join('') + 'Aa1!';
-}
-function tokenFor(uid) {
-  const s = secretsCache[uid];
-  return (s && s.email && s.password) ? encodeToken(s.email, s.password) : null;
-}
-
-window.genToken = async function(uid) {
-  if (!uid) { showToast('❌ 이 설계사는 계정(uid)이 없어 발급할 수 없어요.'); return; }
-  const target = agentsCache.find(a => a.uid === uid);
-  if (target && target.role === 'admin') {
-    showToast('❌ 관리자 계정에는 뷰어 링크를 발급할 수 없어요. (관리자는 로그인으로 입장)');
-    return;
-  }
-  const btnGuard = `토큰 발급 중...`;
-  try {
-    const secSnap = await getDoc(doc(db,'agentSecrets',uid));
-    if (secSnap.exists()) {
-      // 비밀번호 회전 → 기존 링크는 즉시 무효, 새 링크 발급
-      const sec = secSnap.data();
-      showToast('🔄 ' + btnGuard);
-      await signInWithEmailAndPassword(subAuth, sec.email, sec.password);
-      const newPw = randomPw();
-      await updatePassword(subAuth.currentUser, newPw);
-      await subAuth.signOut();
-      await setDoc(doc(db,'agentSecrets',uid), {email: sec.email, password: newPw, updatedAt: new Date().toISOString()});
-      showToast('✅ 링크가 발급됐어요!');
-    } else {
-      // 비밀정보가 없는 기존 계정(구버전 토큰 시절) → 새 계정으로 재생성 + 데이터 이전
-      showToast('🔄 계정 재생성 및 데이터 이전 중...');
-      await recreateAgentAccount(uid);
-      showToast('✅ 새 계정으로 전환하고 링크를 발급했어요!');
-    }
-    await loadAll();
-    renderLinks();
-  } catch(e) {
-    try { await subAuth.signOut(); } catch(e2){}
-    if (String(e.code||e.message).includes('permission')) {
-      showToast('❌ 발급 실패: Firestore 보안 규칙 업데이트가 필요합니다. (agentSecrets 권한)');
-    } else {
-      showToast('❌ 발급 실패: ' + (e.message||e));
-    }
-  }
+window.copyViewerAddr = function() {
+  navigator.clipboard.writeText(inviteBase())
+    .then(() => showToast('📋 로그인 주소가 복사됐어요!'))
+    .catch(() => showToast('❌ 복사 실패'));
 };
+window.copyViewerGuide = function() {
+  const addr = inviteBase();
+  const guide =
+`[무진 보험 설계사 앱 로그인 안내]
 
-// 구버전 계정 전환: 새 Auth 계정 생성 → agents 문서 이전 → customers/commissions의 agentId 일괄 변경
-async function recreateAgentAccount(oldUid) {
-  const old = agentsCache.find(a => a.uid === oldUid) || {};
-  const name = old.name || '설계사';
-  const slug = name.replace(/\s+/g,'').toLowerCase() + '_' + Date.now();
-  const email = `${slug}@agent.insuremgr.com`;
-  const password = randomPw();
-
-  const cred = await createUserWithEmailAndPassword(subAuth, email, password);
-  const newUid = cred.user.uid;
-  await subAuth.signOut();
-
-  // 새 agents 문서 (구버전 viewerToken 필드는 옮기지 않음)
-  await setDoc(doc(db,'agents',newUid), {
-    uid: newUid, name, email, role: old.role || 'agent',
-    disabled: !!old.disabled, createdAt: old.createdAt || new Date().toISOString()
-  });
-  await setDoc(doc(db,'agentSecrets',newUid), {email, password, updatedAt: new Date().toISOString()});
-
-  // 담당 데이터 이전
-  const custs = await getDocs(query(collection(db,'customers'), where('agentId','==',oldUid)));
-  for (const d of custs.docs) await updateDoc(doc(db,'customers',d.id), {agentId: newUid});
-  const comms = await getDocs(query(collection(db,'commissions'), where('agentId','==',oldUid)));
-  for (const d of comms.docs) await updateDoc(doc(db,'commissions',d.id), {agentId: newUid});
-
-  // 옛 문서 제거 (옛 Auth 계정은 비번을 몰라 클라이언트에서 삭제 불가 →
-  // Firebase 콘솔 > Authentication에서 수동 삭제 권장. 문서가 없으니 접근은 이미 차단됨)
-  await deleteDoc(doc(db,'agents',oldUid));
-}
-
-window.regenToken = async function(uid) {
-  if (!confirm('링크를 재발급하면 기존 링크는 즉시 사용 불가합니다. 계속할까요?')) return;
-  await genToken(uid);
-};
-
-window.revokeToken = async function(uid, name) {
-  if (!confirm(`"${name}" 링크를 삭제할까요?\n삭제하면 해당 설계사는 뷰어에 접속할 수 없어요.`)) return;
-  try {
-    const secSnap = await getDoc(doc(db,'agentSecrets',uid));
-    if (secSnap.exists()) {
-      const sec = secSnap.data();
-      try {
-        // 비밀번호를 아무도 모르는 값으로 회전 → 떠도는 링크도 즉시 무효
-        await signInWithEmailAndPassword(subAuth, sec.email, sec.password);
-        await updatePassword(subAuth.currentUser, randomPw());
-        await subAuth.signOut();
-      } catch(e) { try { await subAuth.signOut(); } catch(e2){} }
-      await deleteDoc(doc(db,'agentSecrets',uid));
-    }
-    showToast(`✅ "${name}" 링크가 삭제됐어요.`);
-    await loadAgents();
-    renderLinks();
-  } catch(e) { showToast('❌ 삭제 실패: ' + e.message); }
+· 로그인 주소: ${addr}
+· 위 주소로 접속해 가입 때 정한 아이디·비밀번호로 로그인하세요.
+· 폰·PC 등 기기 여러 대에서 같은 아이디로 쓸 수 있어요.
+· 접속 후 브라우저 메뉴에서 "홈 화면에 추가"(폰) 또는 "앱 설치"(PC)를 누르면 앱처럼 쓸 수 있습니다.`;
+  navigator.clipboard.writeText(guide)
+    .then(() => showToast('📝 안내문이 복사됐어요!'))
+    .catch(() => showToast('❌ 복사 실패'));
 };
 
 window.copyLink = function(url) {
@@ -2624,32 +2534,6 @@ window.deleteInvite = async function(code, name) {
   } catch(e) { showToast('❌ 취소 실패: ' + (e.message||e)); }
 };
 
-// ── 계정 생성 ──
-window.createAgent = async function() {
-  const name = document.getElementById('new-name').value.trim();
-  if (!name) { showCreateStatus('error','이름을 입력해주세요.'); return; }
-  // 이메일/비밀번호 자동 생성 (Firebase Auth 필요, 화면에는 표시 안 함)
-  const slug = name.replace(/\s+/g,'').toLowerCase() + '_' + Date.now();
-  const email = `${slug}@agent.insuremgr.com`;
-  const password = randomPw();
-  showCreateStatus('loading','계정 생성 중...');
-  try {
-    const cred = await createUserWithEmailAndPassword(subAuth, email, password);
-    const uid = cred.user.uid;
-    await setDoc(doc(db,'agents',uid), {uid, name, email, role:'agent', disabled:false, createdAt:new Date().toISOString()});
-    await setDoc(doc(db,'agentSecrets',uid), {email, password, updatedAt:new Date().toISOString()});
-    await subAuth.signOut();
-    showCreateStatus('done', `✅ ${name}님 계정 생성 완료! 뷰어 링크도 바로 발급됐어요.`);
-    document.getElementById('new-name').value='';
-    await loadAll();
-  } catch(e) {
-    const msg = e.code==='auth/email-already-in-use' ? '이미 사용 중인 이메일입니다.'
-      : e.code==='auth/invalid-email' ? '올바른 이메일 형식이 아닙니다.'
-      : `오류: ${e.message}`;
-    showCreateStatus('error', msg);
-  }
-};
-
 window.sendReset = async function(email) {
   if (!confirm(`${email}로 비밀번호 초기화 이메일을 보낼까요?`)) return;
   try { await sendPasswordResetEmail(auth, email); alert(`✅ ${email}로 발송 완료`); }
@@ -2686,6 +2570,11 @@ window.doLogin = async function() {
 window.doLogout = async function() {
   if (!confirm('로그아웃 하시겠어요?')) return;
   await signOut(auth);
+};
+
+// 로그인된 관리자 세션 그대로 뷰어로 이동(내 담당 계약을 viewer로 조회)
+window.goViewer = function() {
+  location.href = 'viewer.html';
 };
 
 // ══════════════════════════════════════════
