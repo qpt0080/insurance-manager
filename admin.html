@@ -74,16 +74,18 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .stat-hero-wrap::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none;}
 .stat-hero-wrap::after{content:'';position:absolute;bottom:-50px;right:50px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none;}
 .stat-hero-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;}
-.stat-hero-month{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px;line-height:1.2;margin-bottom:3px;}
-.stat-hero-sub{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:18px;font-weight:400;}
+.stat-hero-head{display:flex;flex-direction:column;justify-content:center;text-align:center;min-height:46px;margin-bottom:14px;}
+.stat-hero-month{font-size:24px;font-weight:800;color:#fff;letter-spacing:-.4px;line-height:1.2;margin-bottom:3px;}
+.stat-hero-sub{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:0;font-weight:400;}
 .stat-hero-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:relative;z-index:1;}
-.stat-box{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-sm);padding:12px 10px;text-align:center;backdrop-filter:blur(4px);transition:background .2s;}
+.stat-box{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-sm);padding:14px 12px;position:relative;display:flex;align-items:center;justify-content:center;min-height:58px;backdrop-filter:blur(4px);transition:background .2s;}
+.stat-lbl-left{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:600;color:rgba(255,255,255,.8);white-space:nowrap;}
 .stat-box:hover{background:rgba(255,255,255,.2);}
 /* 3칸(팀원·전체계약·총보험료) 1:1:2 — 4칸일 때와 가로폭 동일 */
 .stat-hero-grid-3{grid-template-columns:1fr 1fr 2fr;}
-.stat-hero-grid-3 .stat-box-wide{grid-column:span 1;}
-.stat-val{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.15;word-break:break-all;}
-.stat-lbl{font-size:10px;color:rgba(255,255,255,.6);margin-top:4px;font-weight:500;}
+.stat-hero-grid-3 .stat-box-wide{grid-column:span 1;min-height:66px;}
+.stat-val{font-size:34px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.1;word-break:break-all;}
+.stat-lbl{font-size:12px;color:rgba(255,255,255,.65);margin-top:8px;font-weight:500;}
 
 /* ── 폼 ── */
 .form-row{margin-bottom:12px;}
@@ -232,10 +234,10 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   .container{padding:16px 14px;}
   .stats{grid-template-columns:1fr;gap:0;margin-bottom:16px;}
   .stat-hero-wrap{padding:18px 16px 16px;}
-  .stat-hero-month{font-size:17px;}
+  .stat-hero-month{font-size:22px;}
   .stat-hero-grid{grid-template-columns:repeat(4,1fr);gap:7px;}
   .stat-hero-grid-3{grid-template-columns:1fr 1fr 2fr;}
-  .stat-val{font-size:18px;}
+  .stat-val{font-size:28px;}
   .card{padding:16px;}
   .tab-nav{padding:0;top:52px;}
   .header{padding:0 14px;height:52px;}
@@ -252,9 +254,10 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   .stat-hero-grid{grid-template-columns:repeat(2,1fr);gap:6px;}
   .stat-hero-grid-3{grid-template-columns:1fr 1fr;}
   .stat-hero-grid-3 .stat-box-wide{grid-column:span 2;}
-  .stat-box{padding:11px 8px;}
-  .stat-val{font-size:18px;}
-  .stat-lbl{font-size:10px;}
+  .stat-box{padding:14px 8px;}
+  .stat-val{font-size:30px;}
+  .stat-lbl{font-size:12px;}
+  .stat-lbl-left{font-size:13px;left:12px;}
   .header{height:52px;}
   #admin-name-badge{display:none;}
   .header-right{gap:6px;}
@@ -280,14 +283,15 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 @media (max-width:360px){
   .stats{grid-template-columns:1fr;}
   .stat-hero-wrap{padding:14px 12px 12px;border-radius:10px;}
-  .stat-hero-month{font-size:15px;}
+  .stat-hero-month{font-size:18px;}
   .stat-hero-sub{font-size:10px;margin-bottom:12px;}
   .stat-hero-grid{grid-template-columns:repeat(2,1fr);gap:5px;}
   .stat-hero-grid-3{grid-template-columns:1fr 1fr;}
   .stat-hero-grid-3 .stat-box-wide{grid-column:span 2;}
-  .stat-box{padding:9px 6px;}
-  .stat-val{font-size:16px;}
-  .stat-lbl{font-size:9px;}
+  .stat-box{padding:11px 6px;}
+  .stat-val{font-size:26px;}
+  .stat-lbl{font-size:11px;}
+  .stat-lbl-left{font-size:12px;left:10px;}
   .header .logo-sub{display:none;}
   .header-right .btn{padding:6px 9px;font-size:11px;}
   .tab-nav-item{font-size:11px;padding:9px 6px;}
@@ -560,21 +564,23 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     </div>
     <div class="stats">
       <div class="stat-hero-wrap">
-        <div class="stat-hero-label">전체 누적</div>
-        <div class="stat-hero-month" id="stat-hero-month">전체 누적 현황</div>
-        <div class="stat-hero-sub" id="stat-hero-sub">데이터 불러오는 중…</div>
+        <div class="stat-hero-head">
+          <div class="stat-hero-label">전체 누적</div>
+          <div class="stat-hero-month" id="stat-hero-month">전체 누적 현황</div>
+          <div class="stat-hero-sub" id="stat-hero-sub">데이터 불러오는 중…</div>
+        </div>
         <div class="stat-hero-grid stat-hero-grid-3">
           <div class="stat-box">
+            <div class="stat-lbl-left">팀원</div>
             <div class="stat-val" id="stat-agents">-</div>
-            <div class="stat-lbl">팀원</div>
           </div>
           <div class="stat-box">
+            <div class="stat-lbl-left">계약</div>
             <div class="stat-val" id="stat-contracts">-</div>
-            <div class="stat-lbl">전체 계약</div>
           </div>
           <div class="stat-box stat-box-wide">
-            <div class="stat-val" id="stat-premium" style="font-size:17px;">-</div>
-            <div class="stat-lbl">총 보험료</div>
+            <div class="stat-lbl-left">총 보험료</div>
+            <div class="stat-val" id="stat-premium" style="font-size:40px;">-</div>
           </div>
         </div>
       </div>
@@ -1613,9 +1619,11 @@ function renderDashboard() {
   document.getElementById('stat-agents').textContent = agents.length;
   document.getElementById('stat-contracts').textContent = totalContracts;
   const premEl = document.getElementById('stat-premium');
-  premEl.textContent = fmtLargeNum(totalPremium);
+  const premStr = fmtLargeNum(totalPremium);
+  if (premStr === '-') premEl.textContent = '-';
+  else premEl.innerHTML = premStr.replace(/원$/, '<span style="font-size:.55em;font-weight:600;opacity:.85;">원</span>');
   const digits = String(Math.round(totalPremium)).length;
-  premEl.style.fontSize = digits >= 12 ? '11px' : digits >= 10 ? '12px' : digits >= 8 ? '13px' : digits >= 6 ? '15px' : '17px';
+  premEl.style.fontSize = digits >= 12 ? '20px' : digits >= 10 ? '24px' : digits >= 9 ? '28px' : digits >= 8 ? '32px' : digits >= 7 ? '36px' : '40px';
 
   // ── 히어로 배너 월/날짜 텍스트 ──
   const now = new Date();
