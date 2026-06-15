@@ -557,7 +557,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
@@ -571,6 +571,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+// 설계사 접근코드를 커스텀 토큰으로 교환하는 워커(extract-worker.js)와 동일 주소.
+const WORKER_URL = 'https://mujin-extract.0080qpt-3b9.workers.dev';
 const urlParams = new URLSearchParams(location.search);
 let token = urlParams.get('token');
 // 설치형(PWA)으로 아이콘 실행 시엔 URL에 token이 없으므로 저장해둔 코드를 사용.
@@ -593,34 +595,46 @@ let myAwardSpecials = []; // ⭐ 내가 멤버인 추가시상 그룹의 특별�
 let commissionsCache = [];
 let noticesCache = []; // 고지의무 캐시
 
-// 토큰 = base64url(email:password). 디코드 실패 시 null (구버전 토큰 포함).
-function decodeToken(t){
-  try {
-    t = String(t||'').replace(/-/g,'+').replace(/_/g,'/');
-    while (t.length % 4) t += '=';
-    const s = atob(t);
-    const i = s.indexOf(':');
-    if (i < 1) return null;
-    return { email: s.slice(0, i), pw: s.slice(i + 1) };
-  } catch(e) { return null; }
+// 접근코드 = "<uid>.<무작위secret>" (비밀번호 미포함).
+// 워커 /session 이 codeHash 대조 후 그 uid의 커스텀 토큰을 발급한다.
+async function exchangeCodeForToken(code){
+  const res = await fetch(WORKER_URL.replace(/\/+$/,'') + '/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: String(code||'') })
+  });
+  let data = {};
+  try { data = await res.json(); } catch(e){}
+  if (!res.ok || !data.ok || !data.token) {
+    const err = new Error(data.error || ('세션 발급 실패 (' + res.status + ')'));
+    err.status = res.status;
+    throw err;
+  }
+  return data.token;
 }
 
 // ── 초기화 ──
 async function init() {
   if (token) {
-    // 1) 코드(토큰)로 입장 — 설계사 경로
-    const cred = decodeToken(token);
-    if (!cred) {
-      try { localStorage.removeItem('mujinViewerToken'); } catch(e){}
-      showError('사용할 수 없는 코드입니다.\n(보안 업데이트로 기존 코드는 만료됐어요)\n담당자에게 새 코드를 받아 아래에 붙여넣어 주세요.', true);
+    // 1) 코드로 입장 — 설계사 경로 (코드 → 커스텀 토큰 → 로그인)
+    let customToken;
+    try {
+      customToken = await exchangeCodeForToken(token);
+    } catch(e) {
+      // 형식 오류·만료·무효 코드 → 저장 비우고 새 코드 받도록 안내
+      // (네트워크 오류 등 5xx는 코드 문제가 아닐 수 있어 저장은 남겨둠)
+      if (!e.status || (e.status >= 400 && e.status < 500)) {
+        try { localStorage.removeItem('mujinViewerToken'); } catch(e2){}
+      }
+      showError((e.message || '사용할 수 없는 코드입니다.') +
+        '\n담당자에게 새 코드를 받아 아래에 붙여넣어 주세요.', true);
       return;
     }
-    // 설계사 계정으로 로그인 — 로그인 성공 = 토큰 유효
     try {
-      await signInWithEmailAndPassword(auth, cred.email, cred.pw);
+      await signInWithCustomToken(auth, customToken);
     } catch(e) {
-      try { localStorage.removeItem('mujinViewerToken'); } catch(e2){} // 무효 코드는 저장 안 남김
-      showError('유효하지 않은 링크입니다.\n담당자에게 새 코드를 받아 아래에 붙여넣어 주세요.', true);
+      try { localStorage.removeItem('mujinViewerToken'); } catch(e2){}
+      showError('로그인에 실패했습니다.\n담당자에게 새 코드를 받아 아래에 붙여넣어 주세요.', true);
       return;
     }
   } else {
