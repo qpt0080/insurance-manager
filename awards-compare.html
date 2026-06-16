@@ -214,7 +214,7 @@
 <script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -226,7 +226,13 @@ const firebaseConfig = {
   appId:"1:769412429451:web:0c3a31bb14430f8fe5068e"
 };
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// 오프라인 영속성: 캐시된 시상 데이터로 오프라인에서도 비교. 불가 환경은 메모리 캐시로 폴백.
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (e) {
+  db = getFirestore(app);
+}
 const auth = getAuth(app);
 
 // ── 유틸 (income-simulator와 동일) ──

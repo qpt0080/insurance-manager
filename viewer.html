@@ -566,7 +566,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -579,7 +579,14 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// 오프라인 영속성: 외근 중 네트워크가 끊겨도 캐시된 고객·계약을 보고,
+// 수정은 큐에 쌓였다가 복귀 시 자동 동기화. 사생활보호모드 등 불가 환경은 메모리 캐시로 폴백.
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (e) {
+  db = getFirestore(app);
+}
 const auth = getAuth(app);
 const urlParams = new URLSearchParams(location.search);
 

@@ -46,7 +46,7 @@ self.addEventListener('notificationclick', function(event){
 });
 
 /* ── 앱 셸 캐시 ───────────────────────────────────── */
-const CACHE = 'mujin-shell-v49';
+const CACHE = 'mujin-shell-v50';
 const SHELL = [
   'index.html','admin.html','viewer.html','dashboard.html',
   'income-simulator.html','notice.html','awards-compare.html','awards-manage.html',
@@ -80,12 +80,31 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Firebase 등 외부는 건드리지 않음
 
-  // stale-while-revalidate:
-  //  - 캐시에 있으면 "즉시" 내주고(=빠름), 뒤에서 네트워크로 조용히 갱신 → 다음 로딩이 최신
-  //  - 캐시에 없으면 네트워크를 기다림
-  //  - 네트워크 실패 시 캐시 폴백(페이지 이동이면 index.html까지)
-  //  배포 때마다 CACHE 버전을 올리면 install이 새 셸을 미리 받고 activate가 옛 캐시를 지워
-  //  최신 버전으로 수렴합니다. (직후 1회는 직전 버전이 보일 수 있음)
+  // 앱 셸(HTML·JS·매니페스트)과 페이지 이동은 "네트워크 우선":
+  //  - 온라인이면 항상 최신을 받아 반영(배포 직후 옛 화면 안 보임 → CACHE 버전 안 올려도 됨)
+  //  - 오프라인이면 캐시로 폴백(페이지 이동이면 index.html까지)
+  const isShell = req.mode === 'navigate'
+    || /\.(html|js|webmanifest)$/i.test(url.pathname);
+
+  if (isShell) {
+    e.respondWith(
+      fetch(req).then(res => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
+        }
+        return res;
+      }).catch(() =>
+        caches.match(req).then(c =>
+          c || (req.mode === 'navigate' ? caches.match('index.html') : Response.error())
+        )
+      )
+    );
+    return;
+  }
+
+  // 그 외(아이콘·이미지 등 잘 안 바뀌는 정적 자원)은 stale-while-revalidate:
+  //  캐시가 있으면 즉시 내주고(빠름) 뒤에서 조용히 갱신, 없으면 네트워크 대기.
   e.respondWith(
     caches.match(req).then(cached => {
       const fetching = fetch(req).then(res => {
@@ -94,12 +113,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
         }
         return res;
-      }).catch(() => {
-        if (cached) return cached;
-        if (req.mode === 'navigate') return caches.match('index.html');
-        return Response.error();
-      });
-      // 캐시가 있으면 즉시 반환(네트워크는 백그라운드로 진행), 없으면 네트워크 대기
+      }).catch(() => cached || Response.error());
       return cached || fetching;
     })
   );

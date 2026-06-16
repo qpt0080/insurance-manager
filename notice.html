@@ -232,7 +232,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 import {
-  getFirestore, collection, doc, addDoc, setDoc, deleteDoc, updateDoc,
+  getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, addDoc, setDoc, deleteDoc, updateDoc,
   getDoc, getDocs, onSnapshot, query, where, orderBy, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -247,7 +247,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+// 오프라인 영속성: 네트워크가 끊겨도 캐시된 공지·시상을 표시. 불가 환경은 메모리 캐시로 폴백.
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (e) {
+  db = getFirestore(app);
+}
 
 // 공지/투표 전용 컬렉션. (기존 notices 컬렉션은 고지의무 용도라 분리)
 const COL = 'announcements';
