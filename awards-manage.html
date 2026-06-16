@@ -98,12 +98,13 @@ h1{font-size:19px;font-weight:800;letter-spacing:-.3px;}
         <select id="st-year" style="flex:1;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
         <select id="st-month" style="width:92px;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="font-size:12px;color:var(--ink2);">등록된 보험사</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--ink2);">등록</span>
         <span id="st-count" style="font-size:11px;font-weight:700;color:var(--green);background:rgba(26,127,75,.1);padding:2px 9px;border-radius:999px;">0개사</span>
-        <span style="margin-left:auto;font-size:10.5px;color:var(--ink3);">↔ 좌우로 스크롤</span>
+        <span id="st-docs" style="font-size:11px;font-weight:700;color:#185FA5;background:rgba(24,95,165,.1);padding:2px 9px;border-radius:999px;">0건</span>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--ink3);">눌러서 편집</span>
       </div>
-      <div id="st-strip" style="display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding:2px 0 6px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);scrollbar-width:none;"></div>
+      <div id="st-strip" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       <div style="display:flex;justify-content:flex-end;margin-top:6px;">
         <button class="btn ghost" onclick="deleteAwardsByMonth()" style="font-size:11px;padding:5px 10px;color:var(--ink3);">🗑 이 달 전체 삭제</button>
       </div>
@@ -244,12 +245,61 @@ function initStatusSelects(){
 function renderStatus(){
   if(!$('st-year')||!$('st-month')) return;
   const y=+$('st-year').value, m=+$('st-month').value;
-  const cos=[...new Set(ALL.filter(a=>a.year===y && a.month===m).map(a=>a.company).filter(Boolean))]
-              .sort((a,b)=>String(a).localeCompare(String(b),'ko'));
+  const docs = ALL.filter(a=>a.year===y && a.month===m);
+
+  // 회사별로 묶기: 주차별 문서 + 월(주차없음) 문서 + 항목수 합
+  const byCo = {};
+  docs.forEach(a=>{
+    const co=a.company; if(!co) return;
+    const e = byCo[co] || (byCo[co] = {weeks:{}, monthDoc:null, items:0});
+    e.items += (a.tiers||[]).length;
+    if(a.week) e.weeks[+a.week] = a._docId; else e.monthDoc = a._docId;
+  });
+  const cos = Object.keys(byCo).sort((a,b)=>String(a).localeCompare(String(b),'ko'));
+
+  // 주차 슬롯 수: 기본 4칸, 5주차 이상 등록되면 그만큼 자동 확장(최소 4)
+  let slots = 4;
+  cos.forEach(co=>Object.keys(byCo[co].weeks).forEach(w=>{ if(+w>slots) slots=+w; }));
+
   $('st-count').textContent = cos.length+'개사';
-  $('st-strip').innerHTML = cos.length
-    ? cos.map(co=>`<span style="flex-shrink:0;white-space:nowrap;padding:7px 15px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:1.5px solid var(--line2);background:var(--surface);color:var(--ink);">${esc(co)}</span>`).join('')
-    : '<span class="empty" style="padding:6px 0;">이 달 등록된 시상이 없어요</span>';
+  $('st-docs').textContent  = docs.length+'건';
+
+  if(!cos.length){ $('st-strip').innerHTML = '<span class="empty" style="padding:6px 0;">이 달 등록된 시상이 없어요</span>'; return; }
+
+  $('st-strip').innerHTML = cos.map(co=>{
+    const e = byCo[co];
+    const wkNums = Object.keys(e.weeks).map(Number);
+    const hasWeekly = wkNums.length>0;
+    let badges='', full=true;
+    if(hasWeekly){
+      for(let w=1; w<=slots; w++){
+        const id=e.weeks[w];
+        if(id){
+          badges += `<span onclick="event.stopPropagation();openEditorById('${esc(id)}')" style="font-size:10px;font-weight:800;color:#fff;background:var(--accent);padding:2px 6px;border-radius:6px;cursor:pointer;">주${w}</span>`;
+        }else{
+          full=false;
+          badges += `<span style="font-size:10px;font-weight:700;color:#B4B2A9;background:var(--paper);border:1px dashed var(--line2);padding:1px 5px;border-radius:6px;">주${w}</span>`;
+        }
+      }
+    }
+    if(e.monthDoc){
+      badges += `<span onclick="event.stopPropagation();openEditorById('${esc(e.monthDoc)}')" style="font-size:10px;font-weight:800;color:var(--green);background:rgba(26,127,75,.12);padding:2px 7px;border-radius:6px;cursor:pointer;">전체(월)</span>`;
+    }
+    const incomplete = hasWeekly && !full;
+    // 문서가 하나뿐이면 카드 전체를 눌러 바로 편집
+    const singleId = (!hasWeekly && e.monthDoc) ? e.monthDoc
+                   : (hasWeekly && !e.monthDoc && wkNums.length===1) ? e.weeks[wkNums[0]]
+                   : null;
+    const cardClick = singleId ? ` onclick="openEditorById('${esc(singleId)}')"` : '';
+    return `<div${cardClick} style="flex:0 1 calc(50% - 4px);min-width:158px;border:1.5px solid ${incomplete?'#F0C97A':'var(--line)'};border-radius:var(--radius-sm);background:var(--surface);padding:10px 11px;${singleId?'cursor:pointer;':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+        <span style="font-size:13.5px;font-weight:800;">${esc(co)}</span>
+        ${singleId?'<span style="color:var(--ink3);font-size:15px;">›</span>':''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;">${badges}</div>
+      <div style="font-size:10.5px;font-weight:700;color:var(--ink3);">${e.items}개 항목${incomplete?' · <span style="color:var(--amber);">빈 주차 있음</span>':''}</div>
+    </div>`;
+  }).join('');
 }
 window.deleteAwardsByMonth = async function(){
   const y=+$('st-year').value, m=+$('st-month').value;
