@@ -1314,7 +1314,7 @@ window.saveGroupSpecial = async function(groupId) {
 window.deleteAwardGroup = async function(groupId) {
   const g = awardGroupsCache.find(x => x._docId === groupId);
   if (!g) return;
-  if (!confirm(`'${g.name}' 그룹을 삭제할까요?\n이 그룹을 가리키는 특별시상 항목은 아무에게도 보이지 않게 됩니다.`)) return;
+  if (!await uiConfirm(`'${g.name}' 그룹을 삭제할까요?\n이 그룹을 가리키는 특별시상 항목은 아무에게도 보이지 않게 됩니다.`)) return;
   try {
     await deleteDoc(doc(db,'awardGroups',groupId));
     await loadAwardGroups(); renderAwardGroups();
@@ -1816,7 +1816,7 @@ window.fixCustAgent = async function(docId) {
 window.fixAllOrphans = async function() {
   const ids = window._dataCheckOrphans || [];
   if (!ids.length) return;
-  if (!confirm(`${ids.length}건의 고객 담당을 모두 관리자(나)로 지정할까요?`)) return;
+  if (!await uiConfirm(`${ids.length}건의 고객 담당을 모두 관리자(나)로 지정할까요?`)) return;
   try {
     for (const id of ids) await updateDoc(doc(db,'customers',id), {agentId: auth.currentUser.uid, agentName: '관리자'});
     showToast(`✅ ${ids.length}건 지정 완료!`);
@@ -1829,7 +1829,7 @@ window.fixAllOrphans = async function() {
 // 고객·수당의 담당을 전부 관리자로 옮기고, 뷰어 링크를 무효화하고, 계정을 목록에서 제거.
 // "관리자 본인 = 설계사이기도 한" 경우 본인의 설계사 계정을 흡수할 때 사용.
 window.mergeAgentIntoAdmin = async function(uid, name) {
-  if (!confirm(`"${name}" 설계사의 모든 고객·수당 담당을 관리자(나)로 옮기고,\n이 계정과 뷰어 링크를 제거할까요?\n\n이 작업은 되돌릴 수 없어요.`)) return;
+  if (!await uiConfirm(`"${name}" 설계사의 모든 고객·수당 담당을 관리자(나)로 옮기고,\n이 계정과 뷰어 링크를 제거할까요?\n\n이 작업은 되돌릴 수 없어요.`)) return;
   try {
     const myUid = auth.currentUser.uid;
     showToast('🔀 병합 중...');
@@ -2390,7 +2390,7 @@ window.saveUploadContract = async function() {
           : (_ct.청약번호||_ct.rawJson?.청약번호) ? `청약번호: ${_ct.청약번호||_ct.rawJson?.청약번호}`
           : (_ct.발행번호||_ct.rawJson?.발행번호) ? `발행번호: ${_ct.발행번호||_ct.rawJson?.발행번호}`
           : `${newContract.company} · ${newContract.product}`;
-        const confirmed = window.confirm(
+        const confirmed = await uiConfirm(
           `중복 계약이 발견됐어요!\n📌 ${_key}\n\n기존 계약을 새 데이터로 대체할까요?\n\n✅ 메모·보상이력은 그대로 유지됩니다.\n\n[확인] 대체  [취소] 새로 추가`
         );
         if (confirmed) {
@@ -2528,7 +2528,7 @@ window.inviteAgent = async function() {
 };
 
 window.deleteInvite = async function(code, name) {
-  if (!confirm(`"${name}" 초대를 취소할까요?\n이 링크는 더 이상 가입에 쓸 수 없게 됩니다.`)) return;
+  if (!await uiConfirm(`"${name}" 초대를 취소할까요?\n이 링크는 더 이상 가입에 쓸 수 없게 됩니다.`)) return;
   try {
     await deleteDoc(doc(db,'invites',code));
     showToast('🗑 초대를 취소했어요.');
@@ -2537,19 +2537,19 @@ window.deleteInvite = async function(code, name) {
 };
 
 window.sendReset = async function(email) {
-  if (!confirm(`${email}로 비밀번호 초기화 이메일을 보낼까요?`)) return;
+  if (!await uiConfirm(`${email}로 비밀번호 초기화 이메일을 보낼까요?`)) return;
   try { await sendPasswordResetEmail(auth, email); toast(`✅ ${email}로 발송 완료`); }
   catch(e) { toast('발송 실패: ' + e.message); }
 };
 
 window.toggleDisable = async function(uid, currentlyDisabled) {
-  if (!confirm(`이 계정을 ${currentlyDisabled?'활성화':'비활성화'}할까요?`)) return;
+  if (!await uiConfirm(`이 계정을 ${currentlyDisabled?'활성화':'비활성화'}할까요?`)) return;
   try { await updateDoc(doc(db,'agents',uid), {disabled:!currentlyDisabled}); await loadAgents(); renderAgents(); }
   catch(e) { toast('변경 실패: ' + e.message); }
 };
 
 window.deleteAgent = async function(uid, name) {
-  if (!confirm(`${name} 계정을 삭제할까요?\n⚠ 해당 설계사의 고객 데이터는 유지됩니다.`)) return;
+  if (!await uiConfirm(`${name} 계정을 삭제할까요?\n⚠ 해당 설계사의 고객 데이터는 유지됩니다.`)) return;
   try { await deleteDoc(doc(db,'agents',uid)); await loadAll(); }
   catch(e) { toast('삭제 실패: ' + e.message); }
 };
@@ -2570,7 +2570,7 @@ window.doLogin = async function() {
 };
 
 window.doLogout = async function() {
-  if (!confirm('로그아웃 하시겠어요?')) return;
+  if (!await uiConfirm('로그아웃 하시겠어요?')) return;
   await signOut(auth);
 };
 
@@ -3232,7 +3232,7 @@ window.editPoolItem = async function(idx){
 
 window.deletePoolItem = async function(idx){
   const it=noticePool[idx]; if(!it) return;
-  if(!confirm(`"${it.label}" 항목을 삭제할까요?`)) return;
+  if(!await uiConfirm(`"${it.label}" 항목을 삭제할까요?`)) return;
   noticePool.splice(idx,1);
   try{ await savePoolDoc(); renderNoticeSavedList(); showToast('✅ 삭제됐어요.'); }
   catch(e){ showToast('❌ 실패: '+e.message); }
@@ -3435,7 +3435,7 @@ window.renderAwardSavedList = function(keyword){
 };
 
 window.deleteAward = async function(docId, name) {
-  if (!confirm(`"${name}" 시상 정책을 삭제할까요?`)) return;
+  if (!await uiConfirm(`"${name}" 시상 정책을 삭제할까요?`)) return;
   try {
     await deleteDoc(doc(db,'awards',docId));
     showToast(`✅ "${name}" 삭제됐어요.`);
@@ -3452,7 +3452,7 @@ window.deleteAwardsByMonth = async function() {
   const month = parseInt(document.getElementById('award-check-month')?.value) || new Date().getMonth()+1;
   const targets = awardsCache.filter(a => a.year===year && a.month===month && a.id);
   if (!targets.length) { showToast(`${year}년 ${month}월에 삭제할 시상이 없어요.`); return; }
-  if (!confirm(`${year}년 ${month}월 시상 ${targets.length}건을 모두 삭제할까요?\n(주차·회사 구분 없이 그 달 전부 삭제됩니다. 되돌릴 수 없어요.)`)) return;
+  if (!await uiConfirm(`${year}년 ${month}월 시상 ${targets.length}건을 모두 삭제할까요?\n(주차·회사 구분 없이 그 달 전부 삭제됩니다. 되돌릴 수 없어요.)`)) return;
   let ok=0, fail=0;
   for (const a of targets) {
     try { await deleteDoc(doc(db,'awards',a.id)); ok++; }
@@ -3920,7 +3920,7 @@ window.deleteContract = async function(custDocId, ctId, name) {
   const msg = isLast
     ? `"${name}" 계약을 삭제하면\n마지막 계약이라 고객 데이터도 함께 삭제됩니다.\n\n고객명: ${cust.name||''}\n계약 수: 1건\n\n계속할까요?`
     : `"${name}" 계약을 삭제할까요?\n\n고객명: ${cust.name||''} (계약 ${allContracts.length}건 중 1건 삭제)\n\n되돌릴 수 없어요.`;
-  if (!confirm(msg)) return;
+  if (!await uiConfirm(msg)) return;
 
   try {
     if (isLast) {
@@ -3939,7 +3939,7 @@ window.deleteContract = async function(custDocId, ctId, name) {
 // ── 고객 삭제 (A: 건수 포함 confirm) ──
 window.deleteCustomer = async function(custDocId, name, ctCount) {
   const count = ctCount ?? (customersCache.find(c=>c._docId===custDocId)?.contracts?.length||0);
-  if (!confirm(`"${name}" 고객을 삭제할까요?\n\n계약 ${count}건이 모두 함께 삭제됩니다.\n되돌릴 수 없어요.`)) return;
+  if (!await uiConfirm(`"${name}" 고객을 삭제할까요?\n\n계약 ${count}건이 모두 함께 삭제됩니다.\n되돌릴 수 없어요.`)) return;
   try {
     await deleteDoc(doc(db,'customers',custDocId));
     showToast(`✅ "${name}" 고객이 삭제됐어요.`);

@@ -569,7 +569,7 @@ $('#feed').addEventListener('click', async e=>{
     if (act==='close')  await updateDoc(doc(db,COL,id), {closed:true});
     if (act==='reopen') await updateDoc(doc(db,COL,id), {closed:false});
     if (act==='del'){
-      if (!confirm('이 공지를 삭제할까요? 되돌릴 수 없습니다.')) return;
+      if (!await uiConfirm('이 공지를 삭제할까요? 되돌릴 수 없습니다.')) return;
       await deleteDoc(doc(db,COL,id));
     }
   }catch(err){ toast('처리 실패: ' + (err.code||err.message)); }

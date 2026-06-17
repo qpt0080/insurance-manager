@@ -299,7 +299,7 @@ window.deleteAwardsByMonth = async function(){
   const y=+$('st-year').value, m=+$('st-month').value;
   const targets=ALL.filter(a=>a.year===y && a.month===m);
   if(!targets.length){ toast(`${y}년 ${m}월에 삭제할 시상이 없어요.`); return; }
-  if(!confirm(`${y}년 ${m}월 시상 ${targets.length}건을 모두 삭제할까요?\n(주차·회사 구분 없이 그 달 전부. 되돌릴 수 없어요.)`)) return;
+  if(!await uiConfirm(`${y}년 ${m}월 시상 ${targets.length}건을 모두 삭제할까요?\n(주차·회사 구분 없이 그 달 전부. 되돌릴 수 없어요.)`)) return;
   let ok=0, fail=0;
   for(const a of targets){ try{ await deleteDoc(doc(db,'awards',a._docId)); ok++; }catch(e){ fail++; } }
   toast(`✅ ${y}년 ${m}월 ${ok}건 삭제${fail?` (${fail} 실패)`:''}`);
@@ -332,7 +332,7 @@ window.renderSavedList = function(keyword){
 window.openEditorById = function(id){ openEditor(id); };
 window.deleteOneAward = async function(id){
   const a=ALL.find(x=>x._docId===id); if(!a) return;
-  if(!confirm(`"${a.company}" ${a.year}년 ${a.month}월 ${a.week?a.week+'주차':''} 시상을 삭제할까요?`)) return;
+  if(!await uiConfirm(`"${a.company}" ${a.year}년 ${a.month}월 ${a.week?a.week+'주차':''} 시상을 삭제할까요?`)) return;
   try{ await deleteDoc(doc(db,'awards',id)); toast('🗑 삭제됐어요'); await loadAll(); }
   catch(e){ toast('⚠️ 삭제 실패: '+(e.code||e.message)); }
 };
@@ -408,7 +408,7 @@ window.saveGroupSpecial = async function(groupId){
 };
 window.deleteAwardGroup = async function(groupId){
   const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
-  if(!confirm(`'${g.name}' 그룹을 삭제할까요?\n이 그룹을 가리키는 특별시상 항목은 아무에게도 보이지 않게 됩니다.`)) return;
+  if(!await uiConfirm(`'${g.name}' 그룹을 삭제할까요?\n이 그룹을 가리키는 특별시상 항목은 아무에게도 보이지 않게 됩니다.`)) return;
   try{ await deleteDoc(doc(db,'awardGroups',groupId)); await loadAwardGroups(); renderAwardGroups(); }
   catch(e){ toast('삭제 실패: '+e.message); }
 };
@@ -565,7 +565,7 @@ window.applyJson = function(){
 window.saveCurrent = async function(){
   if(!CUR) return;
   const newId = awardDocId(CUR.year, CUR.month, CUR.company, CUR.week);
-  if(newId !== CUR_DOCID && !confirm(`회사/연월/주차가 바뀌어 문서 ID가 ${CUR_DOCID} → ${newId} 로 바뀝니다. 새 문서로 저장할까요? (기존 문서는 남습니다)`)) return;
+  if(newId !== CUR_DOCID && !await uiConfirm(`회사/연월/주차가 바뀌어 문서 ID가 ${CUR_DOCID} → ${newId} 로 바뀝니다. 새 문서로 저장할까요? (기존 문서는 남습니다)`)) return;
   $('saveBtn').disabled = true;
   try{
     await setDoc(doc(db,'awards',newId), {...CUR, editedAt:new Date().toISOString()});
@@ -577,7 +577,7 @@ window.saveCurrent = async function(){
 };
 window.deleteCurrent = async function(){
   if(!CUR_DOCID) return;
-  if(!confirm(`"${CUR.company}" ${CUR.year}년 ${CUR.month}월 ${CUR.week?CUR.week+'주차':''} 시상을 삭제할까요?`)) return;
+  if(!await uiConfirm(`"${CUR.company}" ${CUR.year}년 ${CUR.month}월 ${CUR.week?CUR.week+'주차':''} 시상을 삭제할까요?`)) return;
   try{
     await deleteDoc(doc(db,'awards',CUR_DOCID));
     toast('🗑 삭제됐어요'); backToList(); await loadAll();

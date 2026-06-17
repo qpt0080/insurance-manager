@@ -2732,7 +2732,7 @@ window.addClaim = async function(custId, ctId) {
 };
 
 window.deleteClaim = async function(custId, ctId, claimIdx) {
-  if (!confirm('이 보상이력을 삭제할까요?')) return;
+  if (!await uiConfirm('이 보상이력을 삭제할까요?')) return;
   const c = getCust(custId);
   const updatedContracts = (c.contracts||[]).map(ct=>{
     if (ct.id !== ctId) return ct;
@@ -3061,7 +3061,7 @@ window.saveNoticeToContract = async function(custId, ctId) {
 };
 
 window.deleteNoticeFromContract = async function(custId, ctId) {
-  if (!confirm('이 계약의 고지 조건을 삭제할까요?')) return;
+  if (!await uiConfirm('이 계약의 고지 조건을 삭제할까요?')) return;
   const c = getCust(custId);
   const updatedContracts = updateContractInList(c, ctId, ct => {
     const {notice, ...rest} = ct;
