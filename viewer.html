@@ -393,6 +393,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <script>if(!window.InsSearch){window.InsSearch={matchAll:function(h,q){var t=(q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);var s=(h||"").toLowerCase();return t.every(function(x){return s.indexOf(x)!==-1;});},touches:function(t,q){return window.InsSearch.matchAll(t,q);},termsInText:function(){return[];},tokenize:function(q){return (q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);}};console.warn("search-engine.js가 로드되지 않아 기본 검색으로 동작합니다(동의어 미적용). 같은 폴더에 search-engine.js를 올려주세요.");}</script>
 <script src="coverage-summary.js"></script>
 <script>if(!window.CovAgg){window.CovAgg={renderHTML:function(){return'';},toggle:function(){},view:function(){}};console.warn("coverage-summary.js가 로드되지 않아 보장 합산이 표시되지 않습니다. 같은 폴더에 coverage-summary.js를 올려주세요.");}</script>
+<script src="coverage-gap.js"></script>
+<script>if(!window.CovGap){window.CovGap={renderHTML:function(){return'';},analyze:function(){return{results:[],summary:{gap:0,low:0,over:0,ok:0}};}};console.warn("coverage-gap.js가 로드되지 않아 보장 분석이 표시되지 않습니다.");}</script>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
   <link rel="manifest" href="manifest-viewer.webmanifest">
@@ -1117,6 +1119,7 @@ function renderInsuredCards(el, custList, q) {
     }).join('');
     const synthetic = { name: g.insured, contracts: cts };
     const covPanel = window.CovAgg ? window.CovAgg.renderHTML(synthetic) : '';
+    const gapPanel = window.CovGap ? window.CovGap.renderHTML(synthetic) : '';
     return `<div class="cust-card" style="cursor:default;">
       <div class="cust-card-top">
         <div style="display:flex;align-items:center;gap:10px;min-width:0;">
@@ -1139,6 +1142,7 @@ function renderInsuredCards(el, custList, q) {
         <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:2px;">📄 계약 ${cts.length}건</div>
         ${ctList}
         <div style="margin:12px 0 0;padding:13px;border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--accent-light);">${covPanel}</div>
+        <div style="margin:9px 0 0;padding:13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);">${gapPanel}</div>
       </div>
     </div>`;
   }).join('');
@@ -2205,6 +2209,9 @@ window.showDetail = function(id, skipHistory) {
   </div>`;
   html += `<div style="margin:6px 0 16px;padding:14px;border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--accent-light, rgba(59,91,219,.06));">
     ${window.CovAgg ? window.CovAgg.renderHTML(c) : ''}
+  </div>`;
+  html += `<div style="margin:0 0 16px;padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);">
+    ${window.CovGap ? window.CovGap.renderHTML(c) : ''}
   </div>`;
   html+=`<div class="sec-label">보험 계약 (${contracts.length}건)</div>`;
   if (!contracts.length) html+='<div class="empty"><div class="empty-icon">📋</div><p>계약 없음</p></div>';
