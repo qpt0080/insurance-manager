@@ -564,6 +564,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 </div>
 
 <script src="awards-core.js"></script>
+<script src="ui-feedback.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -2716,7 +2717,7 @@ window.addClaim = async function(custId, ctId) {
   const date = document.getElementById(`cl-date-${ctId}`).value.trim();
   const memo = document.getElementById(`cl-memo-${ctId}`).value.trim();
   const amount = document.getElementById(`cl-amt-${ctId}`).value.trim();
-  if (!memo) { alert('내용을 입력해주세요.'); return; }
+  if (!memo) { toast('내용을 입력해주세요.'); return; }
   const c = getCust(custId);
   const updatedContracts = (c.contracts||[]).map(ct=>{
     if (ct.id !== ctId) return ct;
@@ -2727,7 +2728,7 @@ window.addClaim = async function(custId, ctId) {
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
     renderContractScreen(custId, ctId);
-  } catch(e) { alert('저장 실패: '+e.message); }
+  } catch(e) { toast('저장 실패: '+e.message); }
 };
 
 window.deleteClaim = async function(custId, ctId, claimIdx) {
@@ -2742,7 +2743,7 @@ window.deleteClaim = async function(custId, ctId, claimIdx) {
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
     renderContractScreen(custId, ctId);
-  } catch(e) { alert('삭제 실패: '+e.message); }
+  } catch(e) { toast('삭제 실패: '+e.message); }
 };
 
 // ── 메모 ──
@@ -2764,7 +2765,7 @@ window.saveMemo = async function(custId, ctId) {
     if (ci>=0) customers[ci].contracts = updatedContracts;
     renderContractScreen(custId, ctId);
     if (currentCustomerId) showDetail(currentCustomerId);
-  } catch(e) { alert('저장 실패: '+e.message); }
+  } catch(e) { toast('저장 실패: '+e.message); }
 };
 
 // ── 납입방법 변경 ──
@@ -2784,7 +2785,7 @@ window.saveContractDate = async function(custId, ctId, ctSafeId) {
   const input = document.getElementById(`date-input-${ctSafeId}`);
   if (!input) return;
   const val = input.value; // YYYY-MM-DD
-  if (!val) { alert('날짜를 선택해주세요.'); return; }
+  if (!val) { toast('날짜를 선택해주세요.'); return; }
   const cust = customers.find(c => (c._docId||c.id) === custId);
   if (!cust) return;
   const updatedContracts = (cust.contracts||[]).map((ct,i) => {
@@ -2804,7 +2805,7 @@ window.saveContractDate = async function(custId, ctId, ctSafeId) {
     if (typeof renderPerformance === 'function') renderPerformance();
     openContractScreen(custId, ctId, true); // 상세 화면 새로고침
   } catch(e) {
-    alert('계약일 저장 실패: ' + e.message);
+    toast('계약일 저장 실패: ' + e.message);
   }
 };
 
@@ -2853,7 +2854,7 @@ window.savePayMethod = async function(custId, ctId, ctSafeId) {
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
     renderContractScreen(custId, ctId);
-  } catch(e) { alert('저장 실패: '+e.message); }
+  } catch(e) { toast('저장 실패: '+e.message); }
 };
 window.showTab = function(tab, skipHistory) {
   ['home','list','performance','awards','notice'].forEach(t => {
@@ -3029,7 +3030,7 @@ window.renderNoticeEditItems = function(custId, ctId) {
 
 window.saveNoticeToContract = async function(custId, ctId) {
   const sel = document.getElementById(`nedit-sel-${ctId}`);
-  if (!sel || !sel.value) { alert('고지의무를 선택해주세요.'); return; }
+  if (!sel || !sel.value) { toast('고지의무를 선택해주세요.'); return; }
   const notice = noticesCache.find(n=>n._id===sel.value);
   if (!notice) return;
 
@@ -3056,7 +3057,7 @@ window.saveNoticeToContract = async function(custId, ctId) {
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
     renderContractScreen(custId, ctId);
-  } catch(e) { alert('저장 실패: '+e.message); }
+  } catch(e) { toast('저장 실패: '+e.message); }
 };
 
 window.deleteNoticeFromContract = async function(custId, ctId) {
@@ -3071,7 +3072,7 @@ window.deleteNoticeFromContract = async function(custId, ctId) {
     const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
     if (ci>=0) customers[ci].contracts = updatedContracts;
     renderContractScreen(custId, ctId);
-  } catch(e) { alert('삭제 실패: '+e.message); }
+  } catch(e) { toast('삭제 실패: '+e.message); }
 };
 function getV(ct,key) { return ct.rawJson?.[key]||''; }
 function getCoverages(ct) { return ct.coverages||ct.rawJson?.담보목록||[]; }

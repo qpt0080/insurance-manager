@@ -164,6 +164,7 @@ h1{font-size:19px;font-weight:800;letter-spacing:-.3px;}
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="ui-feedback.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -380,13 +381,13 @@ window.renderAwardGroups = function(){
 window.createAwardGroup = async function(){
   const inp = $('new-group-name');
   const name = (inp.value||'').trim();
-  if(!name){ alert('그룹 이름을 입력하세요'); return; }
-  if(awardGroupsCache.some(g=>g.name===name)){ alert('같은 이름의 그룹이 이미 있어요'); return; }
+  if(!name){ toast('그룹 이름을 입력하세요'); return; }
+  if(awardGroupsCache.some(g=>g.name===name)){ toast('같은 이름의 그룹이 이미 있어요'); return; }
   try{
     await addDoc(collection(db,'awardGroups'), { name, memberUids:[], createdAt:new Date().toISOString() });
     inp.value='';
     await loadAwardGroups(); renderAwardGroups();
-  }catch(e){ alert('그룹 생성 실패: '+e.message); }
+  }catch(e){ toast('그룹 생성 실패: '+e.message); }
 };
 window.toggleGroupMember = async function(groupId, uid, on){
   const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
@@ -394,7 +395,7 @@ window.toggleGroupMember = async function(groupId, uid, on){
   if(on) set.add(uid); else set.delete(uid);
   const memberUids = [...set];
   try{ await updateDoc(doc(db,'awardGroups',groupId), { memberUids }); g.memberUids=memberUids; renderAwardGroups(); }
-  catch(e){ alert('저장 실패: '+e.message); renderAwardGroups(); }
+  catch(e){ toast('저장 실패: '+e.message); renderAwardGroups(); }
 };
 window.saveGroupSpecial = async function(groupId){
   const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
@@ -403,13 +404,13 @@ window.saveGroupSpecial = async function(groupId){
   const timing = $('sp-timing-'+groupId).value==='13th' ? '13th' : 'next_month';
   const special = rate>0 ? { label, rate, timing } : null;
   try{ await updateDoc(doc(db,'awardGroups',groupId), { special }); g.special=special; renderAwardGroups(); }
-  catch(e){ alert('저장 실패: '+e.message); }
+  catch(e){ toast('저장 실패: '+e.message); }
 };
 window.deleteAwardGroup = async function(groupId){
   const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
   if(!confirm(`'${g.name}' 그룹을 삭제할까요?\n이 그룹을 가리키는 특별시상 항목은 아무에게도 보이지 않게 됩니다.`)) return;
   try{ await deleteDoc(doc(db,'awardGroups',groupId)); await loadAwardGroups(); renderAwardGroups(); }
-  catch(e){ alert('삭제 실패: '+e.message); }
+  catch(e){ toast('삭제 실패: '+e.message); }
 };
 /* ── 편집 화면 ───────────────────────────── */
 function openEditor(docId){

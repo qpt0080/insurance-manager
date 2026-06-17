@@ -1093,6 +1093,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <div id="toast"></div>
 
 <script src="awards-core.js"></script>
+<script src="ui-feedback.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -1274,13 +1275,13 @@ window.renderAwardGroups = function() {
 window.createAwardGroup = async function() {
   const inp = document.getElementById('new-group-name');
   const name = (inp.value||'').trim();
-  if (!name) { alert('그룹 이름을 입력하세요'); return; }
-  if (awardGroupsCache.some(g => g.name === name)) { alert('같은 이름의 그룹이 이미 있어요'); return; }
+  if (!name) { toast('그룹 이름을 입력하세요'); return; }
+  if (awardGroupsCache.some(g => g.name === name)) { toast('같은 이름의 그룹이 이미 있어요'); return; }
   try {
     await addDoc(collection(db,'awardGroups'), { name, memberUids: [], createdAt: new Date().toISOString() });
     inp.value = '';
     await loadAwardGroups(); renderAwardGroups();
-  } catch(e) { alert('그룹 생성 실패: '+e.message); }
+  } catch(e) { toast('그룹 생성 실패: '+e.message); }
 };
 
 window.toggleGroupMember = async function(groupId, uid, on) {
@@ -1293,7 +1294,7 @@ window.toggleGroupMember = async function(groupId, uid, on) {
     await updateDoc(doc(db,'awardGroups',groupId), { memberUids });
     g.memberUids = memberUids;
     renderAwardGroups();
-  } catch(e) { alert('저장 실패: '+e.message); renderAwardGroups(); }
+  } catch(e) { toast('저장 실패: '+e.message); renderAwardGroups(); }
 };
 
 window.saveGroupSpecial = async function(groupId) {
@@ -1307,7 +1308,7 @@ window.saveGroupSpecial = async function(groupId) {
     await updateDoc(doc(db,'awardGroups',groupId), { special });
     g.special = special;
     renderAwardGroups();
-  } catch(e) { alert('저장 실패: '+e.message); }
+  } catch(e) { toast('저장 실패: '+e.message); }
 };
 
 window.deleteAwardGroup = async function(groupId) {
@@ -1317,7 +1318,7 @@ window.deleteAwardGroup = async function(groupId) {
   try {
     await deleteDoc(doc(db,'awardGroups',groupId));
     await loadAwardGroups(); renderAwardGroups();
-  } catch(e) { alert('삭제 실패: '+e.message); }
+  } catch(e) { toast('삭제 실패: '+e.message); }
 };
 
 async function loadAgents() {
@@ -2537,20 +2538,20 @@ window.deleteInvite = async function(code, name) {
 
 window.sendReset = async function(email) {
   if (!confirm(`${email}로 비밀번호 초기화 이메일을 보낼까요?`)) return;
-  try { await sendPasswordResetEmail(auth, email); alert(`✅ ${email}로 발송 완료`); }
-  catch(e) { alert('발송 실패: ' + e.message); }
+  try { await sendPasswordResetEmail(auth, email); toast(`✅ ${email}로 발송 완료`); }
+  catch(e) { toast('발송 실패: ' + e.message); }
 };
 
 window.toggleDisable = async function(uid, currentlyDisabled) {
   if (!confirm(`이 계정을 ${currentlyDisabled?'활성화':'비활성화'}할까요?`)) return;
   try { await updateDoc(doc(db,'agents',uid), {disabled:!currentlyDisabled}); await loadAgents(); renderAgents(); }
-  catch(e) { alert('변경 실패: ' + e.message); }
+  catch(e) { toast('변경 실패: ' + e.message); }
 };
 
 window.deleteAgent = async function(uid, name) {
   if (!confirm(`${name} 계정을 삭제할까요?\n⚠ 해당 설계사의 고객 데이터는 유지됩니다.`)) return;
   try { await deleteDoc(doc(db,'agents',uid)); await loadAll(); }
-  catch(e) { alert('삭제 실패: ' + e.message); }
+  catch(e) { toast('삭제 실패: ' + e.message); }
 };
 
 // ── 로그인/로그아웃 ──
@@ -4452,7 +4453,7 @@ function escHtml(str) {
       var uid = (window.__getAdminUid && window.__getAdminUid()) || null;
       el.textContent = uid || '로그인 후 표시됩니다'; },
     copyUid:function(ev){ var uid=(window.__getAdminUid && window.__getAdminUid())||'';
-      if(!uid){ alert('로그인 후 다시 시도하세요.'); return; }
+      if(!uid){ toast('로그인 후 다시 시도하세요.'); return; }
       if(navigator.clipboard){ navigator.clipboard.writeText(uid); } else { var t=document.createElement('textarea'); t.value=uid; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); }
       var b=ev&&ev.target; if(b){ var o=b.textContent; b.textContent='✓ 복사됨'; setTimeout(function(){ b.textContent=o; },1200); } },
     pick:function(useCamera){

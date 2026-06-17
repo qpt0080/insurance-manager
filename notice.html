@@ -227,6 +227,7 @@ catch(e){ document.documentElement.classList.add('embedded'); }</script>
   </div>
 </div>
 
+<script src="ui-feedback.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -571,7 +572,7 @@ $('#feed').addEventListener('click', async e=>{
       if (!confirm('이 공지를 삭제할까요? 되돌릴 수 없습니다.')) return;
       await deleteDoc(doc(db,COL,id));
     }
-  }catch(err){ alert('처리 실패: ' + (err.code||err.message)); }
+  }catch(err){ toast('처리 실패: ' + (err.code||err.message)); }
 });
 
 // ── 푸시 알림 ──────────────────────────────────────────
@@ -615,14 +616,14 @@ async function enablePush(){
     const perm = await Notification.requestPermission();
     if (perm !== 'granted'){
       btn.disabled = false; btn.textContent = '알림 켜기';
-      alert('알림 권한이 허용되지 않았어요. 폰/브라우저 설정에서 허용할 수 있어요.');
+      toast('알림 권한이 허용되지 않았어요. 폰/브라우저 설정에서 허용할 수 있어요.');
       return;
     }
     await registerToken();
     $('#pushBar').style.display = 'none';
   }catch(e){
     btn.disabled = false; btn.textContent = '알림 켜기';
-    alert('알림 설정에 실패했어요: ' + (e.message || e));
+    toast('알림 설정에 실패했어요: ' + (e.message || e));
   }
 }
 
