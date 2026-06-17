@@ -280,6 +280,15 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 
   <!-- VIEW 1: 대시보드 -->
   <div class="view active" id="view-dash">
+    <style>
+      .period-toggle{display:flex;gap:6px;margin-bottom:14px;}
+      .ptab{padding:7px 16px;border-radius:10px;font-size:13px;font-weight:700;border:1.5px solid #e3e6ef;background:#fff;color:var(--text3);cursor:pointer;font-family:inherit;}
+      .ptab.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+    </style>
+    <div class="period-toggle">
+      <button id="ptab-month" class="ptab active" onclick="setPeriod('month')">이번 달</button>
+      <button id="ptab-year" class="ptab" onclick="setPeriod('year')">올해 누적</button>
+    </div>
     <div class="kpi-row">
       <div class="kpi-card" style="--kc:var(--cyan);--kc-bg:rgba(59,91,219,.1);">
         <div class="kpi-ico">📋</div>
@@ -426,6 +435,7 @@ const NOW = new Date();
 const CUR_YEAR = NOW.getFullYear(), CUR_MONTH = NOW.getMonth() + 1;
 
 let curPrem = 0, selectedAgentUid = '';
+let PERIOD = 'month'; // 'month' | 'year' — 대시보드 기간 토글
 const RANGE_MAX = 1000000;
 
 // 비활성 설계사 uid 집합 (랭킹·KPI 집계에서 제외)
@@ -444,10 +454,48 @@ function parsePeriod(ct){
 }
 function premOf(ct){ return parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function curMonthContracts(custs){
+function curMonthContracts(custs){            // (호환용) 이번 달
+  return monthContractsOf(custs, CUR_YEAR, CUR_MONTH);
+}
+function monthContractsOf(custs, year, month){ // 특정 (연,월) — 시상 월별 합산용
   return custs.flatMap(c => (c.contracts||[])
-    .filter(ct => { const p = parsePeriod(ct); return p && p.year===CUR_YEAR && p.month===CUR_MONTH; })
+    .filter(ct => { const p = parsePeriod(ct); return p && p.year===year && p.month===month; })
     .map(ct => ({...ct, _agentId: c.agentId})));
+}
+// PERIOD 기준(이번 달 / 올해 전체) 계약
+function periodContracts(custs){
+  return custs.flatMap(c => (c.contracts||[])
+    .filter(ct => { const p = parsePeriod(ct); if(!p || p.year!==CUR_YEAR) return false; return PERIOD==='year' ? true : p.month===CUR_MONTH; })
+    .map(ct => ({...ct, _agentId: c.agentId})));
+}
+// 시상 합산: 월 모드=이번 달, 연 모드=1~현재월 각각을 그 달 시상 기준으로 누적
+function computeAwards(active){
+  let awBase = 0, awBand = 0;
+  const months = PERIOD==='year' ? Array.from({length:CUR_MONTH}, (_,i)=>i+1) : [CUR_MONTH];
+  months.forEach(mn => {
+    const coPrem = {};
+    monthContractsOf(active, CUR_YEAR, mn).forEach(ct => {
+      const co = ct.company || ct.rawJson?.보험사 || '기타';
+      coPrem[co] = (coPrem[co]||0) + premOf(ct);
+    });
+    Object.keys(coPrem).forEach(co => {
+      const award = awardsCache.find(a => a.company === co && a.year === CUR_YEAR && a.month === mn);
+      if (!award) return;
+      const prem = coPrem[co];
+      (award.tiers||[]).forEach(t => {
+        if (t.type === 'basic' && t.payTiming === 'next_month') {
+          const rate = (t.periods?.[0]?.totalRate ?? t.periods?.[0]?.ownRate ?? 0);
+          if (rate && window.AwardsCore.classifyProduct(t.label) === '인보험') awBase += prem * rate / 100;
+          return;
+        }
+        if (['consecutive','club'].includes(t.type) || !(t.tiers||[]).length) return;
+        const steps = [...t.tiers].filter(s => s.threshold != null).sort((a,b) => a.threshold - b.threshold);
+        const best = [...steps].reverse().find(s => prem >= s.threshold);
+        if (best && best.reward && t.payTiming === 'next_month') awBand += best.reward;
+      });
+    });
+  });
+  return {awBase, awBand};
 }
 
 async function loadAll(){
@@ -482,6 +530,15 @@ window.switchView = function(v){
   requestAnimationFrame(applyScale); // 뷰마다 높이가 달라 재계산
 };
 
+window.setPeriod = function(p){
+  if(PERIOD === p) return;
+  PERIOD = p;
+  document.getElementById('ptab-month').classList.toggle('active', p==='month');
+  document.getElementById('ptab-year').classList.toggle('active', p==='year');
+  renderDash();
+  requestAnimationFrame(applyScale);
+};
+
 const AVATAR = [
   {bg:'rgba(59,91,219,.12)',color:'#0891b2',rc:'rgba(59,91,219,.12)'},
   {bg:'rgba(124,58,237,.12)',color:'#7c3aed',rc:'rgba(124,58,237,.12)'},
@@ -493,7 +550,8 @@ const AVATAR = [
 const MEDAL = ['🥇','🥈','🥉'];
 
 function renderDash(){
-  const allCts = curMonthContracts(activeCustomers());
+  const active = activeCustomers();
+  const allCts = periodContracts(active);
   let totalPrem = 0, lifeCount = 0, nonlifeCount = 0, lifePrem = 0, nonlifePrem = 0;
   const coMap = {};
   allCts.forEach(ct => {
@@ -509,29 +567,15 @@ function renderDash(){
   const activeAgents = new Set(allCts.map(c => c._agentId).filter(Boolean));
   const totalAgents = agentsCache.filter(a => !a.disabled).length; // 관리자 포함
 
-  document.getElementById('period-label').textContent = `— ${CUR_YEAR}년 ${CUR_MONTH}월 누적 실적`;
+  document.getElementById('period-label').textContent = PERIOD==='year'
+    ? `— ${CUR_YEAR}년 누적 실적 (1~${CUR_MONTH}월)`
+    : `— ${CUR_YEAR}년 ${CUR_MONTH}월 누적 실적`;
   countUp('kpi-contracts', allCts.length);
   document.getElementById('kpi-contracts-foot').textContent = `손보 ${nonlifeCount} · 생보 ${lifeCount}`;
   countUp('kpi-premium', Math.round(totalPrem/10000));
   countUp('kpi-comm', Math.round(commEst/10000));
-  // 팀 익월 시상 = 회사별 보험료 × 인보험 기본시상 + 익월 구간시상 (해당 월 등록 시상 기준)
-  let awBase = 0, awBand = 0;
-  Object.keys(coMap).forEach(co => {
-    const award = awardsCache.find(a => a.company === co && a.year === CUR_YEAR && a.month === CUR_MONTH);
-    if (!award) return;
-    const prem = coMap[co].prem;
-    (award.tiers||[]).forEach(t => {
-      if (t.type === 'basic' && t.payTiming === 'next_month') {
-        const rate = (t.periods?.[0]?.totalRate ?? t.periods?.[0]?.ownRate ?? 0);
-        if (rate && window.AwardsCore.classifyProduct(t.label) === '인보험') awBase += prem * rate / 100;
-        return;
-      }
-      if (['consecutive','club'].includes(t.type) || !(t.tiers||[]).length) return;
-      const steps = [...t.tiers].filter(s => s.threshold != null).sort((a,b) => a.threshold - b.threshold);
-      const best = [...steps].reverse().find(s => prem >= s.threshold);
-      if (best && best.reward && t.payTiming === 'next_month') awBand += best.reward;
-    });
-  });
+  // 팀 익월 시상(연간 모드는 1~현재월 합산) — computeAwards 참조
+  const {awBase, awBand} = computeAwards(active);
   countUp('kpi-award', Math.round((awBase + awBand)/10000));
   document.getElementById('kpi-award-foot').textContent = `기본 ${Math.round(awBase/10000)} + 익월 ${Math.round(awBand/10000)}만`;
 
@@ -544,12 +588,13 @@ function renderDash(){
 function renderRanking(){
   const rows = agentsCache.filter(a => !a.disabled).map(a => {
     const myCusts = customersCache.filter(c => c.agentId === a.uid);
-    const cts = curMonthContracts(myCusts);
+    const cts = periodContracts(myCusts);
     const prem = cts.reduce((s,ct) => s + premOf(ct), 0);
     return {a, count:cts.length, prem};
   }).sort((x,y) => y.count - x.count || y.prem - x.prem);
 
   document.getElementById('rank-cnt').textContent = `${rows.length}명`;
+  const pl = PERIOD==='year' ? '올해' : '월';
   const maxCount = Math.max(1, rows[0]?.count || 1);
   const el = document.getElementById('rank-list');
   const shown = rows.slice(0, 6);
@@ -565,14 +610,14 @@ function renderRanking(){
       <div class="rank-av" style="background:${col.bg};color:${col.color};">${esc((r.a.name||'?').slice(0,1))}</div>
       <div class="rank-info">
         <div class="rank-name">${esc(r.a.name||'이름없음')}</div>
-        <div class="rank-meta">월 보험료 ${r.prem>0?Math.round(r.prem/10000).toLocaleString()+'만원':'-'}</div>
+        <div class="rank-meta">${pl} 보험료 ${r.prem>0?Math.round(r.prem/10000).toLocaleString()+'만원':'-'}</div>
       </div>
       <div class="rank-stat">
         <div class="rank-count" style="--rc-text:${col.color};">${r.count}<span class="u">건</span></div>
         <div class="rank-prem">수수료 ≈${Math.round(r.prem*5.22/10000).toLocaleString()}만</div>
       </div>
     </div>`;
-  }).join('') || '<div style="margin:auto;color:var(--text3);font-size:13px;">이번 달 실적이 아직 없어요</div>';
+  }).join('') || `<div style="margin:auto;color:var(--text3);font-size:13px;">${PERIOD==="year"?"올해":"이번 달"} 실적이 아직 없어요</div>`;
 
   requestAnimationFrame(() => {
     el.querySelectorAll('.rank-bg-bar').forEach(b => { b.style.setProperty('--rw', b.dataset.w); });
@@ -616,7 +661,7 @@ function renderDonut(lifeC, nonlifeC, lifeP, nonlifeP){
         stroke-dasharray="${C}" stroke-dashoffset="${C}" transform="rotate(${-90 + (1-lifePct)*360} 75 75)"
         style="transition:stroke-dashoffset 1.3s cubic-bezier(.25,.46,.45,.94) .2s;" id="ring-life"/>
       <text class="donut-center-val" x="75" y="72" text-anchor="middle">${total}</text>
-      <text class="donut-center-lbl" x="75" y="92" text-anchor="middle">건 / 월</text>
+      <text class="donut-center-lbl" x="75" y="92" text-anchor="middle">건 / ${PERIOD==="year"?"올해":"월"}</text>
     </svg>
     <div class="donut-legend">
       <div class="legend-item">
@@ -642,7 +687,7 @@ function renderTicker(cts){
     return db_.localeCompare(da);
   }).slice(0, 14);
   const el = document.getElementById('ticker-move');
-  if(!items.length){ el.innerHTML = `<div class="ticker-item">이번 달 신규 계약이 아직 없어요 ✨</div>`; el.style.animation = 'none'; return; }
+  if(!items.length){ el.innerHTML = `<div class="ticker-item">${PERIOD==="year"?"올해":"이번 달"} 신규 계약이 아직 없어요 ✨</div>`; el.style.animation = 'none'; return; }
   const agentName = uid => (agentsCache.find(a => a.uid === uid)?.name) || '미배정';
   const one = items.map(ct => {
     const co = ct.company || ct.rawJson?.보험사 || '기타';
