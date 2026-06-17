@@ -569,14 +569,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey:"AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
-  authDomain:"insurance-manager-c4308.firebaseapp.com",
-  projectId:"insurance-manager-c4308",
-  storageBucket:"insurance-manager-c4308.firebasestorage.app",
-  messagingSenderId:"769412429451",
-  appId:"1:769412429451:web:0c3a31bb14430f8fe5068e"
-};
+import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 // 오프라인 영속성: 외근 중 네트워크가 끊겨도 캐시된 고객·계약을 보고,

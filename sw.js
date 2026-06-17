@@ -7,6 +7,8 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
+// 설정 원본은 firebase-config.js. 서비스워커는 compat/importScripts라
+// ES import를 못 써 아래 사본을 쓴다. 값이 바뀌면 두 파일을 함께 수정.
 firebase.initializeApp({
   apiKey: "AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
   authDomain: "insurance-manager-c4308.firebaseapp.com",
@@ -46,11 +48,11 @@ self.addEventListener('notificationclick', function(event){
 });
 
 /* ── 앱 셸 캐시 ───────────────────────────────────── */
-const CACHE = 'mujin-shell-v50';
+const CACHE = 'mujin-shell-v51';
 const SHELL = [
   'index.html','admin.html','viewer.html','dashboard.html',
   'income-simulator.html','notice.html','awards-compare.html','awards-manage.html',
-  'search-engine.js','coverage-summary.js','awards-core.js',
+  'search-engine.js','coverage-summary.js','awards-core.js','firebase-config.js',
   'manifest-admin.webmanifest','manifest-viewer.webmanifest',
   'icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','favicon.png',
   'viewer-icon-192.png','viewer-icon-512.png','viewer-icon-maskable-512.png','viewer-apple-touch-icon.png','viewer-favicon.png'

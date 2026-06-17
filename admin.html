@@ -1104,14 +1104,7 @@ import {
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCIwydl1W9ODV-RcNi6b5xyiPSQfHxgOnM",
-  authDomain: "insurance-manager-c4308.firebaseapp.com",
-  projectId: "insurance-manager-c4308",
-  storageBucket: "insurance-manager-c4308.firebasestorage.app",
-  messagingSenderId: "769412429451",
-  appId: "1:769412429451:web:0c3a31bb14430f8fe5068e"
-};
+import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
