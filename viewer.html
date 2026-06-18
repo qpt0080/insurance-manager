@@ -567,6 +567,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 <script src="awards-core.js"></script>
 <script src="ui-feedback.js"></script>
+<script src="share-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -584,6 +585,14 @@ try {
   db = getFirestore(app);
 }
 const auth = getAuth(app);
+
+// 고객 보장 공유 링크: 카드의 버튼이 호출. ShareCore가 생년월일 입력→암호화→발급까지 처리.
+window.openCoverageShare = function (key) {
+  const data = (window.__covShareReg || {})[key];
+  if (!data) { if (window.toast) toast('보장 데이터를 찾지 못했어요. 화면을 새로고침해 주세요.'); return; }
+  if (!window.ShareCore) { if (window.toast) toast('공유 모듈을 불러오지 못했어요.'); return; }
+  window.ShareCore.openShareDialog(data, { db, doc, setDoc });
+};
 const urlParams = new URLSearchParams(location.search);
 
 let customers = [];
@@ -1120,6 +1129,8 @@ function renderInsuredCards(el, custList, q) {
         <span style="color:var(--text3);flex-shrink:0;">›</span></div>`;
     }).join('');
     const synthetic = { name: g.insured, contracts: cts };
+    const _shKey = 'sh' + gi;
+    (window.__covShareReg = window.__covShareReg || {})[_shKey] = synthetic;
     const covPanel = window.CovAgg ? window.CovAgg.renderHTML(synthetic) : '';
     const gapPanel = window.CovGap ? window.CovGap.renderHTML(synthetic) : '';
     return `<div class="cust-card" style="cursor:default;">
@@ -1145,6 +1156,8 @@ function renderInsuredCards(el, custList, q) {
         ${ctList}
         <div style="margin:12px 0 0;padding:13px;border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--accent-light);">${covPanel}</div>
         <div style="margin:9px 0 0;padding:13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);">${gapPanel}</div>
+        <button onclick="window.openCoverageShare('${_shKey}')"
+          style="width:100%;margin-top:11px;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;">📲 ${escHtml(g.insured)}님께 보장 링크 보내기</button>
       </div>
     </div>`;
   }).join('');

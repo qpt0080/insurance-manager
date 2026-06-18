@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>내 보장 요약</title>
+  <meta name="theme-color" content="#3B5BDB">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest-my.webmanifest">
+  <style>
+    :root{
+      --accent:#3B5BDB; --accent-light:#EAEEFB;
+      --text:#1A1C22; --text2:#4A4F5A; --text3:#8A8F9A;
+      --surface:#F7F8FA; --border:#E5E8EE; --bg:#FFFFFF;
+      --radius-sm:10px;
+    }
+    *{box-sizing:border-box;}
+    body{font-family:-apple-system,'Pretendard',BlinkMacSystemFont,'Segoe UI',sans-serif;
+      margin:0;background:#EEF0F4;color:var(--text);
+      -webkit-text-size-adjust:100%;}
+    .wrap{max-width:520px;margin:0 auto;min-height:100vh;background:var(--bg);
+      display:flex;flex-direction:column;}
+    header{background:linear-gradient(135deg,#3B5BDB,#5A78E8);color:#fff;
+      padding:calc(20px + env(safe-area-inset-top)) 20px 18px;}
+    header .brand{font-size:12px;font-weight:700;opacity:.85;letter-spacing:.3px;}
+    header h1{font-size:20px;font-weight:800;margin:4px 0 0;}
+    header .sub{font-size:12px;opacity:.9;margin-top:4px;line-height:1.5;}
+    main{flex:1;padding:16px;}
+    .card{background:var(--bg);border:1px solid var(--border);border-radius:14px;
+      padding:16px;box-shadow:0 1px 3px rgba(20,22,30,.04);}
+    /* 게이트 */
+    .gate{max-width:340px;margin:8vh auto 0;text-align:center;padding:0 8px;}
+    .gate .ico{font-size:38px;}
+    .gate h2{font-size:18px;font-weight:800;margin:10px 0 6px;}
+    .gate p{font-size:13px;color:var(--text2);line-height:1.6;margin:0 0 18px;}
+    .gate input{width:100%;font-size:22px;letter-spacing:6px;text-align:center;padding:14px;
+      border:1.5px solid #D9DCE3;border-radius:12px;font-family:inherit;}
+    .gate input:focus{outline:none;border-color:var(--accent);}
+    .gate .err{min-height:18px;font-size:12.5px;color:#C2402A;font-weight:600;margin:8px 0 0;}
+    .gate button{width:100%;margin-top:12px;padding:14px;border:none;border-radius:12px;
+      background:var(--accent);color:#fff;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;}
+    .gate button:disabled{opacity:.6;}
+    .gate .note{font-size:11px;color:var(--text3);line-height:1.6;margin-top:16px;}
+    /* 합계 히어로 */
+    .hero{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .hero .box{flex:1;min-width:130px;background:var(--accent-light);border-radius:14px;padding:14px 16px;}
+    .hero .box .k{font-size:11.5px;font-weight:700;color:var(--accent);}
+    .hero .box .v{font-size:22px;font-weight:800;color:var(--text);margin-top:3px;line-height:1.15;}
+    .hero .box .v small{font-size:12px;font-weight:600;color:var(--text3);}
+    .sec-title{font-size:13.5px;font-weight:800;margin:6px 2px 10px;}
+    footer{padding:18px 16px calc(20px + env(safe-area-inset-bottom));
+      font-size:10.5px;color:var(--text3);line-height:1.6;text-align:center;}
+    .hidden{display:none;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">보장 요약</div>
+      <h1 id="hdr-title">내 보장 요약</h1>
+      <div class="sub" id="hdr-sub">가입하신 보장을 카테고리별로 정리해 드려요.</div>
+    </header>
+    <main>
+      <!-- 1) 생년월일 게이트 -->
+      <section id="gate" class="gate hidden">
+        <div class="ico">🔒</div>
+        <h2>본인 확인</h2>
+        <p>안내받은 링크예요. 보장 내용을 보려면<br><b>생년월일 6자리</b>를 입력하세요.</p>
+        <input id="birth" inputmode="numeric" maxlength="6" placeholder="YYMMDD" autocomplete="off">
+        <div class="err" id="gate-err"></div>
+        <button id="gate-ok">확인</button>
+        <div class="note">입력하신 생년월일은 이 기기 안에서만 확인에 쓰이고 어디에도 저장·전송되지 않아요.</div>
+      </section>
+
+      <!-- 2) 로딩 / 오류 -->
+      <section id="state" class="card" style="text-align:center;color:var(--text3);font-size:13px;">
+        불러오는 중…
+      </section>
+
+      <!-- 3) 결과 -->
+      <section id="result" class="hidden">
+        <div class="hero" id="hero"></div>
+        <div class="sec-title">📋 담보 정리 (카테고리별 합산)</div>
+        <div class="card" id="cov"></div>
+        <div id="gap-sec">
+          <div class="sec-title" style="margin-top:18px;">🔎 보장 점검 (참고)</div>
+          <div class="card" id="gap"></div>
+        </div>
+      </section>
+    </main>
+    <footer id="foot" class="hidden">
+      ※ 이 자료는 보장 이해를 돕기 위한 <b>안내용 요약</b>이며, 작성 시점 기준입니다.
+      실손·비례·% 담보는 금액 합산에서 제외했어요. 정확한 보장·지급조건은 약관과 증권을 따릅니다.
+    </footer>
+  </div>
+
+  <!-- 담보 합산 엔진(설계사 화면과 동일 로직) + 공유 모듈 -->
+  <script src="coverage-summary.js"></script>
+  <script src="coverage-gap.js"></script>
+  <script src="share-core.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const $ = (id) => document.getElementById(id);
+    const stateEl = $('state'), gateEl = $('gate'), resultEl = $('result'), footEl = $('foot');
+
+    function showState(msg) { stateEl.classList.remove('hidden'); stateEl.innerHTML = msg; }
+    function hideState() { stateEl.classList.add('hidden'); }
+
+    const token = window.ShareCore.tokenFromUrl();
+    if (!token) {
+      showState('잘못된 링크예요. 설계사에게 링크를 다시 요청해 주세요.');
+    } else {
+      start().catch(() => showState('링크를 여는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.'));
+    }
+
+    let payload = null;
+
+    async function start() {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      let snap;
+      try {
+        snap = await getDoc(doc(db, 'shares', token));
+      } catch (e) {
+        showState('연결에 실패했어요. 네트워크 상태를 확인해 주세요.');
+        return;
+      }
+      if (!snap.exists()) {
+        showState('이 링크는 만료되었거나 더 이상 유효하지 않아요.<br>설계사에게 새 링크를 요청해 주세요.');
+        return;
+      }
+      payload = snap.data();           // { iv, ct, ... } — 암호문만 들어있음
+      hideState();
+      gateEl.classList.remove('hidden');
+      $('birth').focus();
+    }
+
+    // 생년월일 입력 → 복호화 시도
+    $('gate-ok').addEventListener('click', tryUnlock);
+    $('birth').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
+
+    async function tryUnlock() {
+      const err = $('gate-err'), okB = $('gate-ok');
+      const b = window.ShareCore.normBirth($('birth').value);
+      if (!window.ShareCore.isValidBirth(b)) { err.textContent = '생년월일 6자리(YYMMDD)를 입력하세요.'; return; }
+      err.textContent = ''; okB.disabled = true; okB.textContent = '확인 중…';
+      let data;
+      try {
+        data = await window.ShareCore.decrypt(payload, b, token);
+      } catch (e) {
+        okB.disabled = false; okB.textContent = '확인';
+        err.textContent = '생년월일이 일치하지 않아요. 다시 확인해 주세요.';
+        return;
+      }
+      render(data);
+    }
+
+    function render(data) {
+      gateEl.classList.add('hidden');
+      const CovAgg = window.CovAgg;
+      const customer = { name: data.name, contracts: data.contracts || [] };
+
+      // 합계 계산 (일시금 / 일당)
+      const r = CovAgg.summarize(customer);
+      let lump = 0, day = 0;
+      (r.groups || []).forEach(g => { lump += (g.lumpWon || 0); day += (g.dayWon || 0); });
+
+      if (data.name) {
+        $('hdr-title').textContent = `${data.name}님의 보장 요약`;
+        $('hdr-sub').textContent = `가입 보장을 카테고리별로 정리했어요 · 계약 ${r.contractCount}건`;
+      }
+
+      const hero = $('hero');
+      hero.innerHTML =
+        `<div class="box"><div class="k">진단·수술 등 일시금 합계</div>
+           <div class="v">${CovAgg.fmtWon(lump)}</div></div>` +
+        (day > 0 ? `<div class="box"><div class="k">입원·간병 등 일당 합계</div>
+           <div class="v">${CovAgg.fmtWon(day)}<small>/일</small></div></div>` : '');
+
+      $('cov').innerHTML = CovAgg.renderHTML(customer);
+      renderGaps(customer);
+      resultEl.classList.remove('hidden');
+      footEl.classList.remove('hidden');
+    }
+
+    // 보장 점검: 부족(low)·공백(gap)만 부드럽게 안내. 과다·중복은 고객 화면에서 제외.
+    function renderGaps(customer) {
+      const sec = $('gap-sec'), gapEl = $('gap');
+      if (!window.CovGap) { sec.classList.add('hidden'); return; }
+      const a = window.CovGap.analyze(customer);
+      const items = (a.results || []).filter(x => x.status === 'gap' || x.status === 'low');
+      const fmt = window.CovAgg.fmtWon;
+      if (!items.length) {
+        gapEl.innerHTML = '<div style="font-size:13px;color:#1A7F4B;font-weight:700;text-align:center;padding:8px;">핵심 보장은 대체로 잘 갖춰져 있어요 👍</div>';
+      } else {
+        gapEl.innerHTML = items.map((x, i) => {
+          const isGap = x.status === 'gap';
+          const c = isGap ? '#C2402A' : '#B45309';
+          const word = isGap ? '없음' : '낮음';
+          let msg;
+          if (x.presenceOnly) msg = `${x.label} 보장이 준비되어 있지 않아요.`;
+          else if (isGap) msg = `아직 ${x.label} 보장이 없어요. 권장 ${fmt(x.target)} 정도를 검토해 보세요.`;
+          else msg = `현재 ${fmt(x.current)} — 권장 ${fmt(x.target)}에 비해 다소 낮아요.`;
+          return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;${i ? 'border-top:1px solid var(--border);' : ''}">
+            <span style="font-size:18px;line-height:1.2;">${x.icon}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:800;">${x.label}
+                <span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;background:${c};color:#fff;margin-left:4px;">${word}</span>
+                ${x.essential ? '<span style="font-size:10px;color:var(--text3);margin-left:4px;">핵심</span>' : ''}
+              </div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.55;margin-top:3px;">${msg}</div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+      gapEl.innerHTML += '<div style="font-size:10.5px;color:var(--text3);line-height:1.6;margin-top:10px;">※ 권장 금액은 일반적인 가이드예요. 실제 필요한 보장은 나이·건강·가족 상황에 따라 달라지니, 자세한 점검은 담당 설계사와 상담하세요.</div>';
+    }
+  </script>
+</body>
+</html>
