@@ -134,7 +134,9 @@
     var token = randomToken();
     return encrypt(data, birth6, token).then(function (enc) {
       return fb.setDoc(fb.doc(fb.db, 'shares', token), {
-        iv: enc.iv, ct: enc.ct, ver: 1, createdAt: new Date().toISOString()
+        iv: enc.iv, ct: enc.ct, ver: 1,
+        agentId: fb.agentId || null,   // 발급자(설계사 uid) — 본인만 회수 가능하도록
+        createdAt: new Date().toISOString()
       });
     }).then(function () {
       return { token: token, url: buildUrl(token) };

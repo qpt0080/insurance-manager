@@ -591,7 +591,7 @@ window.openCoverageShare = function (key) {
   const data = (window.__covShareReg || {})[key];
   if (!data) { if (window.toast) toast('보장 데이터를 찾지 못했어요. 화면을 새로고침해 주세요.'); return; }
   if (!window.ShareCore) { if (window.toast) toast('공유 모듈을 불러오지 못했어요.'); return; }
-  window.ShareCore.openShareDialog(data, { db, doc, setDoc });
+  window.ShareCore.openShareDialog(data, { db, doc, setDoc, agentId: auth.currentUser && auth.currentUser.uid });
 };
 const urlParams = new URLSearchParams(location.search);
 
