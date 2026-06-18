@@ -163,6 +163,7 @@
   <header>
     <div class="eyebrow">회사별 시상 비교</div>
     <h1>같은 실적, <em>회사마다</em> 다른 수익</h1>
+    <a href="awards-stats.html" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:12px;font-weight:700;color:var(--gold-deep);background:var(--gold-soft);border:1.5px solid var(--gold);border-radius:var(--r-sm);padding:7px 12px;text-decoration:none;">📊 주차별 시상률 통계 보기 →</a>
   </header>
 
   <!-- 상단 고정: 실적 입력 (슬림) -->
@@ -213,6 +214,12 @@
     </div>
   </div>
 
+  <!-- 시상 회차 선택 (기본: 가장 최근) -->
+  <div id="periodBar" style="display:none;align-items:center;gap:9px;margin:0 0 10px;padding:9px 12px;background:var(--card);border:1.5px solid var(--line2);border-radius:var(--r-sm);box-shadow:var(--shadow);">
+    <label for="periodSel" style="font-size:12px;font-weight:800;color:var(--ink2);white-space:nowrap;">📅 시상 회차</label>
+    <select id="periodSel" onchange="setPeriod(this.value)" style="flex:1;min-width:0;padding:8px 10px;border:1.5px solid var(--line2);border-radius:var(--r-xs);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
+  </div>
+
   <div class="status" id="status">시상 불러오는 중…</div>
   <div class="co-grid" id="grid"></div>
 
@@ -254,7 +261,9 @@ const bandSub       = window.AwardsCore.bandSub;
 const bandPairs     = window.AwardsCore.bandPairs;
 
 // ── 상태 ──
-let POLICIES = []; // [{company, label, items, extras, _id}]
+let POLICIES = []; // [{company, label, items, extras, _id, ym, ymLabel}]
+let PERIODS = [];        // [{ym, label, count}] — 최신순
+let selPeriod = null;    // 선택된 회차 ym(YYYY-MM) 또는 '__all__'
 let GROUPS = [];   // [{id, name, memberUids}] — ⭐ 추가시상 그룹
 let myUid = null;  // 로그인한 설계사 uid
 let perf = 100000;
@@ -381,6 +390,32 @@ function calc(items, company){
 }
 
 // ── 렌더 ──
+// ── 시상 회차(년·월) 목록 구성 + 선택기 채우기 ──
+function buildPeriods(){
+  const map=new Map();
+  POLICIES.forEach(p=>{ if(!p.ym) return;
+    const e=map.get(p.ym)||{ym:p.ym,label:p.ymLabel,count:0};
+    e.count++; map.set(p.ym,e);
+  });
+  PERIODS=[...map.values()].sort((a,b)=> b.ym.localeCompare(a.ym)); // 최신순
+  const sel=F('periodSel'), bar=F('periodBar');
+  if(!sel||!bar) return;
+  if(!PERIODS.length){ bar.style.display='none'; selPeriod=null; return; }
+  // 기본 = 가장 최근 회차. 단 회차가 1개뿐이면 선택기 자체를 숨김.
+  if(selPeriod===null) selPeriod = PERIODS[0].ym;
+  if(PERIODS.length<=1){ bar.style.display='none'; selPeriod=PERIODS[0].ym; return; }
+  bar.style.display='flex';
+  const opts = PERIODS.map(p=>`<option value="${p.ym}" ${p.ym===selPeriod?'selected':''}>${p.label} (${p.count}개사)</option>`).join('');
+  sel.innerHTML = opts + `<option value="__all__" ${selPeriod==='__all__'?'selected':''}>📋 전체 회차 보기</option>`;
+}
+window.setPeriod=function(v){ selPeriod=v; render(); };
+
+// 현재 선택된 회차에 해당하는 시상만 추림
+function visiblePolicies(){
+  if(!selPeriod || selPeriod==='__all__') return POLICIES;
+  return POLICIES.filter(p=>p.ym===selPeriod);
+}
+
 function render(){
   const grid=F('grid');
   if(!POLICIES.length){
@@ -388,7 +423,13 @@ function render(){
       <p>아직 올려둔 시상이 없어요.<br>관리자 페이지에서 <b>관심 있는 보험사 시상</b>을 먼저 올리면<br>여기에서 나란히 비교할 수 있어요.</p></div>`;
     return;
   }
-  grid.innerHTML = POLICIES.map((p,idx)=>{
+  const list = visiblePolicies();
+  if(!list.length){
+    grid.innerHTML = `<div class="empty"><div class="ic">📅</div>
+      <p>이 회차에 등록된 시상이 없어요.<br>위에서 다른 회차를 골라보세요.</p></div>`;
+    return;
+  }
+  grid.innerHTML = list.map((p,idx)=>{
     const r = calc(p.items, p.company);
     const open = openSet.has(p._id);
     const bandLabel = r.band ? `${man(r.band)}만↑ 구간` : '구간 미달';
@@ -505,15 +546,18 @@ async function loadAwards(){
       if(!its.length) return;
       const wk=d.week?` ${d.week}주차`:'';
       const yy=d.year?String(d.year).slice(2):'';
+      const ym=(d.year&&d.month)?`${d.year}-${String(d.month).padStart(2,'0')}`:'';
       loaded.push({
         company:d.company||'(미상)',
         label:`${yy}년 ${d.month}월${wk}`,
+        ym, ymLabel:(d.year&&d.month)?`${d.year}년 ${d.month}월`:'(연월 미상)',
         items:its, extras:extrasFromDoc(d), _id:docu.id
       });
     });
     if(loaded.length){
       loaded.sort((a,b)=> a.company.localeCompare(b.company) || (''+b._id).localeCompare(''+a._id));
       POLICIES=loaded;
+      buildPeriods();
       F('status').innerHTML=`✅ 등록 시상 <b>${loaded.length}건</b> · 실적을 바꾸면 회사별 예상수익이 같이 움직여요.`;
     } else {
       F('status').innerHTML=`등록된 시상이 없어요. 관리자에서 시상을 올리면 여기에 표시됩니다.`;

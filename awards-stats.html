@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>주차별 시상 통계</title>
+<link rel="manifest" href="manifest-viewer.webmanifest">
+<style>
+  :root{
+  /* radius 스케일 */
+  --r-xs:8px;
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:20px;
+  --r-xl:28px;
+  --r-full:999px;
+
+  --ink:#191A1D; --ink2:#5B6068; --ink3:#9AA0AA;
+  --paper:#F4F5F8; --card:#FFFFFF; --line:#E4E6EC; --line2:#D7DAE2;
+  --gold:#3B5BDB; --gold-deep:#2C46B8; --gold-soft:#EEF1FE;
+  --green:#1A7F4B; --green-soft:#E7F4ED;
+  --shadow:0 1px 2px rgba(40,30,10,.04),0 8px 28px rgba(40,30,10,.06);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px;}
+  header{margin-bottom:14px;}
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:.3px;color:var(--gold);text-transform:uppercase;}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.5px;margin:4px 0 0;}
+  h1 em{color:var(--gold);font-style:normal;}
+  .topbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .back-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
+    color:var(--ink2);text-decoration:none;padding:8px 12px;background:var(--card);
+    border:1.5px solid var(--line2);border-radius:var(--r-sm);}
+  .month-pick{display:flex;align-items:center;gap:9px;margin-left:auto;padding:8px 12px;
+    background:var(--card);border:1.5px solid var(--line2);border-radius:var(--r-sm);box-shadow:var(--shadow);}
+  .month-pick label{font-size:12px;font-weight:800;color:var(--ink2);white-space:nowrap;}
+  .month-pick select{padding:7px 10px;border:1.5px solid var(--line2);border-radius:var(--r-xs);
+    font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;}
+  .status{font-size:13px;color:var(--ink2);margin:0 0 12px;padding:10px 14px;
+    background:var(--card);border:1.5px solid var(--line);border-radius:var(--r-sm);}
+  .matrix-scroll{overflow-x:auto;border:1.5px solid var(--line2);border-radius:var(--r-md);
+    background:var(--card);box-shadow:var(--shadow);-webkit-overflow-scrolling:touch;}
+  table.matrix{border-collapse:collapse;width:100%;min-width:520px;}
+  table.matrix th, table.matrix td{padding:11px 10px;text-align:center;border-bottom:1px solid var(--line);
+    border-right:1px solid var(--line);font-size:13px;}
+  table.matrix th{background:var(--gold-soft);color:var(--gold-deep);font-weight:800;font-size:12px;
+    position:sticky;top:0;}
+  table.matrix th.co-head, table.matrix td.co-cell{text-align:left;position:sticky;left:0;
+    background:var(--card);font-weight:800;min-width:120px;z-index:1;border-right:2px solid var(--line2);}
+  table.matrix th.co-head{background:var(--gold-soft);z-index:2;}
+  table.matrix tr:last-child td{border-bottom:none;}
+  table.matrix td:last-child, table.matrix th:last-child{border-right:none;}
+  .cell-pct{font-size:16px;font-weight:800;color:var(--ink);line-height:1.1;}
+  .cell-sp{font-size:11px;font-weight:700;color:var(--green);margin-top:2px;}
+  .cell-band{font-size:11px;color:var(--ink3);margin-top:2px;}
+  .cell-empty{color:var(--ink3);font-weight:600;}
+  td.best{background:var(--green-soft);}
+  td.best .cell-pct{color:var(--green);}
+  td.best::after{content:'▲ 최고';display:block;font-size:9px;font-weight:800;color:var(--green);margin-top:1px;letter-spacing:.2px;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:11.5px;color:var(--ink2);}
+  .legend b{color:var(--ink);}
+  .empty{text-align:center;padding:60px 20px;color:var(--ink3);}
+  .empty .ic{font-size:38px;margin-bottom:10px;}
+  .disclaim{font-size:11.5px;color:var(--ink3);margin-top:18px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">주차별 시상 통계</div>
+    <h1>회사별 · 주차별 <em>익월 시상률</em></h1>
+  </header>
+
+  <div class="topbar">
+    <a class="back-link" href="awards-compare.html">← 시상 비교로</a>
+    <div class="month-pick">
+      <label for="monthSel">📅 월</label>
+      <select id="monthSel" onchange="setMonth(this.value)"></select>
+    </div>
+  </div>
+
+  <div class="status" id="status">시상 불러오는 중…</div>
+  <div id="board"></div>
+
+  <div class="legend" id="legend" style="display:none;">
+    <span><b>큰 숫자</b> = 익월 기본시상률(인보험)</span>
+    <span><b style="color:var(--green)">+N%</b> = 추가 익월시상률</span>
+    <span><b>📊</b> = 구간형 시상 있음(%로 표기 불가)</span>
+    <span><b style="color:var(--green)">▲ 최고</b> = 그 주 최고율</span>
+  </div>
+
+  <p class="disclaim">올려둔 시상안의 <b>익월 지급 기본시상률</b> 기준이에요. 구간형(가동·연속·주력 등)은 실적에 따라 금액이 달라져 %로 표기되지 않으니 📊로만 표시했어요. 실제 지급은 정책·유지 조건에 따라 달라집니다.</p>
+</div>
+
+<script src="awards-core.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+const app = initializeApp(firebaseConfig);
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (e) { db = getFirestore(app); }
+const auth = getAuth(app);
+
+const F = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const itemsFromDoc = window.AwardsCore.itemsFromDoc;
+
+let ROWS = [];        // [{company, ym, ymLabel, week, basic, special, hasBand}]
+let MONTHS = [];      // [{ym, label, count}] 최신순
+let selMonth = null;
+
+// 시상 문서 → 익월 시상률 지표(인보험 기준)
+function metricFromDoc(d){
+  const its = itemsFromDoc(d).filter(it => it.product === '인보험');
+  let basic = 0, special = 0, hasBand = false;
+  its.forEach(it=>{
+    if(it.kind === '기본시상' && it.mode === 'rate') basic += (+it.rate || 0);
+    else if(it.kind === '익월시상' && it.mode === 'rate') special += (+it.rate || 0);
+    else if(it.kind === '익월시상' && it.mode === 'band') hasBand = true;
+  });
+  return { basic, special, hasBand };
+}
+
+async function loadAwards(){
+  try{
+    const snap = await getDocs(collection(db, 'awards'));
+    const rows = [];
+    snap.forEach(docu=>{
+      const d = docu.data();
+      if(!(d.year && d.month)) return;
+      const m = metricFromDoc(d);
+      if(!m.basic && !m.special && !m.hasBand) return; // 인보험 익월 시상 없는 문서 제외
+      rows.push({
+        company: d.company || '(미상)',
+        ym: `${d.year}-${String(d.month).padStart(2,'0')}`,
+        ymLabel: `${d.year}년 ${d.month}월`,
+        week: d.week ? +d.week : 0,   // 0 = 월 전체
+        basic: m.basic, special: m.special, hasBand: m.hasBand
+      });
+    });
+    ROWS = rows;
+    buildMonths();
+    if(rows.length){
+      F('status').innerHTML = `✅ 등록 시상 <b>${rows.length}건</b> · 같은 달에 주차별로 시상률이 어떻게 달라지는지 한눈에 비교하세요.`;
+    } else {
+      F('status').innerHTML = `등록된 시상이 없어요. 관리자에서 시상을 올리면 여기에 표시됩니다.`;
+    }
+  }catch(e){
+    F('status').innerHTML = `시상을 불러오지 못했어요. <span style="color:var(--ink3)">(${esc(e.code||e.message||'오류')})</span>`;
+  }
+  render();
+}
+
+function buildMonths(){
+  const map = new Map();
+  ROWS.forEach(r=>{
+    const e = map.get(r.ym) || { ym:r.ym, label:r.ymLabel, count:0 };
+    e.count++; map.set(r.ym, e);
+  });
+  MONTHS = [...map.values()].sort((a,b)=> b.ym.localeCompare(a.ym)); // 최신순
+  const sel = F('monthSel');
+  if(!MONTHS.length){ if(sel) sel.innerHTML=''; selMonth=null; return; }
+  if(selMonth === null) selMonth = MONTHS[0].ym; // 기본 = 가장 최근 달
+  if(sel) sel.innerHTML = MONTHS.map(m=>`<option value="${m.ym}" ${m.ym===selMonth?'selected':''}>${m.label}</option>`).join('');
+}
+window.setMonth = function(v){ selMonth = v; render(); };
+
+function weekLabel(w){ return w === 0 ? '월 전체' : (w + '주차'); }
+
+function render(){
+  const board = F('board');
+  if(!ROWS.length){
+    board.innerHTML = `<div class="empty"><div class="ic">📋</div>
+      <p>아직 올려둔 시상이 없어요.<br>관리자 페이지에서 시상을 올리면<br>여기에서 주차별로 비교할 수 있어요.</p></div>`;
+    F('legend').style.display='none';
+    return;
+  }
+  const rows = ROWS.filter(r => r.ym === selMonth);
+  if(!rows.length){
+    board.innerHTML = `<div class="empty"><div class="ic">📅</div><p>이 달에 등록된 시상이 없어요.</p></div>`;
+    F('legend').style.display='none';
+    return;
+  }
+
+  // 열(주차) 구성: 등장한 주차 오름차순 + 월 전체는 맨 뒤
+  const weekSet = [...new Set(rows.map(r=>r.week))];
+  const weeks = weekSet.filter(w=>w>0).sort((a,b)=>a-b);
+  if(weekSet.includes(0)) weeks.push(0);
+
+  // 행(회사) 구성
+  const companies = [...new Set(rows.map(r=>r.company))].sort((a,b)=>a.localeCompare(b));
+
+  // 셀 색인 + 주차별 최고 기본시상률(강조용)
+  const cell = {}; // cell[company][week] = metric
+  const bestByWeek = {};
+  rows.forEach(r=>{
+    (cell[r.company] = cell[r.company] || {})[r.week] = r;
+    if(r.basic > (bestByWeek[r.week]||0)) bestByWeek[r.week] = r.basic;
+  });
+
+  const head = `<tr><th class="co-head">회사</th>${weeks.map(w=>`<th>${weekLabel(w)}</th>`).join('')}</tr>`;
+  const body = companies.map(co=>{
+    const tds = weeks.map(w=>{
+      const m = cell[co] && cell[co][w];
+      if(!m) return `<td><span class="cell-empty">—</span></td>`;
+      const isBest = m.basic > 0 && m.basic === bestByWeek[w];
+      const parts = [];
+      if(m.basic > 0) parts.push(`<div class="cell-pct">${m.basic}%</div>`);
+      else parts.push(`<div class="cell-pct" style="color:var(--ink3)">·</div>`);
+      if(m.special > 0) parts.push(`<div class="cell-sp">+${m.special}%</div>`);
+      if(m.hasBand) parts.push(`<div class="cell-band">📊 구간</div>`);
+      return `<td class="${isBest?'best':''}">${parts.join('')}</td>`;
+    }).join('');
+    return `<tr><td class="co-cell">${esc(co)}</td>${tds}</tr>`;
+  }).join('');
+
+  board.innerHTML = `<div class="matrix-scroll"><table class="matrix"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  F('legend').style.display='flex';
+}
+
+// ── 인증 (awards-compare와 동일 흐름: 로그인 세션 또는 viewer 토큰) ──
+function decodeToken(t){
+  try {
+    t = String(t||'').replace(/-/g,'+').replace(/_/g,'/');
+    while (t.length % 4) t += '=';
+    const s = atob(t); const i = s.indexOf(':');
+    if (i < 1) return null;
+    return { email: s.slice(0, i), pw: s.slice(i + 1) };
+  } catch(e) { return null; }
+}
+let _started = false;
+onAuthStateChanged(auth, async(user)=>{
+  if(_started) return;
+  if(user){ _started = true; await loadAwards(); return; }
+  let token = null;
+  try{ token = localStorage.getItem('mujinViewerToken'); }catch(e){}
+  const cred = token ? decodeToken(token) : null;
+  if(cred){
+    try{ await signInWithEmailAndPassword(auth, cred.email, cred.pw); return; }catch(e){}
+  }
+  _started = true; await loadAwards();
+});
+
+render();
+</script>
+<script>
+/* 화면 폭에 맞춰 UI 비례 확대 (awards-compare와 동일) */
+(function(){
+  var DESIGN_W = 1440, MAX_ZOOM = 2.6;
+  function applyScale(){
+    var vw = document.documentElement.clientWidth || window.innerWidth;
+    var z = (vw / DESIGN_W) * 0.985;
+    z = Math.max(1, Math.min(z, MAX_ZOOM));
+    document.body.style.zoom = z;
+  }
+  applyScale();
+  window.addEventListener("resize", applyScale);
+  window.addEventListener("orientationchange", applyScale);
+})();
+</script>
+</body>
+</html>
