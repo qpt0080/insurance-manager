@@ -151,7 +151,7 @@
   // ── 화면용 HTML 생성 (admin 모달 / viewer 상세 공용) ──
   var _seq = 0;
   function tag(txt, color) {
-    return '<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:' + color + ';color:#fff;margin-left:4px;">' + txt + '</span>';
+    return '<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:var(--r-xs);background:' + color + ';color:#fff;margin-left:4px;">' + txt + '</span>';
   }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
@@ -246,7 +246,7 @@
       tabs +
       '<div id="' + uid + '_combined">' + combined + '</div>' +
       '<div id="' + uid + '_split" style="display:none;">' + split + '</div>' +
-      '<div style="font-size:10.5px;color:var(--text3);line-height:1.6;margin-top:8px;background:var(--bg,transparent);padding:8px 10px;border-radius:8px;">' +
+      '<div style="font-size:10.5px;color:var(--text3);line-height:1.6;margin-top:8px;background:var(--bg,transparent);padding:8px 10px;border-radius:var(--r-xs);">' +
       '※ 담보명을 카테고리로 묶어 더한 <b>단순 합계</b>예요. 실제 지급은 약관·진단 종류·지급조건에 따라 달라질 수 있어요(예: 유사암·소액암은 일반암보다 적게 지급). 실손은 비례보상이라 합산에서 제외했어요.' +
       '</div></div>';
   }

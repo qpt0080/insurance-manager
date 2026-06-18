@@ -48,7 +48,7 @@ self.addEventListener('notificationclick', function(event){
 });
 
 /* ── 앱 셸 캐시 ───────────────────────────────────── */
-const CACHE = 'mujin-shell-v54';
+const CACHE = 'mujin-shell-v55';
 const SHELL = [
   'index.html','admin.html','viewer.html','dashboard.html',
   'income-simulator.html','notice.html','awards-compare.html','awards-manage.html',

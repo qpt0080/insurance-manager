@@ -9,6 +9,14 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root {
+  /* radius 스케일 (자동정리) */
+  --r-xs:8px;
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:20px;
+  --r-xl:28px;
+  --r-full:999px;
+
   --bg:#F4F5F8; --surface:#FFFFFF; --surface2:#EDEFF3; --border:#E4E6EC;
   --text:#191A1D; --text2:#5B6068; --text3:#9AA0AA;
   --accent:#3B5BDB; --accent-light:#EEF1FE; --accent-dark:#2C46B8;
@@ -23,7 +31,7 @@
   --hero-from:#1e3a8a; --hero-to:#4F6FE8;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-mark.hl{background:#FFE875;color:inherit;padding:0 2px;border-radius:3px;font-weight:inherit;}
+mark.hl{background:#FFE875;color:inherit;padding:0 2px;border-radius:var(--r-xs);font-weight:inherit;}
 html{overflow-x:clip;width:100%;overscroll-behavior-x:none;}body{overflow-x:clip;width:100%;max-width:100%;overscroll-behavior-x:none;position:relative;touch-action:pan-y;}
 body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
 
@@ -32,7 +40,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .header-inner{max-width:900px;width:100%;display:flex;align-items:center;justify-content:space-between;}
 .logo{font-size:16px;font-weight:800;letter-spacing:-.3px;}
 .logo span{color:var(--accent);}
-.logo-sub{font-size:11px;color:var(--accent);margin-left:8px;font-weight:600;background:var(--accent-light);padding:3px 9px;border-radius:10px;border:1px solid rgba(59,91,219,.2);}
+.logo-sub{font-size:11px;color:var(--accent);margin-left:8px;font-weight:600;background:var(--accent-light);padding:3px 9px;border-radius:var(--r-sm);border:1px solid rgba(59,91,219,.2);}
 .header-right{display:flex;align-items:center;gap:10px;}
 .header-left{display:flex;align-items:center;}
 .header-dday{flex:1;text-align:center;font-size:13px;font-weight:700;color:var(--text2);white-space:nowrap;letter-spacing:-.2px;}
@@ -56,7 +64,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .tab-grid .tab-nav-item:hover:not(.active):not(.ph){color:var(--text2);background:var(--surface2);}
 .tab-grid .tab-nav-item.ext .ext-mark{position:absolute;top:5px;right:7px;font-size:10px;font-weight:800;color:var(--text3);}
 .tab-grid .tab-nav-item.ph{background:var(--surface);cursor:default;pointer-events:none;}
-.tab-count{font-size:10px;background:var(--surface2);color:var(--text3);padding:2px 7px;border-radius:20px;font-weight:700;}
+.tab-count{font-size:10px;background:var(--surface2);color:var(--text3);padding:2px 7px;border-radius:var(--r-lg);font-weight:700;}
 .tab-count.blue{background:var(--accent-light);color:var(--accent);}
 
 /* ── 레이아웃 ── */
@@ -119,7 +127,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .agent-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;}
 
 /* ── 배지 ── */
-.chip{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--text2);}
+.chip{font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--r-lg);background:var(--surface2);color:var(--text2);}
 .chip.blue{background:var(--accent-light);color:var(--accent);}
 .chip.red{background:var(--red-light);color:var(--red);}
 .chip.green{background:var(--green-light);color:var(--green);}
@@ -174,7 +182,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 /* ── 에이전트 선택 라디오 ── */
 .agent-select-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
 .agent-radio{display:none;}
-.agent-radio-label{display:flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;background:var(--surface);}
+.agent-radio-label{display:flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid var(--border);border-radius:var(--r-lg);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;background:var(--surface);}
 .agent-radio:checked + .agent-radio-label{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
 .agent-radio-label:hover{border-color:var(--accent);}
 
@@ -220,7 +228,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .month-grid-btn.active{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
 /* 설계사 필터 칩 - 계약 관리 */
 .agent-filter-wrap{display:flex;flex-wrap:wrap;gap:6px;}
-.agent-filter-btn{padding:7px 13px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;display:flex;align-items:center;gap:5px;}
+.agent-filter-btn{padding:7px 13px;border-radius:var(--r-lg);font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;display:flex;align-items:center;gap:5px;}
 .agent-filter-btn:hover{border-color:var(--text2);}
 .agent-filter-btn.active{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
 .agent-filter-btn.disabled{border-style:dashed;border-color:var(--text3);color:var(--text3);background:var(--surface2);opacity:.75;}
@@ -282,7 +290,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 /* ── Galaxy Fold (≤360px) ── */
 @media (max-width:360px){
   .stats{grid-template-columns:1fr;}
-  .stat-hero-wrap{padding:14px 12px 12px;border-radius:10px;}
+  .stat-hero-wrap{padding:14px 12px 12px;border-radius:var(--r-sm);}
   .stat-hero-month{font-size:18px;}
   .stat-hero-sub{font-size:10px;margin-bottom:12px;}
   .stat-hero-grid{grid-template-columns:repeat(2,1fr);gap:5px;}
@@ -307,7 +315,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 /* ── 계약 관리 개선 ── */
 
 /* 필터 태그 버튼 */
-.cm-tag-btn{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;}
+.cm-tag-btn{padding:6px 13px;border-radius:var(--r-lg);font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;}
 .cm-tag-btn:hover{border-color:var(--accent);color:var(--accent);}
 .cm-tag-btn.active{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
 
@@ -320,7 +328,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 /* ⋯ 메뉴 */
 .cm-cust-menu-wrap{position:relative;flex-shrink:0;}
-.cm-cust-menu-btn{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit;}
+.cm-cust-menu-btn{width:32px;height:32px;border-radius:var(--r-xs);border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit;}
 .cm-cust-menu-btn:hover{background:var(--surface2);border-color:var(--text3);}
 .cm-cust-dropdown{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);min-width:140px;z-index:300;overflow:hidden;display:none;}
 .cm-cust-dropdown.open{display:block;}
@@ -332,9 +340,9 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 /* 고객 상세 모달 */
 .cust-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
-.cust-detail-sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:680px;max-height:80vh;display:flex;flex-direction:column;animation:slideUp .22s cubic-bezier(.25,.46,.45,.94);overflow:hidden;}
+.cust-detail-sheet{background:var(--surface);border-radius:var(--r-lg) 20px 0 0;width:100%;max-width:680px;max-height:80vh;display:flex;flex-direction:column;animation:slideUp .22s cubic-bezier(.25,.46,.45,.94);overflow:hidden;}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.cust-detail-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;}
+.cust-detail-handle{width:36px;height:4px;background:var(--border);border-radius:var(--r-xs);margin:12px auto 0;}
 .cust-detail-header{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .cust-detail-body{overflow-y:auto;overflow-x:hidden;overscroll-behavior-x:none;padding:18px 20px;flex:1;min-width:0;}
 .cust-detail-body input[type=date]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;}
@@ -349,7 +357,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .cm-cust-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;border:2px solid rgba(59,91,219,.12);}
 .cm-cust-name{font-size:15px;font-weight:800;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cm-cust-meta{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.cm-agent-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
+.cm-agent-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--r-sm);}
 
 .cm-ct-list{padding:8px 12px 10px;}
 .cm-ct-row{display:flex;align-items:center;gap:8px;padding:10px 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);margin-bottom:6px;cursor:pointer;transition:all .15s;background:var(--bg);}
@@ -373,7 +381,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 }
 
 /* ── 시상 등록 현황 ── */
-.award-co-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid;margin:3px;transition:all .15s;}
+.award-co-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--r-lg);font-size:12px;font-weight:700;border:1.5px solid;margin:3px;transition:all .15s;}
 .award-co-chip.registered{background:var(--green-light);border-color:var(--green);color:#065F46;}
 .award-co-chip.missing{background:var(--surface2);border-color:var(--border);color:var(--text3);}
 .award-banner{border-radius:var(--radius);padding:12px 16px;margin-bottom:4px;}
@@ -389,7 +397,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .comm-item-amount{font-size:16px;font-weight:900;letter-spacing:-.4px;}
 .comm-item-meta{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6;}
 .comm-item-actions{display:flex;gap:6px;margin-top:10px;}
-.comm-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;}
+.comm-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:var(--r-sm);font-size:10px;font-weight:700;}
 .comm-badge.next-month{background:var(--accent-light);color:var(--accent);}
 .comm-badge.thirteenth{background:var(--amber-light);color:var(--amber);}
 .comm-badge.consecutive{background:var(--purple-light);color:var(--purple);}
@@ -432,7 +440,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .refund-wrap td:first-child{text-align:left;font-weight:700;}
 .refund-wrap tr:last-child td{border-bottom:none;}
 .refund-wrap tr.milestone td{background:var(--accent-light);color:var(--accent);font-weight:700;}
-.refund-toggle-btn{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);border:1px solid rgba(59,91,219,.15);border-radius:20px;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0;}
+.refund-toggle-btn{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);border:1px solid rgba(59,91,219,.15);border-radius:var(--r-lg);padding:4px 10px;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0;}
 .refund-toggle-btn:hover{background:var(--accent);color:#fff;}
 
 /* ── 설계사별 실적 카드 ── */
@@ -441,7 +449,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .perf-agent-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .18s;position:relative;overflow:hidden;}
 .perf-agent-card:hover{border-color:var(--accent);}
 .perf-agent-card.has-data{border-color:rgba(59,91,219,.2);}
-.perf-agent-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px 2px 0 0;opacity:0;transition:opacity .2s;}
+.perf-agent-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:var(--r-xs) 2px 0 0;opacity:0;transition:opacity .2s;}
 .perf-agent-card.has-data::before{opacity:1;}
 .perf-card-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
 .perf-card-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;border:2px solid transparent;}
@@ -453,8 +461,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .perf-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
 .perf-bar-key{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
 .perf-bar-val{font-size:11px;font-weight:700;color:var(--text2);}
-.perf-bar-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
-.perf-bar-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.25,.46,.45,.94);}
+.perf-bar-track{height:6px;background:var(--surface2);border-radius:var(--r-xs);overflow:hidden;}
+.perf-bar-fill{height:100%;border-radius:var(--r-xs);transition:width .5s cubic-bezier(.25,.46,.45,.94);}
 .perf-bar-fill.blue{background:linear-gradient(90deg,var(--accent),#6B8BFF);}
 .perf-bar-fill.green{background:linear-gradient(90deg,var(--green),#34D399);}
 .perf-card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);}
@@ -486,7 +494,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
   <div id="auth-checking" style="text-align:center;color:var(--text2);font-size:14px;font-weight:600;">
     <div style="font-size:34px;margin-bottom:10px;">🔐</div>로그인 확인 중...
   </div>
-  <div id="login-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 28px;width:100%;max-width:380px;box-shadow:var(--shadow-md);">
+  <div id="login-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:36px 28px;width:100%;max-width:380px;box-shadow:var(--shadow-md);">
     <div style="text-align:center;margin-bottom:30px;">
       <div style="font-size:36px;margin-bottom:12px;">🔐</div>
       <div style="font-size:22px;font-weight:800;letter-spacing:-.4px;">관리자 로그인</div>
@@ -609,7 +617,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
       <!-- 설계사별 실적 (같은 카드 안) -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 12px;padding-top:16px;border-top:1px solid var(--border);">
         <span style="font-size:14px;font-weight:800;color:var(--accent);">👤 설계사별 실적</span>
-        <span id="admin-agent-count" style="font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);border-radius:20px;padding:3px 10px;"></span>
+        <span id="admin-agent-count" style="font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);border-radius:var(--r-lg);padding:3px 10px;"></span>
       </div>
       <div id="admin-perf-agents"></div>
     </div>
@@ -622,10 +630,10 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <details id="extract-settings" class="card" style="margin-bottom:16px;" ontoggle="window.MujinExtract&&MujinExtract.fillUid&&MujinExtract.fillUid()">
       <summary style="cursor:pointer;font-size:14px;font-weight:800;color:var(--text);">📸 자동추출 정보 <span style="font-size:11px;font-weight:600;color:var(--text3);">(워커 설정용)</span></summary>
       <div style="margin-top:12px;">
-        <div style="background:var(--amber-light);border:1px solid rgba(180,83,9,.25);color:var(--amber);border-radius:10px;padding:10px 12px;font-size:11.5px;font-weight:600;line-height:1.55;margin-bottom:12px;">⚠️ 무료 Gemini 키는 입력이 학습에 사용됩니다. 실제 고객 서류는 유료/Vertex 키로 전환 후 사용하세요.</div>
+        <div style="background:var(--amber-light);border:1px solid rgba(180,83,9,.25);color:var(--amber);border-radius:var(--r-sm);padding:10px 12px;font-size:11.5px;font-weight:600;line-height:1.55;margin-bottom:12px;">⚠️ 무료 Gemini 키는 입력이 학습에 사용됩니다. 실제 고객 서류는 유료/Vertex 키로 전환 후 사용하세요.</div>
         <div class="form-label" style="margin-bottom:6px;">내 관리자 UID <span style="font-weight:600;color:var(--text3);">(워커 ADMIN_UID에 넣을 값 · 1회)</span></div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <code id="ext-admin-uid" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text2);">로그인 후 표시됩니다</code>
+          <code id="ext-admin-uid" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-xs);padding:8px 10px;font-size:12px;color:var(--text2);">로그인 후 표시됩니다</code>
           <button onclick="MujinExtract.copyUid(event)" class="btn btn-sm" style="white-space:nowrap;">📋 복사</button>
         </div>
         <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;">워커 주소는 코드에 내장되어 있고, 호출 시 로그인 토큰으로 본인만 인증됩니다. <b>기기마다 설정할 필요 없어요.</b></div>
@@ -635,13 +643,13 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <!-- 📸 통합 자동추출 (계약·시상·고지) -->
     <div class="card" style="margin-bottom:16px;">
       <style>
-        .extx-seg{display:flex;border:1.5px solid var(--border);border-radius:11px;overflow:hidden;background:var(--surface);margin-bottom:12px;}
+        .extx-seg{display:flex;border:1.5px solid var(--border);border-radius:var(--r-sm);overflow:hidden;background:var(--surface);margin-bottom:12px;}
         .extx-seg .extx-btn{flex:1;border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:700;padding:11px 6px;color:var(--text);cursor:pointer;transition:.15s;}
         .extx-seg .extx-btn.on{background:var(--accent);color:#fff;font-weight:800;}
         .extx-seg .extx-btn+.extx-btn{border-left:1.5px solid var(--border);}
         .extx-drop{border:2px dashed var(--border);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:.18s;background:var(--bg);}
         .extx-files{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-        .extx-chip{position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);}
+        .extx-chip{position:relative;width:64px;height:64px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);}
         .extx-chip img{width:100%;height:100%;object-fit:cover;}
         .extx-chip .x{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;}
       </style>
@@ -696,7 +704,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
             <div id="upload-confirm-card" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius);padding:16px;box-shadow:0 4px 14px rgba(59,91,219,.10);">
               <div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:10px;">✅ 저장 전 확인</div>
               <div id="upload-summary-grid" style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;margin-bottom:12px;"></div>
-              <div id="match-auto-note" style="display:none;font-size:12px;color:var(--accent);background:var(--accent-light);border-radius:8px;padding:8px 11px;margin-bottom:10px;"></div>
+              <div id="match-auto-note" style="display:none;font-size:12px;color:var(--accent);background:var(--accent-light);border-radius:var(--r-xs);padding:8px 11px;margin-bottom:10px;"></div>
               <div style="margin-bottom:12px;">
                 <div class="sec-label" style="margin-top:0;margin-bottom:8px;">👤 담당 설계사</div>
                 <div class="agent-pick-wrap" id="agent-pick-wrap">
@@ -921,7 +929,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;cursor:pointer;" id="cm-filter-header" onclick="toggleCmFilterPanel()">
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;font-weight:800;color:var(--text);">🔍 필터 &amp; 검색</span>
-          <span id="cm-active-badge" style="display:none;font-size:10px;font-weight:700;background:var(--accent);color:#fff;padding:2px 8px;border-radius:20px;">● 적용중</span>
+          <span id="cm-active-badge" style="display:none;font-size:10px;font-weight:700;background:var(--accent);color:#fff;padding:2px 8px;border-radius:var(--r-lg);">● 적용중</span>
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="btn btn-sm" onclick="event.stopPropagation();clearContractsFilter()" style="color:var(--text2);font-size:11px;">✕ 초기화</button>
@@ -1083,12 +1091,12 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
 <!-- 계약 상세 시트 -->
 <div id="admin-sheet-overlay" onclick="closeAdminSheet(event)" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:flex-end;backdrop-filter:blur(2px);">
-  <div id="admin-sheet-inner" style="background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:720px;margin:0 auto;max-height:92vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 20px 44px;">
+  <div id="admin-sheet-inner" style="background:var(--surface);border-radius:var(--r-lg) 20px 0 0;width:100%;max-width:720px;margin:0 auto;max-height:92vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 20px 44px;">
     <div style="position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);padding:calc(10px + env(safe-area-inset-top,0px)) 0 8px;display:flex;flex-direction:column;align-items:center;z-index:1;border-bottom:1px solid var(--border);margin-bottom:18px;">
-      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;"></div>
+      <div style="width:36px;height:4px;background:var(--border);border-radius:var(--r-xs);margin-bottom:12px;"></div>
     </div>
     <div id="admin-sheet-content"></div>
-    <button onclick="forceCloseAdminSheet()" style="position:sticky;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;margin:18px auto 0;padding:13px 28px;background:var(--accent);color:#fff;border:none;border-radius:30px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(59,91,219,.35),0 2px 6px rgba(0,0,0,.12);">✕ 닫기</button>
+    <button onclick="forceCloseAdminSheet()" style="position:sticky;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;margin:18px auto 0;padding:13px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--r-xl);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(59,91,219,.35),0 2px 6px rgba(0,0,0,.12);">✕ 닫기</button>
   </div>
 </div>
 
@@ -1236,7 +1244,7 @@ window.renderAwardGroups = function() {
     const chips = activeAgents.map(a => {
       const uid = a.uid || a._docId;
       const onIt = members.includes(uid);
-      return `<label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid ${onIt?'var(--accent)':'var(--border)'};border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;background:${onIt?'var(--accent-light)':'var(--surface)'};color:${onIt?'var(--accent)':'var(--text2)'};">
+      return `<label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid ${onIt?'var(--accent)':'var(--border)'};border-radius:var(--r-xs);font-size:12px;font-weight:600;cursor:pointer;background:${onIt?'var(--accent-light)':'var(--surface)'};color:${onIt?'var(--accent)':'var(--text2)'};">
         <input type="checkbox" ${onIt?'checked':''} onchange="toggleGroupMember('${g._docId}','${uid}',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;">
         ${esc(a.name||'(이름없음)')}</label>`;
     }).join(' ');
@@ -1494,12 +1502,12 @@ function renderAdminPerf() {
   // ── 상단: 총 계약 + 총 월보험료 (가로) — 수수료·시상은 설계사별로 이동 ──
   kpiEl.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div style="background:var(--surface2);border-radius:11px;padding:13px 14px;">
+      <div style="background:var(--surface2);border-radius:var(--r-sm);padding:13px 14px;">
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;">총 계약</div>
         <div style="font-size:20px;font-weight:900;color:var(--text);line-height:1;margin-bottom:4px;">${stats.total}<span style="font-size:12px;font-weight:600;color:var(--text2);margin-left:1px;">건</span></div>
         <div style="font-size:10px;color:var(--text3);">손보 ${stats.nonlifeCount} · 생보 ${stats.lifeCount}</div>
       </div>
-      <div style="background:var(--surface2);border-radius:11px;padding:13px 14px;">
+      <div style="background:var(--surface2);border-radius:var(--r-sm);padding:13px 14px;">
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;">총 월보험료</div>
         <div style="font-size:20px;font-weight:900;color:var(--green);line-height:1.05;margin-bottom:4px;word-break:keep-all;">${premStr}</div>
         <div style="font-size:10px;color:var(--text3);">모든 설계사 합계</div>
@@ -1533,7 +1541,7 @@ function renderAdminPerf() {
 
   const bar = (pct, fillColor, topVal, botLbl, valColor) => `
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-      <div style="width:24px;height:60px;background:var(--surface2);border-radius:5px;display:flex;align-items:flex-end;overflow:hidden;">
+      <div style="width:24px;height:60px;background:var(--surface2);border-radius:var(--r-xs);display:flex;align-items:flex-end;overflow:hidden;">
         ${pct > 0 ? `<div style="width:100%;height:${pct}%;background:${fillColor};"></div>` : ''}
       </div>
       <div style="text-align:center;line-height:1.25;">
@@ -1559,7 +1567,7 @@ function renderAdminPerf() {
     const footBd = isTop ? 'rgba(59,91,219,.15)' : 'var(--border)';
     const avatarBg = a.role === 'admin' ? 'var(--surface)' : col.bg;
 
-    return `<div style="background:${cardBg};border:${cardBd};border-radius:13px;padding:13px 11px;">
+    return `<div style="background:${cardBg};border:${cardBd};border-radius:var(--r-md);padding:13px 11px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
         <div style="width:30px;height:30px;border-radius:50%;background:${avatarBg};color:${col.color};border:2px solid ${col.bd};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">${a.role === 'admin' ? '👑' : escHtml(initials)}</div>
         <div style="min-width:0;flex:1;">
@@ -1590,7 +1598,7 @@ function renderAdminPerf() {
 
   // 홀수 인원이면 마지막 칸을 점선 '다음 설계사' 자리로 채워 2열 바둑판 유지
   const placeholder = (agentRows.length % 2 === 1)
-    ? `<div style="border:1.5px dashed var(--border);border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:158px;color:var(--text3);">
+    ? `<div style="border:1.5px dashed var(--border);border-radius:var(--r-md);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:158px;color:var(--text3);">
          <span style="font-size:20px;line-height:1;">＋</span>
          <div style="font-size:11px;font-weight:600;">다음 설계사</div>
        </div>`
@@ -1774,7 +1782,7 @@ window.runDataCheck = async function() {
         status = `✅ ${escHtml(uidToName[aid])}`; color = 'var(--text2)';
       } else {
         problems++;
-        status = aid ? `❌ 끊어진 담당 (값: <code style="font-size:10px;background:var(--surface2);padding:1px 4px;border-radius:4px;">${escHtml(String(aid)).slice(0,18)}…</code>)` : '❌ 담당 없음';
+        status = aid ? `❌ 끊어진 담당 (값: <code style="font-size:10px;background:var(--surface2);padding:1px 4px;border-radius:var(--r-xs);">${escHtml(String(aid)).slice(0,18)}…</code>)` : '❌ 담당 없음';
         color = 'var(--red)';
         fixBtn = `<button class="btn btn-sm btn-primary" style="font-size:11px;padding:4px 9px;" onclick="fixCustAgent('${c._docId}')">나(관리자)로 지정</button>`;
       }
@@ -1795,7 +1803,7 @@ window.runDataCheck = async function() {
     box.innerHTML = `
       <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">
         고객 ${custs.length}명 점검 — 문제 ${problems}건 · ${uidNote}<br>
-        <span style="color:var(--text3);">내 로그인 uid: <code style="font-size:10px;background:var(--surface2);padding:1px 4px;border-radius:4px;">${escHtml(myUid)}</code></span>
+        <span style="color:var(--text3);">내 로그인 uid: <code style="font-size:10px;background:var(--surface2);padding:1px 4px;border-radius:var(--r-xs);">${escHtml(myUid)}</code></span>
       </div>
       ${rows || '<div class="empty">고객 데이터가 없습니다.</div>'}
       ${problems ? `<button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="fixAllOrphans()">⚡ 문제 ${problems}건 모두 나(관리자)로 지정</button>` : ''}
@@ -3149,7 +3157,7 @@ function renderNoticePreview(data) {
     ${data.notes?`<div style="font-size:11px;color:var(--text3);">${escHtml(data.notes)}</div>`:''}`;
   document.getElementById('notice-items-list').innerHTML=(data.items||[]).map(item=>`
     <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
-      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${catColor[item.category]||'var(--surface2)'};color:#fff;flex-shrink:0;">${item.category}</span>
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--r-sm);background:${catColor[item.category]||'var(--surface2)'};color:#fff;flex-shrink:0;">${item.category}</span>
       <span style="font-size:13px;font-weight:600;">${escHtml(item.label)}</span>
       ${item.detail?`<span style="font-size:10px;color:var(--text3);">(${escHtml(item.detail)})</span>`:''}
     </div>`).join('');
@@ -3828,7 +3836,7 @@ window.renderContractsList = function() {
       }
       return `<div class="cm-ct-row${isTemp?' is-temp':''}" onclick="event.stopPropagation();openAdminContractDetail('${c._docId}','${ctId2}')">
         <div class="cm-ct-body">
-          <div class="cm-ct-name">${hlHtml(company,hlRe)}${company&&product?' · ':''}${hlHtml(product,hlRe)}${isTemp?' <span style="color:var(--amber);font-size:10px;font-weight:800;background:rgba(180,83,9,.12);padding:1px 6px;border-radius:6px;">⚠ 가설계</span>':''}</div>
+          <div class="cm-ct-name">${hlHtml(company,hlRe)}${company&&product?' · ':''}${hlHtml(product,hlRe)}${isTemp?' <span style="color:var(--amber);font-size:10px;font-weight:800;background:rgba(180,83,9,.12);padding:1px 6px;border-radius:var(--r-xs);">⚠ 가설계</span>':''}</div>
           <div class="cm-ct-sub">
             ${dateStr?`<span>${escHtml(dateStr)}</span>`:''}
             ${payPeriod?`<span class="chip" style="font-size:10px;padding:1px 7px;">${escHtml(payPeriod)}</span>`:''}

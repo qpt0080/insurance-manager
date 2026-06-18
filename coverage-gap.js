@@ -111,7 +111,7 @@
 
   function chip(label, n, color) {
     var dim = !n;
-    return '<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;' +
+    return '<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:var(--r-full);' +
       'background:' + (dim ? 'var(--surface)' : color) + ';color:' + (dim ? 'var(--text3)' : '#fff') + ';' +
       'border:1px solid ' + (dim ? 'var(--border)' : color) + ';">' + label + ' ' + n + '</span>';
   }
@@ -151,7 +151,7 @@
       '<div style="flex:1;min-width:0;">' +
         '<div style="display:flex;align-items:center;gap:6px;">' +
           '<span style="font-size:13px;font-weight:800;">' + x.label + '</span>' +
-          '<span style="font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:6px;background:' + c + ';color:#fff;">' + WORD[x.status] + '</span>' +
+          '<span style="font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:var(--r-xs);background:' + c + ';color:#fff;">' + WORD[x.status] + '</span>' +
           (x.essential ? '<span style="font-size:9.5px;font-weight:700;color:var(--text3);">필수</span>' : '') +
         '</div>' +
         '<div style="font-size:11.5px;color:var(--text2);line-height:1.55;margin-top:3px;">' + msgFor(x) + '</div>' +
@@ -186,7 +186,7 @@
 
     var note =
       '<div style="font-size:10.5px;color:var(--text3);line-height:1.6;margin-top:9px;background:var(--bg,transparent);' +
-      'padding:8px 10px;border-radius:8px;">' +
+      'padding:8px 10px;border-radius:var(--r-xs);">' +
       '※ 권장 금액은 운영자가 설정한 <b>일반 가이드</b>로, 약관·진단 종류·지급조건에 따라 실제 필요는 달라집니다. ' +
       '실손·일당·비례형은 금액이 아닌 <b>가입 여부</b>만 봤어요. 영업 자료가 아닌 내부 점검용입니다.' +
       '</div>';
