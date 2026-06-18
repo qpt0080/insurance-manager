@@ -64,7 +64,7 @@
     opts = opts || {};
     var type = opts.type;
     if (!type) {
-      type = /실패|오류|에러|없습니다|없어요|불가|초과|않|취소됨/.test(String(msg)) ? 'error' : 'info';
+      type = /실패|오류|에러|없습니다|없어요|불가|초과|취소됨/.test(String(msg)) ? 'error' : 'info';
     }
     var el = document.createElement('div');
     el.className = 'uifb-toast' + (type === 'error' ? ' error' : type === 'success' ? ' success' : '');

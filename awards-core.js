@@ -34,8 +34,9 @@
   /* ── 지급시기 분류 ───────────────────────────────────────────
    *  '13th' = 13회차 유지, 'tbd' = 미표기(익월로 단정하지 않음), 'next' = 익월 */
   function classifyTiming(tier) {
-    if (tier && (tier.payTiming === '13th_payment' || tier.retention === 13)) return '13th';
-    if (!tier || tier.payTiming == null) return (tier && tier.payTiming === undefined) ? 'tbd' : 'next';
+    if (!tier) return 'next';
+    if (tier.payTiming === '13th_payment' || tier.retention === 13) return '13th';
+    if (tier.payTiming == null) return 'tbd';   // null·undefined(미표기) 모두 tbd — 익월로 단정하지 않음
     return 'next';
   }
 

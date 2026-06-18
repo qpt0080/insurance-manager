@@ -246,80 +246,22 @@ const COLORS = ['#3B5BDB','#6B85E8','#9AA0AA','#1A7F4B','#5AA37C','#2C46B8','#7E
 // ── 예시 프리셋 (오프라인/데이터 없을 때 대비) ──
 function kbWeek1(){
   return [
-    {id:'basic_in', label:'인보험 기본시상', sub:'KB150%+GAK280%=430%', mode:'rate', rate:430, timing:'next_month', on:true},
-    {id:'weekly_250', label:'인보험 가동시상 250%', sub:'1~7일', mode:'rate', rate:250, timing:'next_month', on:true},
+    {id:'basic_in', label:'인보험 기본시상', sub:'KB150%+GAK280%=430%', mode:'rate', rate:430, timing:'next', on:true},
+    {id:'weekly_250', label:'인보험 가동시상 250%', sub:'1~7일', mode:'rate', rate:250, timing:'next', on:true},
     {id:'weekly_200', label:'인보험 가동시상 200%', sub:'13회차 유지', mode:'rate', rate:200, timing:'13th', on:true},
     {id:'flagship_200', label:'주력보종 시상 200%', sub:'간편+종합+자녀+LTC', mode:'rate', rate:200, timing:'13th', on:true},
     {id:'consec_base', label:'기본 연속가동 최대300%', sub:'5~6월', mode:'rate', rate:300, timing:'13th', on:true},
     {id:'consec_extra', label:'추가 연속가동 최대300%', sub:'5~6월', mode:'rate', rate:300, timing:'13th', on:true},
-    {id:'pet_basic', label:'펫보험 기본시상', sub:'300%', mode:'rate', rate:300, timing:'next_month', on:false},
+    {id:'pet_basic', label:'펫보험 기본시상', sub:'300%', mode:'rate', rate:300, timing:'next', on:false},
   ];
 }
 
 // ── 저장된 시상 문서(award-extract 스키마)의 tiers[] → 시뮬레이터 항목 변환 ──
-// ⚠️ 가동/연속가동/클럽 등은 "보험료 구간별 현금 지급"이라 %가 아니라
-//    구간(band)별 현금 금액으로 다뤄야 함. (예전엔 현금÷구간×100으로 %를 만들어
-//    10만 구간에 300만 현금이면 3000% 같은 엉뚱한 값이 나왔음)
-const BAND_KEYS=[100000,200000,300000,500000];
-
-// 단일 threshold형(weekly/flagship/club 등): 구간별 현금. 빈 구간은 직전 구간 금액 이월.
-function bandsFromTiers(arr, keys){
-  const raw={100000:0,200000:0,300000:0,500000:0};
-  (arr||[]).forEach(t=>{
-    let th=null; for(const k of keys){ if(t[k]!=null){ th=+t[k]; break; } }
-    if(th!=null && raw[th]!==undefined && (+t.reward)>0) raw[th]=Math.max(raw[th],+t.reward);
-  });
-  let carry=0; const bands={};
-  for(const b of BAND_KEYS){ if(raw[b]>0) carry=raw[b]; bands[b]=carry; } // 구간 미달 시 직전 구간 적용
-  return bands;
-}
-
-// 연속가동형: 전월·당월 둘 다 충족해야 지급. 매월 같은 실적 가정이므로
-// 각 구간 B에서 prev·curr 둘 다 B 이하인 tier의 최대 현금을 적용.
-function bandsFromConsecutive(arr){
-  const bands={100000:0,200000:0,300000:0,500000:0};
-  BAND_KEYS.forEach(B=>{
-    let best=0;
-    (arr||[]).forEach(t=>{
-      const pv=+(t.prevThreshold??t.threshold??0);
-      const cv=+(t.currThreshold??t.threshold??0);
-      const rw=+(t.reward||0);
-      if(rw>0 && pv<=B && cv<=B) best=Math.max(best,rw);
-    });
-    bands[B]=best;
-  });
-  return bands;
-}
-
-function bandsAllZero(b){ return BAND_KEYS.every(k=>!b[k]); }
-// 구간별 현금을 사람이 읽는 요약으로 (예: "10만→20만 · 20만→60만")
-function bandPairs(b){
-  const out=[]; let last=null;
-  for(const k of BAND_KEYS){ if(b[k]>0 && b[k]!==last){ out.push([k,b[k]]); last=b[k]; } }
-  return out;
-}
-function bandSub(b){ return bandPairs(b).map(([k,v])=>`${man(k)}만→${man(v)}만`).join(' · '); }
-
-function itemsFromDoc(d){
-  const out=[];
-  (d.tiers||[]).forEach((t,i)=>{
-    const timing=(t.payTiming==='13th_payment'||t.retention===13)?'13th':'next_month';
-    if(t.type==='basic'){
-      const p=(t.periods&&t.periods[0])||{}; const rate=(p.totalRate??p.ownRate??0);
-      out.push({id:t.id||('b'+i), label:t.label||'기본시상', sub:rate+'%', mode:'rate', rate, timing, on:true});
-    } else if(t.type==='consecutive'){
-      const bands=bandsFromConsecutive(t.tiers);
-      if(bandsAllZero(bands)) return; // 금시상 등 현금 0 → 제외
-      out.push({id:t.id||('c'+i), label:t.label||'연속가동', sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true});
-    } else if(['weekly','weekly_extra','flagship','club','membership'].includes(t.type)){
-      const bands=bandsFromTiers(t.tiers,['threshold']);
-      if(bandsAllZero(bands)) return;
-      out.push({id:t.id||('w'+i), label:t.label||t.type, sub:bandSub(bands), mode:'band', bands, rate:0, timing, on:true});
-    }
-    // gift(물품) 등 현금 아님 → 제외
-  });
-  return out;
-}
+//   해석 로직(구간 계산·지급시기 분류·문서→항목 변환)은 awards-core.js(window.AwardsCore)
+//   단일 원본을 사용한다. 예전엔 이 파일에 같은 로직 사본을 따로 둬서, awards-compare와
+//   결과가 어긋날 수 있었음(특히 payTiming 미표기 항목). 이제 두 화면이 같은 코드로 계산한다.
+const bandPairs = window.AwardsCore.bandPairs;
+const matchBand = window.AwardsCore.matchBand;
 
 // 정책 목록: [{company, label, items}] — 기본은 예시, Firestore 로드되면 교체
 let POLICIES = [{ company:'예시 (수동)', label:'KB 26년 6월 1주차', items:kbWeek1() }];
@@ -358,7 +300,7 @@ async function loadAwards(){
     const loaded=[];
     snap.forEach(docu=>{
       const d=docu.data();
-      const its=itemsFromDoc(d);
+      const its=window.AwardsCore.itemsFromDoc(d);
       if(!its.length) return;
       const wk=d.week?` ${d.week}주차`:'';
       const yy=d.year?String(d.year).slice(2):'';
@@ -402,7 +344,6 @@ onAuthStateChanged(auth, async(user)=>{
   _started=true; await loadAwards();
 });
 
-function matchBand(P){ let b=null; for(const t of BANDS){ if(P>=t) b=t; } return b; }
 function itemColor(i){ return COLORS[i % COLORS.length]; }
 function itemReward(it){
   if(!it.on) return 0;
@@ -425,6 +366,7 @@ function simulate(N){
     const per={}; let recv=0, recvNext=0, recv13=0;
     items.forEach(it=>{
       if(prodMode==='인보험' && !window.AwardsCore.isInsurance(it.label)) return; // 인보험만 모드: 펫·재물 제외
+      if(it.timing==='tbd') return; // 지급시기 미표기 → 타임라인에 못 올림(현금흐름 제외)
       const r=itemReward(it);
       const p = (it.timing==='13th') ? (m-12) : (m-1);
       const active = (p>=1 && p<=K);
@@ -487,8 +429,9 @@ function renderItems(){
       </div>
       ${valBox}
       <select class="pay" data-i="${idx}">
-        <option value="next_month" ${it.timing==='next_month'?'selected':''}>익월</option>
+        <option value="next" ${it.timing==='next'?'selected':''}>익월</option>
         <option value="13th" ${it.timing==='13th'?'selected':''}>13회차</option>
+        <option value="tbd" ${it.timing==='tbd'?'selected':''}>미정</option>
       </select>
       <button class="del-item" data-i="${idx}" title="삭제" aria-label="항목 삭제">×</button>
     </div>`;
@@ -515,7 +458,7 @@ function renderItems(){
 }
 
 F('add-item').addEventListener('click',()=>{
-  items.push({id:'custom_'+Date.now(), label:'새 시상 항목', sub:'', mode:'rate', rate:100, timing:'next_month', on:true});
+  items.push({id:'custom_'+Date.now(), label:'새 시상 항목', sub:'', mode:'rate', rate:100, timing:'next', on:true});
   renderItems(); renderAll();
 });
 

@@ -56,8 +56,7 @@
   // "5,000만원" → 50000000 / "1억" → 100000000 / "1억5,000만원" → 150000000
   // "50만원" → 500000 / "3만원/일" → perDay
   function parseAmount(raw) {
-    if (raw === 0) return { ok: false };
-    if (!raw) return { ok: false };
+    if (!raw) return { ok: false };   // 0·''·null·undefined 모두 여기서 처리
     var s = String(raw).replace(/,/g, '').replace(/\s/g, '');
     if (!s) return { ok: false };
     var perDay = /\/일|일당|매일|1일|하루/.test(s);
