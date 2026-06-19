@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>정산 허브 · 무진 보험</title>
+<link rel="manifest" href="manifest-admin.webmanifest">
+<meta name="theme-color" content="#3B5BDB">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="정산 허브">
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background:#F4F5F8;color:#191A1D;min-height:100vh;-webkit-font-smoothing:antialiased;}
+.shell-header{background:#fff;border-bottom:1.5px solid #E4E6EC;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:sticky;top:0;z-index:60;box-shadow:0 1px 0 #E4E6EC,0 2px 12px rgba(59,91,219,.08);}
+.shell-logo{font-size:16px;font-weight:800;letter-spacing:-.3px;}
+.shell-logo span{color:#3B5BDB;}
+.shell-logo .badge{font-size:10px;color:#3B5BDB;background:#EEF1FE;padding:3px 8px;border-radius:8px;margin-left:6px;border:1px solid rgba(59,91,219,.2);font-weight:700;vertical-align:2px;}
+.home-btn{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;padding:8px 14px;color:#3B5BDB;background:#EEF1FE;border:1px solid rgba(59,91,219,.25);border-radius:10px;text-decoration:none;}
+.sub-nav{background:#fff;border-bottom:1.5px solid #E4E6EC;display:flex;justify-content:center;gap:0;position:sticky;top:56px;z-index:50;overflow-x:auto;box-shadow:0 2px 8px rgba(59,91,219,.05);}
+.sub-tab{padding:13px 18px;font-size:13px;font-weight:700;color:#9AA0AA;border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.sub-tab.on{color:#3B5BDB;border-bottom-color:#3B5BDB;background:linear-gradient(to bottom,transparent 60%,rgba(59,91,219,.04));}
+.sub-tab:hover:not(.on){color:#5B6068;background:#EDEFF3;}
+.sub-panel{display:none;}
+.sub-panel.active{display:block;}
+body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
+
+/* ===== 시상 관리 (scoped) ===== */
+#sub-manage{
+  /* radius 스케일 (자동정리) */
+  --r-xs:8px;
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:20px;
+  --r-xl:28px;
+  --r-full:999px;
+
+  --bg:#F4F5F8; --paper:#FFFFFF; --surface:#FAFAFC;
+  --ink:#1A1C22; --ink2:#4A4F5A; --ink3:#9AA0AA;
+  --line:#E7E8EE; --line2:#D8DAE4;
+  --accent:#3B5BDB; --accent-light:rgba(59,91,219,.08);
+  --green:#1A7F4B; --amber:#B45309; --red:#C2402A; --purple:#7C3AED;
+  --radius:16px; --radius-sm:10px;
+}
+#sub-manage *{margin:0;padding:0;box-sizing:border-box;}
+#sub-manage{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+#sub-manage .wrap{max-width:880px;margin:0 auto;padding:18px 16px 60px;}
+#sub-manage header{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+#sub-manage .back{width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--ink2);text-decoration:none;background:var(--paper);border:1px solid var(--line);}
+#sub-manage h1{font-size:19px;font-weight:800;letter-spacing:-.3px;}
+#sub-manage .sub{font-size:12px;color:var(--ink3);margin-top:2px;}
+
+#sub-manage .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,22,30,.04);}
+#sub-manage .sec-title{font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:10px;}
+#sub-manage .chips{display:flex;flex-wrap:wrap;gap:8px;}
+#sub-manage .chip{padding:8px 14px;border-radius:var(--r-full);border:1.5px solid var(--line2);background:var(--paper);font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;transition:all .15s;}
+#sub-manage .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+#sub-manage .chip:disabled{opacity:.35;cursor:default;}
+
+#sub-manage .co-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+#sub-manage .co-item:hover{border-color:var(--accent);}
+#sub-manage .co-item .nm{font-size:14px;font-weight:800;}
+#sub-manage .co-item .meta{font-size:11px;color:var(--ink3);margin-top:2px;}
+#sub-manage .co-item .go{color:var(--ink3);font-size:16px;}
+
+#sub-manage .edit-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+#sub-manage .edit-head .t{font-size:16px;font-weight:800;}
+#sub-manage .edit-head .t small{display:block;font-size:11px;color:var(--ink3);font-weight:600;margin-top:2px;}
+#sub-manage .btnrow{display:flex;gap:8px;flex-wrap:wrap;}
+#sub-manage .btn{font-family:inherit;font-size:13px;font-weight:800;border-radius:var(--radius-sm);padding:10px 16px;cursor:pointer;border:1.5px solid var(--line2);background:var(--paper);color:var(--ink2);transition:all .15s;}
+#sub-manage .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+#sub-manage .btn.danger{color:var(--red);border-color:rgba(194,64,42,.35);}
+#sub-manage .btn.ghost{border-color:transparent;background:transparent;color:var(--ink3);}
+#sub-manage .btn:disabled{opacity:.5;cursor:default;}
+
+#sub-manage .tier-card{border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);padding:13px;margin-bottom:10px;}
+#sub-manage .tier-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+#sub-manage .type-chip{font-size:10px;font-weight:800;padding:3px 8px;border-radius:var(--r-xs);background:var(--accent-light);color:var(--accent);white-space:nowrap;}
+#sub-manage .timing-sel{font-family:inherit;font-size:12px;font-weight:700;padding:5px 8px;border:1.5px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink2);}
+#sub-manage .fld{margin-bottom:8px;}
+#sub-manage .fld label{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:4px;}
+#sub-manage .fld input[type=text], #sub-manage .fld textarea{width:100%;font-family:inherit;font-size:13px;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);outline:none;}
+#sub-manage .fld textarea{resize:vertical;min-height:54px;line-height:1.5;}
+#sub-manage .fld input:focus, #sub-manage .fld textarea:focus{border-color:var(--accent);}
+#sub-manage .num-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;}
+#sub-manage .num-cell label{display:block;font-size:10px;font-weight:700;color:var(--ink3);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#sub-manage .num-cell .ib{display:flex;align-items:center;border:1.5px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);padding:7px 9px;}
+#sub-manage .num-cell input{flex:1;width:100%;border:none;outline:none;background:none;font-family:inherit;font-size:13px;font-weight:700;text-align:right;color:var(--ink);}
+#sub-manage .num-cell .u{font-size:11px;font-weight:700;color:var(--ink3);margin-left:4px;}
+#sub-manage .row-box{border:1px dashed var(--line2);border-radius:var(--r-xs);padding:9px;margin-bottom:8px;background:var(--paper);}
+#sub-manage .row-box .rb-t{font-size:10px;font-weight:800;color:var(--ink3);margin-bottom:6px;}
+#sub-manage .elig-box{border:1.5px solid rgba(124,58,237,.3);border-radius:var(--r-xs);padding:9px;margin-top:8px;background:rgba(124,58,237,.04);}
+#sub-manage .elig-box .rb-t{font-size:10px;font-weight:800;color:var(--purple);margin-bottom:6px;}
+#sub-manage .json-area{width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;padding:12px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);background:#1A1C22;color:#D7DAE2;min-height:300px;resize:vertical;outline:none;}
+#sub-manage .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;font-weight:700;padding:11px 18px;border-radius:var(--r-full);opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;}
+#sub-manage .toast.show{opacity:1;}
+#sub-manage .empty{font-size:13px;color:var(--ink3);padding:16px;text-align:center;}
+#sub-manage .hint{font-size:11px;color:var(--ink3);line-height:1.6;margin-top:8px;}
+/* ===== 시상 비교 (scoped) ===== */
+#sub-compare{
+  /* radius 스케일 (자동정리) */
+  --r-xs:8px;
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:20px;
+  --r-xl:28px;
+  --r-full:999px;
+
+    --ink:#191A1D; --ink2:#5B6068; --ink3:#9AA0AA;
+    --paper:#F4F5F8; --card:#FFFFFF; --line:#E4E6EC; --line2:#D7DAE2;
+    --gold:#3B5BDB; --gold-deep:#2C46B8; --gold-soft:#EEF1FE;
+    --green:#1A7F4B; --green-soft:#E7F4ED;
+    --shadow:0 1px 2px rgba(40,30,10,.04),0 8px 28px rgba(40,30,10,.06);
+  }
+  #sub-compare *{box-sizing:border-box;margin:0;padding:0;}
+  #sub-compare{
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background:
+      radial-gradient(1200px 500px at 85% -10%, #fbeecf 0%, transparent 55%),
+      radial-gradient(900px 600px at -10% 110%, #f1ece0 0%, transparent 50%),
+      var(--paper);
+    color:var(--ink); line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding:0 0 60px;
+  }
+  #sub-compare .wrap{max-width:880px;margin:0 auto;padding:0 18px;}
+  #sub-compare .num{font-variant-numeric:tabular-nums;}
+
+  #sub-compare header{padding:26px 0 4px;}
+  #sub-compare .eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--gold-deep);display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  #sub-compare .eyebrow::before{content:"";width:26px;height:1.5px;background:var(--gold);}
+  #sub-compare h1{font-weight:600;font-size:clamp(26px,5.2vw,40px);line-height:1.08;letter-spacing:-.01em;}
+  #sub-compare h1 em{font-style:italic;color:var(--gold-deep);}
+
+  
+  #sub-compare .perf-bar{position:sticky;top:0;z-index:30;margin-top:16px;
+    background:var(--paper);
+    border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);
+    padding:14px;}
+  #sub-compare .perf-bar .cap{font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--ink3);
+    text-transform:uppercase;margin-bottom:10px;}
+  #sub-compare .stepper{display:flex;align-items:center;gap:10px;}
+  #sub-compare .step-btn{flex-shrink:0;width:52px;height:52px;border-radius:var(--r-md);border:1.5px solid var(--line2);
+    background:var(--card);color:var(--gold-deep);font-size:26px;font-weight:600;line-height:1;
+    cursor:pointer;font-family:inherit;transition:.12s;display:flex;align-items:center;justify-content:center;
+    -webkit-tap-highlight-color:transparent;}
+  #sub-compare .step-btn:hover{border-color:var(--gold);background:var(--gold-soft);}
+  #sub-compare .step-btn:active{transform:scale(.94);}
+  #sub-compare .perf-display{flex:1;min-width:0;text-align:center;background:var(--paper);
+    border:1.5px solid var(--line2);border-radius:var(--r-md);padding:7px 6px;}
+  #sub-compare .perf-display input{width:100%;background:none;border:none;outline:none;text-align:center;
+    font-family:inherit;font-variant-numeric:tabular-nums;font-size:24px;font-weight:600;color:var(--ink);}
+  #sub-compare .perf-display .u{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-top:1px;letter-spacing:.02em;}
+  #sub-compare .perf-display:focus-within{border-color:var(--gold);}
+  #sub-compare .comm-row{display:flex;align-items:center;gap:10px;margin-top:13px;}
+  #sub-compare .seg{display:flex;gap:0;margin-top:12px;border:1.5px solid var(--line2);border-radius:var(--r-sm);overflow:hidden;background:var(--card);}
+  #sub-compare .seg-btn{flex:1;font-family:inherit;font-size:13px;font-weight:700;padding:9px 8px;border:none;background:transparent;color:var(--ink);cursor:pointer;transition:all .15s;white-space:nowrap;}
+  #sub-compare .seg-btn.on{background:var(--ink);color:#fff;font-weight:800;}
+  #sub-compare .seg-btn + .seg-btn{border-left:1.5px solid var(--line2);}
+  
+  #sub-compare .seg-row{display:flex;gap:8px;margin-top:10px;}
+  #sub-compare .seg-row .seg{flex:1;min-width:0;margin-top:0;}
+  #sub-compare .seg-row .seg-btn{font-size:12px;padding:8px 4px;}
+  
+  #sub-compare .rate-collapse{margin-top:9px;}
+  #sub-compare .rate-summary{display:flex;align-items:center;gap:8px;width:100%;background:var(--card);
+    border:1.5px solid var(--line2);border-radius:var(--r-sm);padding:8px 11px;font-family:inherit;
+    font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;text-align:left;
+    -webkit-tap-highlight-color:transparent;transition:border-color .15s;}
+  #sub-compare .rate-summary:hover{border-color:var(--gold);}
+  #sub-compare .rs-item{white-space:nowrap;}
+  #sub-compare .rs-item.nl{color:#1A7F4B;}
+  #sub-compare .rs-item.life{color:#3B5BDB;}
+  #sub-compare .rs-item b{font-weight:800;}
+  #sub-compare .rs-arr{margin-left:auto;color:var(--gold-deep);font-weight:800;white-space:nowrap;}
+  #sub-compare .rate-summary .arr{display:inline-block;transition:transform .15s;}
+  #sub-compare .rate-collapse.open .rate-summary .arr{transform:rotate(180deg);}
+  #sub-compare .rate-body{display:none;margin-top:8px;}
+  #sub-compare .rate-collapse.open .rate-body{display:block;}
+  #sub-compare .rate-body .comm-row:first-child{margin-top:2px;}
+  #sub-compare .comm-row + .comm-row{margin-top:8px;}
+  #sub-compare .comm-type{font-size:12px;font-weight:800;padding:3px 9px;border-radius:var(--r-xs);white-space:nowrap;flex:0 0 auto;}
+  #sub-compare .comm-type.nl{background:rgba(26,127,75,.1);color:#1A7F4B;}
+  #sub-compare .comm-type.life{background:rgba(59,91,219,.1);color:#3B5BDB;}
+  #sub-compare .comm-row label{font-size:12px;font-weight:700;color:var(--ink2);white-space:nowrap;}
+  #sub-compare .comm-ib{display:flex;align-items:center;background:var(--paper);border:1.5px solid var(--line2);
+    border-radius:var(--r-sm);padding:0 10px;flex:1;}
+  #sub-compare .comm-ib:focus-within{border-color:var(--gold);}
+  #sub-compare .comm-ib input{flex:1;width:100%;background:none;border:none;outline:none;text-align:right;
+    font-family:inherit;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;color:var(--ink);padding:9px 0;}
+  #sub-compare .comm-ib .unit{font-size:13px;font-weight:700;color:var(--ink3);margin-left:5px;}
+  #sub-compare .comm-hint{font-size:11px;color:var(--ink3);margin-top:7px;line-height:1.5;}
+
+  #sub-compare .status{font-size:12px;color:var(--ink3);margin:16px 2px 4px;}
+  #sub-compare .status b{color:var(--ink2);}
+
+  
+  #sub-compare .co-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:8px;}
+  @media(min-width:560px){ #sub-compare .co-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));} }
+
+  #sub-compare .co-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);
+    box-shadow:var(--shadow);overflow:hidden;transition:border-color .15s;}
+  #sub-compare .co-card:hover{border-color:var(--line2);}
+  #sub-compare .co-head{padding:16px 16px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  #sub-compare .co-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  #sub-compare .co-name{font-size:15px;font-weight:800;letter-spacing:-.2px;}
+  #sub-compare .co-period{font-size:11px;font-weight:700;color:var(--ink3);}
+  #sub-compare .co-sum{margin-top:12px;}
+  #sub-compare .co-sum .big{font-weight:600;font-size:30px;line-height:1;letter-spacing:-.01em;color:var(--gold-deep);}
+  #sub-compare .co-sum .big .w{font-size:14px;font-weight:600;color:var(--ink2);margin-left:2px;}
+  #sub-compare .co-sum .sub{font-size:11.5px;color:var(--ink3);margin-top:7px;}
+  #sub-compare .co-sum .sub b{color:var(--ink2);font-weight:700;}
+  #sub-compare .co-toggle{font-size:11px;font-weight:700;color:var(--gold-deep);margin-top:11px;display:inline-flex;align-items:center;gap:4px;}
+
+  #sub-compare .co-detail{display:none;border-top:1px solid var(--line);padding:13px 16px 16px;background:#FCFCFE;}
+  #sub-compare .co-card.open .co-detail{display:block;}
+  #sub-compare .co-card.open .co-toggle .arr{transform:rotate(180deg);}
+  #sub-compare .co-toggle .arr{transition:transform .15s;display:inline-block;}
+  #sub-compare .dt-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+  #sub-compare .dt-row:last-of-type{border-bottom:none;}
+  #sub-compare .dt-row .lab{color:var(--ink2);min-width:0;}
+  #sub-compare .dt-row .lab small{display:block;font-size:10.5px;color:var(--ink3);font-weight:600;}
+  #sub-compare .dt-row .amt{font-weight:700;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  #sub-compare .dt-row.off{opacity:.4;}
+  #sub-compare .dt-sec{font-size:10.5px;font-weight:800;letter-spacing:.05em;color:var(--ink3);text-transform:uppercase;margin:12px 0 2px;}
+  #sub-compare .dt-extra{margin-top:11px;font-size:11.5px;color:var(--green);background:var(--green-soft);
+    border-radius:var(--r-xs);padding:8px 11px;line-height:1.5;font-weight:600;}
+  #sub-compare .band-now{font-size:11px;font-weight:700;color:var(--gold-deep);background:var(--gold-soft);
+    border-radius:var(--r-xs);padding:2px 8px;}
+
+  #sub-compare .empty{text-align:center;padding:40px 18px;color:var(--ink3);}
+  #sub-compare .empty .ic{font-size:34px;margin-bottom:10px;}
+  #sub-compare .empty p{font-size:13px;line-height:1.6;}
+  #sub-compare .empty b{color:var(--ink2);}
+
+  #sub-compare .disclaim{font-size:11px;color:var(--ink3);text-align:center;margin-top:22px;line-height:1.6;}
+  @media(max-width:380px){
+    #sub-compare .seg-row{gap:6px;}
+    #sub-compare .seg-row .seg-btn{font-size:11px;padding:8px 2px;}
+    #sub-compare .rate-summary{font-size:11px;gap:6px;padding:8px 9px;}
+  }
+/* ===== 주차별 통계 (scoped) ===== */
+#sub-stats{
+  /* radius 스케일 */
+  --r-xs:8px;
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:20px;
+  --r-xl:28px;
+  --r-full:999px;
+
+  --ink:#191A1D; --ink2:#5B6068; --ink3:#9AA0AA;
+  --paper:#F4F5F8; --card:#FFFFFF; --line:#E4E6EC; --line2:#D7DAE2;
+  --gold:#3B5BDB; --gold-deep:#2C46B8; --gold-soft:#EEF1FE;
+  --green:#1A7F4B; --green-soft:#E7F4ED;
+  --shadow:0 1px 2px rgba(40,30,10,.04),0 8px 28px rgba(40,30,10,.06);
+  }
+  #sub-stats *{box-sizing:border-box;}
+  #sub-stats{margin:0;background:var(--paper);color:var(--ink);
+    font-family:'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.45;}
+  #sub-stats .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px;}
+  #sub-stats header{margin-bottom:14px;}
+  #sub-stats .eyebrow{font-size:12px;font-weight:800;letter-spacing:.3px;color:var(--gold);text-transform:uppercase;}
+  #sub-stats h1{font-size:22px;font-weight:800;letter-spacing:-.5px;margin:4px 0 0;}
+  #sub-stats h1 em{color:var(--gold);font-style:normal;}
+  #sub-stats .topbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  #sub-stats .back-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
+    color:var(--ink2);text-decoration:none;padding:8px 12px;background:var(--card);
+    border:1.5px solid var(--line2);border-radius:var(--r-sm);}
+  #sub-stats .month-pick{display:flex;align-items:center;gap:9px;margin-left:auto;padding:8px 12px;
+    background:var(--card);border:1.5px solid var(--line2);border-radius:var(--r-sm);box-shadow:var(--shadow);}
+  #sub-stats .month-pick label{font-size:12px;font-weight:800;color:var(--ink2);white-space:nowrap;}
+  #sub-stats .month-pick select{padding:7px 10px;border:1.5px solid var(--line2);border-radius:var(--r-xs);
+    font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;}
+  #sub-stats .status{font-size:13px;color:var(--ink2);margin:0 0 12px;padding:10px 14px;
+    background:var(--card);border:1.5px solid var(--line);border-radius:var(--r-sm);}
+  #sub-stats .matrix-scroll{overflow-x:auto;border:1.5px solid var(--line2);border-radius:var(--r-md);
+    background:var(--card);box-shadow:var(--shadow);-webkit-overflow-scrolling:touch;}
+  #sub-stats table.matrix{border-collapse:collapse;width:100%;min-width:520px;}
+  #sub-stats table.matrix th, #sub-stats table.matrix td{padding:11px 10px;text-align:center;border-bottom:1px solid var(--line);
+    border-right:1px solid var(--line);font-size:13px;}
+  #sub-stats table.matrix th{background:var(--gold-soft);color:var(--gold-deep);font-weight:800;font-size:12px;
+    position:sticky;top:0;}
+  #sub-stats table.matrix th.co-head, #sub-stats table.matrix td.co-cell{text-align:left;position:sticky;left:0;
+    background:var(--card);font-weight:800;min-width:120px;z-index:1;border-right:2px solid var(--line2);}
+  #sub-stats table.matrix th.co-head{background:var(--gold-soft);z-index:2;}
+  #sub-stats table.matrix tr:last-child td{border-bottom:none;}
+  #sub-stats table.matrix td:last-child, #sub-stats table.matrix th:last-child{border-right:none;}
+  #sub-stats .cell-pct{font-size:16px;font-weight:800;color:var(--ink);line-height:1.1;}
+  #sub-stats .cell-sp{font-size:11px;font-weight:700;color:var(--green);margin-top:2px;}
+  #sub-stats .cell-band{font-size:11px;color:var(--ink3);margin-top:2px;}
+  #sub-stats .cell-empty{color:var(--ink3);font-weight:600;}
+  #sub-stats td.best{background:var(--green-soft);}
+  #sub-stats td.best .cell-pct{color:var(--green);}
+  #sub-stats td.best::after{content:'▲ 최고';display:block;font-size:9px;font-weight:800;color:var(--green);margin-top:1px;letter-spacing:.2px;}
+  #sub-stats .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:11.5px;color:var(--ink2);}
+  #sub-stats .legend b{color:var(--ink);}
+  #sub-stats .empty{text-align:center;padding:60px 20px;color:var(--ink3);}
+  #sub-stats .empty .ic{font-size:38px;margin-bottom:10px;}
+  #sub-stats .disclaim{font-size:11.5px;color:var(--ink3);margin-top:18px;line-height:1.6;}
+</style>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</head>
+<body>
+<header class="shell-header">
+  <div class="shell-logo">무진 <span>보험</span><span class="badge">정산 허브</span></div>
+  <a class="home-btn" href="admin.html">🏠 홈</a>
+</header>
+<nav class="sub-nav">
+  <div class="sub-tab" data-sub="manage"  onclick="showSub('manage')">✏️ 시상 관리</div>
+  <div class="sub-tab" data-sub="compare" onclick="showSub('compare')">🏆 시상 비교</div>
+  <div class="sub-tab" data-sub="stats"   onclick="showSub('stats')">📈 주차별 통계</div>
+</nav>
+
+<div id="sub-manage" class="sub-panel">
+<div class="wrap">
+  
+
+  <!-- 목록 화면 -->
+  <div id="gate-msg" class="empty" style="display:none;"></div>
+
+  <div id="browse">
+    <!-- ① 시상 등록 현황 -->
+    <div class="card">
+      <div class="sec-title">📅 시상 등록 현황</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <select id="st-year" style="flex:1;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
+        <select id="st-month" style="width:92px;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--ink2);">등록</span>
+        <span id="st-count" style="font-size:11px;font-weight:700;color:var(--green);background:rgba(26,127,75,.1);padding:2px 9px;border-radius:var(--r-full);">0개사</span>
+        <span id="st-docs" style="font-size:11px;font-weight:700;color:#185FA5;background:rgba(24,95,165,.1);padding:2px 9px;border-radius:var(--r-full);">0건</span>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--ink3);">눌러서 편집</span>
+      </div>
+      <div id="st-strip" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+        <button class="btn ghost" onclick="deleteAwardsByMonth()" style="font-size:11px;padding:5px 10px;color:var(--ink3);">🗑 이 달 전체 삭제</button>
+      </div>
+    </div>
+
+    <!-- ② 전체 저장 목록 (기본 접힘) -->
+    <div class="card">
+      <div onclick="toggleSavedList()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+        <span class="sec-title" style="margin-bottom:0;">📁 전체 저장 목록 <span id="sl-count" style="font-size:11px;font-weight:600;color:var(--ink3);"></span></span>
+        <span id="sl-toggle-top" style="font-size:12px;color:var(--ink3);">펴기 ▾</span>
+      </div>
+      <div id="sl-body" style="display:none;margin-top:12px;">
+        <input id="sl-search" type="text" placeholder="🔍 보험사 검색" oninput="renderSavedList(this.value)" style="width:100%;padding:9px 12px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;margin-bottom:10px;">
+        <div id="sl-list"></div>
+        <div onclick="toggleSavedList()" style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px;text-align:center;cursor:pointer;font-size:12px;color:var(--ink2);">목록 접기 ▴</div>
+      </div>
+    </div>
+
+    <!-- ③ 추가시상 그룹 -->
+    <div class="card">
+      <div class="sec-title">⭐ 추가시상 그룹</div>
+      <div class="hint" style="margin-top:0;margin-bottom:10px;">특정 설계사에게만 주는 특별시상을 설정해요. 그룹 멤버의 모든 회사 시상 비교 화면에 자동 추가됩니다.</div>
+      <div id="award-groups-list"><div class="empty">불러오는 중…</div></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <input id="new-group-name" type="text" placeholder="새 그룹 이름 (예: 추가시상)" style="flex:1;padding:9px 11px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;">
+        <button class="btn" onclick="createAwardGroup()" style="white-space:nowrap;">+ 만들기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 편집 화면 -->
+  <div id="editor" style="display:none">
+    <div class="card">
+      <div class="edit-head">
+        <div class="t" id="editTitle">—<small id="editMeta"></small></div>
+        <div class="btnrow">
+          <button class="btn ghost" onclick="backToList()">‹ 목록</button>
+          <button class="btn" onclick="toggleJson()" id="jsonBtn">{ } JSON</button>
+          <button class="btn danger" onclick="deleteCurrent()">삭제</button>
+          <button class="btn primary" onclick="saveCurrent()" id="saveBtn">💾 저장</button>
+        </div>
+      </div>
+      <div class="hint">금액은 <b>만원 단위</b>로 입력해요 (저장 시 원 단위로 변환). %는 숫자만. 저장하면 시상 비교·실적 계산에 바로 반영됩니다.</div>
+    </div>
+    <div id="formArea"></div>
+    <div id="jsonArea" style="display:none">
+      <div class="card">
+        <div class="sec-title">JSON 직접 편집 (구조가 특이한 항목용)</div>
+        <textarea class="json-area" id="jsonText" spellcheck="false"></textarea>
+        <div class="btnrow" style="margin-top:10px;">
+          <button class="btn primary" onclick="applyJson()">JSON → 폼에 적용</button>
+        </div>
+        <div class="hint">적용 후에도 💾 저장을 눌러야 서버에 반영됩니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+</div>
+
+<div id="sub-compare" class="sub-panel">
+<div class="wrap">
+  
+
+  <!-- 상단 고정: 실적 입력 (슬림) -->
+  <div class="perf-bar">
+    <div class="cap">💰 이만큼 팔았다면</div>
+    <div class="stepper">
+      <button class="step-btn" id="minus" aria-label="5만원 내리기">−</button>
+      <div class="perf-display">
+        <input id="perf" type="text" inputmode="numeric" value="100,000">
+        <span class="u">월 실적 (원) · 버튼은 5만씩</span>
+      </div>
+      <button class="step-btn" id="plus" aria-label="5만원 올리기">＋</button>
+    </div>
+    <div class="seg-row">
+      <div class="seg" role="tablist" aria-label="보기 방식">
+        <button class="seg-btn on" id="segTotal" onclick="setViewMode('total')">🧮 총액</button>
+        <button class="seg-btn" id="segNext" onclick="setViewMode('next')">⚡ 익월만</button>
+      </div>
+      <div class="seg" role="tablist" aria-label="상품군">
+        <button class="seg-btn on" id="segIns" onclick="setProdMode('인보험')">🛡 인보험만</button>
+        <button class="seg-btn" id="segAll" onclick="setProdMode('전체')">📦 전체 상품</button>
+      </div>
+    </div>
+    <!-- 수수료율: 평소엔 한 줄 요약, 누르면 펼쳐서 편집 -->
+    <div class="rate-collapse" id="rateCollapse">
+      <button class="rate-summary" id="rateToggle" onclick="toggleRates()" aria-expanded="false">
+        <span class="rs-item nl">🛡 손보 <b id="rsNL">522·200</b></span>
+        <span class="rs-item life">💙 생보 <b id="rsL">522·200</b></span>
+        <span class="rs-arr">설정 <span class="arr">▾</span></span>
+      </button>
+      <div class="rate-body" id="rateBody">
+        <div class="comm-row">
+          <label class="comm-type nl">🛡 손보</label>
+          <label>기본</label>
+          <div class="comm-ib"><input id="commNL" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
+          <label>유지</label>
+          <div class="comm-ib"><input id="keepNL" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
+        </div>
+        <div class="comm-row">
+          <label class="comm-type life">💙 생보</label>
+          <label>기본</label>
+          <div class="comm-ib"><input id="commL" type="text" inputmode="numeric" value="522"><span class="unit">%</span></div>
+          <label>유지</label>
+          <div class="comm-ib"><input id="keepL" type="text" inputmode="numeric" value="200"><span class="unit">%</span></div>
+        </div>
+        <div class="comm-hint">수수료율은 회사·상품마다 달라요. 회사명으로 손보/생보를 자동 구분해 각각의 율을 적용합니다. 유지 수수료는 <b>7~15회차 분할</b> 지급 기준 — 직접 조정하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 시상 회차 선택 (기본: 가장 최근) -->
+  <div id="periodBar" style="display:none;align-items:center;gap:9px;margin:0 0 10px;padding:9px 12px;background:var(--card);border:1.5px solid var(--line2);border-radius:var(--r-sm);box-shadow:var(--shadow);">
+    <label for="periodSel" style="font-size:12px;font-weight:800;color:var(--ink2);white-space:nowrap;">📅 시상 회차</label>
+    <select id="periodSel" onchange="setPeriod(this.value)" style="flex:1;min-width:0;padding:8px 10px;border:1.5px solid var(--line2);border-radius:var(--r-xs);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
+  </div>
+
+  <div class="status" id="cmp-status">시상 불러오는 중…</div>
+  <div class="co-grid" id="grid"></div>
+
+  <p class="disclaim">올려둔 시상안 기준 <b>참고용 예측</b>이에요. 실제 지급은 정책·유지 조건에 따라 달라집니다.<br>🧮 총액 = 계약 1건당 익월+13회차 시상과 수수료 전체 · ⚡ 익월만 = 다음 달에 받는 수수료+기본시상+익월 시상 · 기본은 인보험 기준(상단에서 전체 전환)</p>
+</div>
+</div>
+
+<div id="sub-stats" class="sub-panel">
+<div class="wrap">
+  
+
+  <div class="topbar">
+    <a class="back-link" href="#compare" onclick="showSub('compare');return false;">← 시상 비교로</a>
+    <div class="month-pick">
+      <label for="monthSel">📅 월</label>
+      <select id="monthSel" onchange="setMonth(this.value)"></select>
+    </div>
+  </div>
+
+  <div class="status" id="stats-status">시상 불러오는 중…</div>
+  <div id="board"></div>
+
+  <div class="legend" id="legend" style="display:none;">
+    <span><b>큰 숫자</b> = 익월 기본시상률(인보험)</span>
+    <span><b style="color:var(--green)">+N%</b> = 추가 익월시상률</span>
+    <span><b>📊</b> = 구간형 시상 있음(%로 표기 불가)</span>
+    <span><b style="color:var(--green)">▲ 최고</b> = 그 주 최고율</span>
+  </div>
+
+  <p class="disclaim">올려둔 시상안의 <b>익월 지급 기본시상률</b> 기준이에요. 구간형(가동·연속·주력 등)은 실적에 따라 금액이 달라져 %로 표기되지 않으니 📊로만 표시했어요. 실제 지급은 정책·유지 조건에 따라 달라집니다.</p>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+function showSub(name){
+  document.querySelectorAll('.sub-panel').forEach(function(p){p.classList.remove('active');});
+  var el=document.getElementById('sub-'+name); if(el) el.classList.add('active');
+  document.querySelectorAll('.sub-tab').forEach(function(t){t.classList.toggle('on', t.dataset.sub===name);});
+  try{ history.replaceState(null,'','#'+name); }catch(e){}
+  window.dispatchEvent(new Event('resize'));
+}
+(function(){
+  var params = new URLSearchParams(location.search);
+  var embed = params.get('embed');
+  if(embed && ['manage','compare','stats'].indexOf(embed) >= 0){
+    document.body.classList.add('embed-mode');
+    showSub(embed);
+    return;
+  }
+  var h=(location.hash||'').replace('#','');
+  showSub(['manage','compare','stats'].indexOf(h)>=0 ? h : 'manage');
+})();
+
+</script>
+<script src="ui-feedback.js"></script>
+<script src="awards-core.js"></script>
+<script type="module">
+import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import { firebaseConfig } from "./firebase-config.js";
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let ALL = [];            // 전체 awards 문서 [{_docId, ...data}]
+let agentsCache = [];    // 설계사 (그룹 멤버용)
+let awardGroupsCache = [];// 추가시상 그룹
+let CUR = null;          // 편집 중 문서 (깊은 복사본)
+let CUR_DOCID = null;
+let _slKeyword = '';     // 전체 저장 목록 검색어
+let _slOpen = false;     // 전체 저장 목록 펼침 여부 (기본 접힘)
+// 관리자 판정은 하드코딩 UID가 아니라 agents/{uid}.role==='admin' 기준 (admin.html과 동일)
+
+const $ = id => document.getElementById(id);
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2400); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// admin.html과 동일한 문서 ID 규칙 — 같은 회사·연월·주차면 덮어쓰기
+function awardDocId(year, month, company, week){
+  const wk = week ? `_w${week}` : '';
+  return `${year}_${String(month).padStart(2,'0')}${wk}_${company}`;
+}
+const man = v => { const n=(+v||0)/10000; return Number.isInteger(n)? n : +n.toFixed(2); };  // 원→만
+const won = v => Math.round((parseFloat(String(v).replace(/[^0-9.\-]/g,''))||0)*10000);     // 만→원
+const num = v => { const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; };
+
+/* ── 로드 ───────────────────────────── */
+async function loadAll(){
+  const [aw] = await Promise.all([ getDocs(collection(db,'awards')), loadAgents(), loadAwardGroups() ]);
+  ALL = []; aw.forEach(d=>ALL.push({_docId:d.id, ...d.data()}));
+  initStatusSelects();
+  renderStatus();
+  renderSavedList(_slKeyword);
+  renderAwardGroups();
+}
+async function loadAgents(){
+  try{
+    const snap = await getDocs(collection(db,'agents'));
+    agentsCache = []; snap.forEach(d=>agentsCache.push({...d.data(), _docId:d.id}));
+    agentsCache.sort((a,b)=>{
+      if(a.role==='admin' && b.role!=='admin') return -1;
+      if(b.role==='admin' && a.role!=='admin') return 1;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+  }catch(e){ agentsCache = []; }
+}
+async function loadAwardGroups(){
+  try{
+    const snap = await getDocs(collection(db,'awardGroups'));
+    awardGroupsCache = []; snap.forEach(d=>awardGroupsCache.push({...d.data(), _docId:d.id}));
+    awardGroupsCache.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  }catch(e){ awardGroupsCache = []; }
+}
+
+/* ── ① 시상 등록 현황 ───────────────────── */
+function initStatusSelects(){
+  const ySel=$('st-year'), mSel=$('st-month'); if(!ySel||!mSel) return;
+  const now=new Date();
+  let years=[...new Set(ALL.map(a=>a.year).filter(Boolean))].sort((a,b)=>b-a);
+  if(!years.includes(now.getFullYear())) years.unshift(now.getFullYear());
+  const curY = +ySel.value || (years[0]||now.getFullYear());
+  ySel.innerHTML = years.map(y=>`<option value="${y}" ${y===curY?'selected':''}>${y}년</option>`).join('');
+  const curM = +mSel.value || (now.getMonth()+1);
+  mSel.innerHTML = [1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<option value="${m}" ${m===curM?'selected':''}>${m}월</option>`).join('');
+  ySel.onchange=renderStatus; mSel.onchange=renderStatus;
+}
+function renderStatus(){
+  if(!$('st-year')||!$('st-month')) return;
+  const y=+$('st-year').value, m=+$('st-month').value;
+  const docs = ALL.filter(a=>a.year===y && a.month===m);
+
+  // 회사별로 묶기: 주차별 문서 + 월(주차없음) 문서 + 항목수 합
+  const byCo = {};
+  docs.forEach(a=>{
+    const co=a.company; if(!co) return;
+    const e = byCo[co] || (byCo[co] = {weeks:{}, monthDoc:null, items:0});
+    e.items += (a.tiers||[]).length;
+    if(a.week) e.weeks[+a.week] = a._docId; else e.monthDoc = a._docId;
+  });
+  const cos = Object.keys(byCo).sort((a,b)=>String(a).localeCompare(String(b),'ko'));
+
+  // 주차 슬롯 수: 기본 4칸, 5주차 이상 등록되면 그만큼 자동 확장(최소 4)
+  let slots = 4;
+  cos.forEach(co=>Object.keys(byCo[co].weeks).forEach(w=>{ if(+w>slots) slots=+w; }));
+
+  $('st-count').textContent = cos.length+'개사';
+  $('st-docs').textContent  = docs.length+'건';
+
+  if(!cos.length){ $('st-strip').innerHTML = '<span class="empty" style="padding:6px 0;">이 달 등록된 시상이 없어요</span>'; return; }
+
+  $('st-strip').innerHTML = cos.map(co=>{
+    const e = byCo[co];
+    const wkNums = Object.keys(e.weeks).map(Number);
+    const hasWeekly = wkNums.length>0;
+    let badges='', full=true;
+    if(hasWeekly){
+      for(let w=1; w<=slots; w++){
+        const id=e.weeks[w];
+        if(id){
+          badges += `<span onclick="event.stopPropagation();openEditorById('${esc(id)}')" style="font-size:10px;font-weight:800;color:#fff;background:var(--accent);padding:2px 6px;border-radius:var(--r-xs);cursor:pointer;">주${w}</span>`;
+        }else{
+          full=false;
+          badges += `<span style="font-size:10px;font-weight:700;color:#B4B2A9;background:var(--paper);border:1px dashed var(--line2);padding:1px 5px;border-radius:var(--r-xs);">주${w}</span>`;
+        }
+      }
+    }
+    if(e.monthDoc){
+      badges += `<span onclick="event.stopPropagation();openEditorById('${esc(e.monthDoc)}')" style="font-size:10px;font-weight:800;color:var(--green);background:rgba(26,127,75,.12);padding:2px 7px;border-radius:var(--r-xs);cursor:pointer;">전체(월)</span>`;
+    }
+    const incomplete = hasWeekly && !full;
+    // 문서가 하나뿐이면 카드 전체를 눌러 바로 편집
+    const singleId = (!hasWeekly && e.monthDoc) ? e.monthDoc
+                   : (hasWeekly && !e.monthDoc && wkNums.length===1) ? e.weeks[wkNums[0]]
+                   : null;
+    const cardClick = singleId ? ` onclick="openEditorById('${esc(singleId)}')"` : '';
+    return `<div${cardClick} style="flex:0 1 calc(50% - 4px);min-width:158px;border:1.5px solid ${incomplete?'#F0C97A':'var(--line)'};border-radius:var(--radius-sm);background:var(--surface);padding:10px 11px;${singleId?'cursor:pointer;':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+        <span style="font-size:13.5px;font-weight:800;">${esc(co)}</span>
+        ${singleId?'<span style="color:var(--ink3);font-size:15px;">›</span>':''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;">${badges}</div>
+      <div style="font-size:10.5px;font-weight:700;color:var(--ink3);">${e.items}개 항목${incomplete?' · <span style="color:var(--amber);">빈 주차 있음</span>':''}</div>
+    </div>`;
+  }).join('');
+}
+window.deleteAwardsByMonth = async function(){
+  const y=+$('st-year').value, m=+$('st-month').value;
+  const targets=ALL.filter(a=>a.year===y && a.month===m);
+  if(!targets.length){ toast(`${y}년 ${m}월에 삭제할 시상이 없어요.`); return; }
+  if(!await uiConfirm(`${y}년 ${m}월 시상 ${targets.length}건을 모두 삭제할까요?\n(주차·회사 구분 없이 그 달 전부. 되돌릴 수 없어요.)`)) return;
+  let ok=0, fail=0;
+  for(const a of targets){ try{ await deleteDoc(doc(db,'awards',a._docId)); ok++; }catch(e){ fail++; } }
+  toast(`✅ ${y}년 ${m}월 ${ok}건 삭제${fail?` (${fail} 실패)`:''}`);
+  await loadAll();
+};
+
+/* ── ② 전체 저장 목록 ───────────────────── */
+window.toggleSavedList = function(){
+  _slOpen = !_slOpen;
+  $('sl-body').style.display = _slOpen?'block':'none';
+  $('sl-toggle-top').textContent = _slOpen?'접기 ▴':'펴기 ▾';
+};
+window.renderSavedList = function(keyword){
+  _slKeyword = keyword==null ? _slKeyword : keyword;
+  const el=$('sl-list'); if(!el) return;
+  $('sl-count').textContent = '· '+ new Set(ALL.map(a=>a.company).filter(Boolean)).size +'개사';
+  const kw=String(_slKeyword||'').toLowerCase().trim();
+  const list = ALL.filter(a=>!kw || String(a.company||'').toLowerCase().includes(kw))
+                  .sort((a,b)=>String(b._docId||'').localeCompare(String(a._docId||'')));
+  el.innerHTML = list.length ? list.map(a=>`
+    <div class="co-item" style="cursor:default;">
+      <div style="cursor:pointer;flex:1;" onclick="openEditorById('${esc(a._docId)}')">
+        <div class="nm">${esc(a.company)} <span style="font-size:11px;font-weight:600;color:var(--ink3);">${(a.tiers||[]).length}개 항목</span></div>
+        <div class="meta">${a.year}년 ${a.month}월 ${a.week?a.week+'주차':'전체'}</div>
+      </div>
+      <button class="btn" onclick="openEditorById('${esc(a._docId)}')" style="padding:7px 9px;" aria-label="편집">✏️</button>
+      <button class="btn danger" onclick="deleteOneAward('${esc(a._docId)}')" style="padding:7px 9px;" aria-label="삭제">🗑</button>
+    </div>`).join('') : '<div class="empty">저장된 시상이 없어요</div>';
+};
+window.openEditorById = function(id){ openEditor(id); };
+window.deleteOneAward = async function(id){
+  const a=ALL.find(x=>x._docId===id); if(!a) return;
+  if(!await uiConfirm(`"${a.company}" ${a.year}년 ${a.month}월 ${a.week?a.week+'주차':''} 시상을 삭제할까요?`)) return;
+  try{ await deleteDoc(doc(db,'awards',id)); toast('🗑 삭제됐어요'); await loadAll(); }
+  catch(e){ toast('⚠️ 삭제 실패: '+(e.code||e.message)); }
+};
+
+/* ── ③ 추가시상 그룹 ───────────────────── */
+window.renderAwardGroups = function(){
+  const box = $('award-groups-list'); if(!box) return;
+  if(!awardGroupsCache.length){ box.innerHTML = '<div class="empty" style="padding:14px;">아직 그룹이 없어요. 아래에서 만들어보세요.</div>'; return; }
+  const activeAgents = agentsCache.filter(a=>!a.disabled);
+  box.innerHTML = awardGroupsCache.map(g=>{
+    const members = g.memberUids||[]; const sp = g.special||{};
+    const chips = activeAgents.map(a=>{
+      const uid=a.uid||a._docId; const on=members.includes(uid);
+      return `<label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid ${on?'var(--accent)':'var(--line2)'};border-radius:var(--r-xs);font-size:12px;font-weight:600;cursor:pointer;background:${on?'var(--accent-light)':'var(--surface)'};color:${on?'var(--accent)':'var(--ink2)'};">
+        <input type="checkbox" ${on?'checked':''} onchange="toggleGroupMember('${g._docId}','${uid}',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;">
+        ${esc(a.name||'(이름없음)')}</label>`;
+    }).join(' ');
+    return `<div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;background:var(--surface);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+        <span style="font-size:13px;font-weight:800;">⭐ ${esc(g.name||'')}</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;font-weight:700;color:var(--ink3);">${members.length}명</span>
+          <button class="btn danger" onclick="deleteAwardGroup('${g._docId}')" style="font-size:11px;padding:4px 8px;">삭제</button>
+        </span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || '<span style="font-size:12px;color:var(--ink3);">활성 설계사가 없어요</span>'}</div>
+      <div style="margin-top:11px;padding-top:11px;border-top:1px dashed var(--line2);">
+        <div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:7px;">특별시상 — 이 그룹 멤버의 모든 회사 시상에 자동 추가</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <input id="sp-label-${g._docId}" type="text" placeholder="시상 이름" value="${esc(sp.label||'')}" style="flex:2;min-width:110px;padding:8px 10px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:12px;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;">
+          <span style="display:inline-flex;align-items:center;border:1.5px solid var(--line2);border-radius:var(--radius-sm);background:var(--paper);padding:0 8px;">
+            <input id="sp-rate-${g._docId}" type="text" inputmode="numeric" placeholder="0" value="${sp.rate||''}" style="width:48px;padding:8px 0;border:none;font-size:12px;font-weight:700;font-family:inherit;background:none;color:var(--ink);outline:none;text-align:right;">
+            <span style="font-size:11px;font-weight:700;color:var(--ink3);margin-left:2px;">%</span>
+          </span>
+          <select id="sp-timing-${g._docId}" style="padding:8px;border:1.5px solid var(--line2);border-radius:var(--radius-sm);font-size:12px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;">
+            <option value="next_month" ${sp.timing!=='13th'?'selected':''}>익월</option>
+            <option value="13th" ${sp.timing==='13th'?'selected':''}>13회차</option>
+          </select>
+          <button class="btn" onclick="saveGroupSpecial('${g._docId}')" style="font-size:11px;padding:8px 12px;">저장</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--ink3);margin-top:6px;">${sp.rate?`현재: <b>${esc(sp.label||'특별시상')} ${sp.rate}% · ${sp.timing==='13th'?'13회차':'익월'}</b> 적용 중 — 비율을 0으로 저장하면 꺼져요.`:'비율을 넣고 저장하면 켜져요. (예: 그룹 특별시상 · 100% · 13회차)'}</div>
+      </div>
+    </div>`;
+  }).join('');
+};
+window.createAwardGroup = async function(){
+  const inp = $('new-group-name');
+  const name = (inp.value||'').trim();
+  if(!name){ toast('그룹 이름을 입력하세요'); return; }
+  if(awardGroupsCache.some(g=>g.name===name)){ toast('같은 이름의 그룹이 이미 있어요'); return; }
+  try{
+    await addDoc(collection(db,'awardGroups'), { name, memberUids:[], createdAt:new Date().toISOString() });
+    inp.value='';
+    await loadAwardGroups(); renderAwardGroups();
+  }catch(e){ toast('그룹 생성 실패: '+e.message); }
+};
+window.toggleGroupMember = async function(groupId, uid, on){
+  const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
+  const set = new Set(g.memberUids||[]);
+  if(on) set.add(uid); else set.delete(uid);
+  const memberUids = [...set];
+  try{ await updateDoc(doc(db,'awardGroups',groupId), { memberUids }); g.memberUids=memberUids; renderAwardGroups(); }
+  catch(e){ toast('저장 실패: '+e.message); renderAwardGroups(); }
+};
+window.saveGroupSpecial = async function(groupId){
+  const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
+  const label  = ($('sp-label-'+groupId).value||'').trim() || '그룹 특별시상';
+  const rate   = +String($('sp-rate-'+groupId).value||'').replace(/[^0-9]/g,'') || 0;
+  const timing = $('sp-timing-'+groupId).value==='13th' ? '13th' : 'next_month';
+  const special = rate>0 ? { label, rate, timing } : null;
+  try{ await updateDoc(doc(db,'awardGroups',groupId), { special }); g.special=special; renderAwardGroups(); }
+  catch(e){ toast('저장 실패: '+e.message); }
+};
+window.deleteAwardGroup = async function(groupId){
+  const g = awardGroupsCache.find(x=>x._docId===groupId); if(!g) return;
+  if(!await uiConfirm(`'${g.name}' 그룹을 삭제할까요?\n이 그룹을 가리키는 특별시상 항목은 아무에게도 보이지 않게 됩니다.`)) return;
+  try{ await deleteDoc(doc(db,'awardGroups',groupId)); await loadAwardGroups(); renderAwardGroups(); }
+  catch(e){ toast('삭제 실패: '+e.message); }
+};
+/* ── 편집 화면 ───────────────────────────── */
+function openEditor(docId){
+  const src = ALL.find(a=>a._docId===docId);
+  if(!src) return;
+  CUR = JSON.parse(JSON.stringify(src)); delete CUR._docId;
+  CUR_DOCID = docId;
+  $('browse').style.display='none'; $('editor').style.display='block';
+  $('editTitle').childNodes[0].nodeValue = CUR.company + ' ';
+  $('editMeta').textContent = `${CUR.year}년 ${CUR.month}월 ${CUR.week?CUR.week+'주차':'전체'} · 문서 ${docId}`;
+  $('jsonArea').style.display='none'; $('jsonBtn').classList.remove('primary');
+  renderForm();
+  window.scrollTo(0,0);
+}
+window.backToList = function(){ $('editor').style.display='none'; $('browse').style.display='block'; CUR=null; CUR_DOCID=null; };
+
+/* 폼은 "읽기: CUR → DOM" / "쓰기: DOM 이벤트 → CUR" 단방향으로 단순하게 */
+function renderForm(){
+  const t = CUR.tiers||[];
+  let html = '';
+
+  // 공통사항
+  html += `<div class="card"><div class="sec-title">공통사항 (commonNotes — 줄 단위)</div>
+    <div class="fld"><textarea data-path="commonNotes" rows="4">${esc((CUR.commonNotes||[]).join('\n'))}</textarea></div></div>`;
+
+  // tiers
+  html += t.map((tier,ti)=>{
+    let inner = '';
+    inner += `<div class="fld"><label>항목 이름 (label)</label><input type="text" data-path="tiers.${ti}.label" value="${esc(tier.label||'')}"></div>`;
+
+    // periods (basic형 %)
+    if(Array.isArray(tier.periods)){
+      inner += tier.periods.map((p,pi)=>`
+        <div class="row-box"><div class="rb-t">기간 ${pi+1} · ${esc(p.startDate||'?')} ~ ${esc(p.endDate||'?')}</div>
+          <div class="num-grid">
+            <div class="num-cell"><label>자체 %</label><div class="ib"><input data-path="tiers.${ti}.periods.${pi}.ownRate" data-kind="num" value="${p.ownRate??''}"><span class="u">%</span></div></div>
+            <div class="num-cell"><label>GAK %</label><div class="ib"><input data-path="tiers.${ti}.periods.${pi}.gakRate" data-kind="num" value="${p.gakRate??''}"><span class="u">%</span></div></div>
+            <div class="num-cell"><label>합계 %</label><div class="ib"><input data-path="tiers.${ti}.periods.${pi}.totalRate" data-kind="num" value="${p.totalRate??''}"><span class="u">%</span></div></div>
+          </div></div>`).join('');
+    }
+    // special형 rate
+    if(tier.type==='special' || (tier.rate!=null && !Array.isArray(tier.periods))){
+      inner += `<div class="num-grid" style="margin-bottom:8px;"><div class="num-cell"><label>시상률</label><div class="ib"><input data-path="tiers.${ti}.rate" data-kind="num" value="${tier.rate??''}"><span class="u">%</span></div></div></div>`;
+    }
+    // 구간(tiers[]) — threshold/prev/curr/reward
+    if(Array.isArray(tier.tiers)){
+      inner += tier.tiers.map((row,ri)=>{
+        let cells='';
+        if(row.prevThreshold!=null || row.currThreshold!=null){
+          cells += `<div class="num-cell"><label>전월 구간</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.prevThreshold" data-kind="man" value="${man(row.prevThreshold)}"><span class="u">만↑</span></div></div>`;
+          cells += `<div class="num-cell"><label>당월 구간</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.currThreshold" data-kind="man" value="${man(row.currThreshold)}"><span class="u">만↑</span></div></div>`;
+        } else if(row.threshold!=null){
+          cells += `<div class="num-cell"><label>구간</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.threshold" data-kind="man" value="${man(row.threshold)}"><span class="u">만↑</span></div></div>`;
+        }
+        cells += `<div class="num-cell"><label>시상금</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.reward" data-kind="man" value="${man(row.reward)}"><span class="u">만</span></div></div>`;
+        if(row.goldReward!==undefined) cells += `<div class="num-cell"><label>금 시상</label><div class="ib"><input data-path="tiers.${ti}.tiers.${ri}.goldReward" value="${esc(row.goldReward??'')}"></div></div>`;
+        return `<div class="row-box"><div class="rb-t">구간 ${ri+1}${row.formula?' · '+esc(row.formula):''}</div><div class="num-grid">${cells}</div></div>`;
+      }).join('');
+    }
+    // gift/condition
+    if(tier.type==='gift' || tier.gift!=null){
+      inner += `<div class="fld"><label>물품/내용 (gift)</label><textarea data-path="tiers.${ti}.gift" rows="2">${esc(tier.gift||'')}</textarea></div>`;
+      if(tier.giftThreshold!==undefined) inner += `<div class="num-grid" style="margin-bottom:8px;"><div class="num-cell"><label>달성 기준</label><div class="ib"><input data-path="tiers.${ti}.giftThreshold" data-kind="man" value="${man(tier.giftThreshold)}"><span class="u">만↑</span></div></div></div>`;
+    }
+    if(tier.condition!==undefined) inner += `<div class="fld"><label>조건 (condition)</label><textarea data-path="tiers.${ti}.condition" rows="2">${esc(tier.condition||'')}</textarea></div>`;
+    if(tier.notes!==undefined) inner += `<div class="fld"><label>비고 (notes)</label><textarea data-path="tiers.${ti}.notes" rows="2">${esc(tier.notes||'')}</textarea></div>`;
+    // eligibility
+    if(tier.eligibility){
+      const e=tier.eligibility;
+      let ecells='';
+      if(e.type==='monthly_min'){
+        ecells = `
+          <div class="num-cell"><label>연도</label><div class="ib"><input data-path="tiers.${ti}.eligibility.year" data-kind="num" value="${e.year??''}"></div></div>
+          <div class="num-cell"><label>월</label><div class="ib"><input data-path="tiers.${ti}.eligibility.month" data-kind="num" value="${e.month??''}"></div></div>
+          <div class="num-cell"><label>최소 실적</label><div class="ib"><input data-path="tiers.${ti}.eligibility.minPremium" data-kind="man" value="${man(e.minPremium)}"><span class="u">만↑</span></div></div>`;
+      } else if(e.type==='active_months_min'){
+        ecells = `
+          <div class="num-cell"><label>시작 연</label><div class="ib"><input data-path="tiers.${ti}.eligibility.fromYear" data-kind="num" value="${e.fromYear??''}"></div></div>
+          <div class="num-cell"><label>시작 월</label><div class="ib"><input data-path="tiers.${ti}.eligibility.fromMonth" data-kind="num" value="${e.fromMonth??''}"></div></div>
+          <div class="num-cell"><label>끝 연</label><div class="ib"><input data-path="tiers.${ti}.eligibility.toYear" data-kind="num" value="${e.toYear??''}"></div></div>
+          <div class="num-cell"><label>끝 월</label><div class="ib"><input data-path="tiers.${ti}.eligibility.toMonth" data-kind="num" value="${e.toMonth??''}"></div></div>
+          <div class="num-cell"><label>월 최소실적</label><div class="ib"><input data-path="tiers.${ti}.eligibility.minPremium" data-kind="man" value="${man(e.minPremium)}"><span class="u">만↑</span></div></div>
+          <div class="num-cell"><label>최소 개월수</label><div class="ib"><input data-path="tiers.${ti}.eligibility.minMonths" data-kind="num" value="${e.minMonths??''}"></div></div>`;
+      }
+      inner += `<div class="elig-box"><div class="rb-t">🎯 자격 조건 (본인 계약 데이터로 자동 판정 — 미달이면 숨김)</div>
+        <div class="num-grid">${ecells}</div>
+        <div class="fld" style="margin-top:8px;margin-bottom:0;"><label>설명 (label)</label><input type="text" data-path="tiers.${ti}.eligibility.label" value="${esc(e.label||'')}"></div></div>`;
+    }
+
+    const timing = tier.payTiming==='13th_payment' ? '13th_payment' : (tier.payTiming==null && tier.retention!==13 ? '' : (tier.retention===13?'13th_payment':'next_month'));
+    return `<div class="tier-card">
+      <div class="tier-top">
+        <span class="type-chip">${esc(tier.type||'?')}</span>
+        <select class="timing-sel" data-path="tiers.${ti}.payTiming" data-kind="timing">
+          <option value="next_month" ${timing==='next_month'?'selected':''}>익월 지급</option>
+          <option value="13th_payment" ${timing==='13th_payment'?'selected':''}>13회차 유지</option>
+          <option value="" ${timing===''?'selected':''}>미표기</option>
+        </select>
+      </div>
+      ${inner}
+    </div>`;
+  }).join('');
+
+  // rawText
+  html += `<div class="card"><div class="sec-title">원문 요약 (rawText)</div>
+    <div class="fld"><textarea data-path="rawText" rows="3">${esc(CUR.rawText||'')}</textarea></div></div>`;
+
+  $('formArea').innerHTML = html;
+
+  // 입력 → CUR 반영
+  $('formArea').querySelectorAll('[data-path]').forEach(el=>{
+    el.addEventListener('input', ()=>writeBack(el));
+    el.addEventListener('change', ()=>writeBack(el));
+  });
+}
+function writeBack(el){
+  const path = el.dataset.path.split('.');
+  const kind = el.dataset.kind||'';
+  let v = el.value;
+  if(kind==='num') v = num(v);
+  else if(kind==='man') v = (String(el.value).trim()==='' ? null : won(el.value));
+  else if(kind==='timing'){
+    // payTiming + retention 동기화
+    let o=CUR; for(let i=0;i<path.length-1;i++) o=o[path[i]];
+    if(v==='13th_payment'){ o.payTiming='13th_payment'; o.retention=13; }
+    else if(v==='next_month'){ o.payTiming='next_month'; o.retention=null; }
+    else { o.payTiming=null; o.retention=null; }
+    return;
+  }
+  if(path[0]==='commonNotes'){ CUR.commonNotes = el.value.split('\n').map(s=>s.trim()).filter(Boolean); return; }
+  let o=CUR;
+  for(let i=0;i<path.length-1;i++) o=o[path[i]];
+  o[path[path.length-1]] = v;
+}
+
+/* ── JSON 토글 ───────────────────────────── */
+window.toggleJson = function(){
+  const show = $('jsonArea').style.display==='none';
+  $('jsonArea').style.display = show?'block':'none';
+  $('jsonBtn').classList.toggle('primary', show);
+  if(show) $('jsonText').value = JSON.stringify(CUR, null, 2);
+};
+window.applyJson = function(){
+  try{
+    const obj = JSON.parse($('jsonText').value);
+    if(!obj.company||!obj.year||!obj.month){ toast('⚠️ company/year/month는 필수예요'); return; }
+    CUR = obj; renderForm(); toast('폼에 적용했어요 — 저장을 눌러야 반영됩니다');
+  }catch(e){ toast('⚠️ JSON 문법 오류: '+e.message); }
+};
+
+/* ── 저장 / 삭제 ───────────────────────────── */
+window.saveCurrent = async function(){
+  if(!CUR) return;
+  const newId = awardDocId(CUR.year, CUR.month, CUR.company, CUR.week);
+  if(newId !== CUR_DOCID && !await uiConfirm(`회사/연월/주차가 바뀌어 문서 ID가 ${CUR_DOCID} → ${newId} 로 바뀝니다. 새 문서로 저장할까요? (기존 문서는 남습니다)`)) return;
+  $('saveBtn').disabled = true;
+  try{
+    await setDoc(doc(db,'awards',newId), {...CUR, editedAt:new Date().toISOString()});
+    toast('✅ 저장됐어요 — 시상 비교·실적 계산에 바로 반영됩니다');
+    CUR_DOCID = newId;
+    await loadAll();
+  }catch(e){ toast('⚠️ 저장 실패: '+(e.code||e.message)); }
+  $('saveBtn').disabled = false;
+};
+window.deleteCurrent = async function(){
+  if(!CUR_DOCID) return;
+  if(!await uiConfirm(`"${CUR.company}" ${CUR.year}년 ${CUR.month}월 ${CUR.week?CUR.week+'주차':''} 시상을 삭제할까요?`)) return;
+  try{
+    await deleteDoc(doc(db,'awards',CUR_DOCID));
+    toast('🗑 삭제됐어요'); backToList(); await loadAll();
+  }catch(e){ toast('⚠️ 삭제 실패: '+(e.code||e.message)); }
+};
+
+/* ── 인증: 관리자 로그인 세션 재사용 ── */
+onAuthStateChanged(auth, async(user)=>{
+  const gate=$('gate-msg'), browse=$('browse');
+  function showGate(msg){ if(gate){ gate.style.display='block'; gate.textContent=msg; } if(browse) browse.style.display='none'; }
+  if(!user){ showGate('로그인이 필요해요 — 관리자 화면에서 로그인 후 다시 열어주세요.'); return; }
+  // admin.html과 동일 기준: agents/{uid}.role === 'admin' 인 계정만 허용
+  let isAdmin=false;
+  try{ const me=await getDoc(doc(db,'agents',user.uid)); isAdmin = me.exists() && me.data().role==='admin'; }
+  catch(e){ showGate('권한 확인 실패 ('+esc(e.code||e.message)+')'); return; }
+  if(!isAdmin){ showGate('관리자 전용 페이지예요. 이 계정에는 권한이 없습니다.'); return; }
+  if(gate) gate.style.display='none'; if(browse) browse.style.display='block';
+  try{ await loadAll(); }
+  catch(e){ showGate('불러오기 실패 ('+esc(e.code||e.message)+')'); }
+});
+</script>
+<script type="module">
+import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import { firebaseConfig } from "./firebase-config.js";
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// 오프라인 영속성: 캐시된 시상 데이터로 오프라인에서도 비교. 불가 환경은 메모리 캐시로 폴백.
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (e) {
+  db = getFirestore(app);
+}
+const auth = getAuth(app);
+
+// ── 유틸 (income-simulator와 동일) ──
+const onlyDigits = s => (''+s).replace(/[^0-9]/g,'');
+const comma = n => (Math.round(+n)||0).toLocaleString('ko-KR');
+const KRW = n => '₩' + comma(n);
+const man = n => (n/10000).toLocaleString('ko-KR',{maximumFractionDigits:1});
+const F = id => document.getElementById(id);
+
+const BANDS = [100000,200000,300000,500000];
+const BAND_KEYS = [100000,200000,300000,500000];
+const STEP = 50000; // +/- 5만
+
+// ── 시상 해석: 공통 모듈(awards-core.js) 사용 ──
+const itemsFromDoc  = window.AwardsCore.itemsFromDoc;
+const extrasFromDoc = window.AwardsCore.extrasFromDoc;
+const bandSub       = window.AwardsCore.bandSub;
+const bandPairs     = window.AwardsCore.bandPairs;
+
+// ── 상태 ──
+let POLICIES = []; // [{company, label, items, extras, _id, ym, ymLabel}]
+let PERIODS = [];        // [{ym, label, count}] — 최신순
+let selPeriod = null;    // 선택된 회차 ym(YYYY-MM) 또는 '__all__'
+let GROUPS = [];   // [{id, name, memberUids}] — ⭐ 추가시상 그룹
+let myUid = null;  // 로그인한 설계사 uid
+let perf = 100000;
+// 손보/생보 분리 수수료율 % — 회사명으로 자동 구분 적용
+let RATES = {
+  nl:   { comm:522, keep:200 },  // 🛡 손해보험
+  life: { comm:522, keep:200 },  // 💙 생명보험
+};
+// viewer.html과 동일 분류 규칙 (회사명 기준)
+function isLife(s){ return /생명|생보|라이프|한화생|삼성생|교보생|흥국생|동양생|미래에셋생|푸본현대생|처브라이프|AIA|DB생명|KDB생명|ABL생명|DGB생명|iM라이프|메트라이프|신한라이프|카카오페이생명/.test(s||''); }
+function ratesFor(company){ return isLife(company) ? RATES.life : RATES.nl; }
+const KEEP_FROM = 7, KEEP_TO = 15; // 유지 수수료 분할 구간
+
+// 보기 방식: 'total' = 총액(익월+13회차+수수료 전체), 'next' = 익월만(익월 시상+기본 수수료)
+let viewMode = 'total';
+window.setViewMode = function(m){
+  viewMode = m;
+  document.getElementById('segTotal').classList.toggle('on', m==='total');
+  document.getElementById('segNext').classList.toggle('on', m==='next');
+  render();
+};
+// 상품군: '인보험'(기본) = 인보험 시상만 합산 · '전체' = 펫·재물 등 모든 상품
+let prodMode = '인보험';
+window.setProdMode = function(p){
+  prodMode = p;
+  document.getElementById('segIns').classList.toggle('on', p==='인보험');
+  document.getElementById('segAll').classList.toggle('on', p==='전체');
+  render();
+};
+const openSet = new Set();
+
+// 수수료율 접이식 — 평소엔 한 줄 요약, 누르면 펼침
+window.toggleRates = function(){
+  const c = document.getElementById('rateCollapse');
+  const open = c.classList.toggle('open');
+  document.getElementById('rateToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+};
+// 요약 줄(손보·생보 기본·유지)을 현재 RATES 값으로 갱신
+function syncRateSummary(){
+  const n = document.getElementById('rsNL'), l = document.getElementById('rsL');
+  if (n) n.textContent = (RATES.nl.comm||0) + '·' + (RATES.nl.keep||0);
+  if (l) l.textContent = (RATES.life.comm||0) + '·' + (RATES.life.keep||0);
+}
+
+// ── 자격 조건(eligibility) 자동 판정 — 본인 계약 데이터 기반 ──
+// 시상 tier에 eligibility가 있으면, Firestore의 내 계약 월별 실적으로 달성 여부를 판정.
+// 미달이면 항목을 숨김(⭐그룹 한정과 동일 동작). 계약 데이터가 없으면 = 미달성.
+let MONTH_SUMS = {}; // 'YYYY-M' → 월 보험료 합계 (viewer와 동일 규칙: startDate/rawJson.계약일, premium)
+async function loadMyPerf(){
+  MONTH_SUMS = {};
+  if(!myUid) return;
+  try{
+    const snap = await getDocs(query(collection(db,'customers'), where('agentId','==',myUid)));
+    snap.forEach(d=>{
+      (d.data().contracts||[]).forEach(ct=>{
+        const date = ct.startDate || (ct.rawJson && ct.rawJson['계약일']) || null;
+        if(!date) return; // 계약일 없으면 월 판정 불가 → 제외 (viewer와 동일)
+        const m = String(date).match(/(\d{4})[.\-\/](\d{1,2})/);
+        if(!m) return;
+        const key = m[1]+'-'+(+m[2]);
+        const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0;
+        MONTH_SUMS[key] = (MONTH_SUMS[key]||0) + prem;
+      });
+    });
+  }catch(e){ MONTH_SUMS = {}; }
+}
+function meetsEligibility(e){
+  if(!e) return true;
+  if(e.type==='monthly_min'){
+    // 특정 월 실적이 minPremium 이상이어야 자격 (예: K-다이아몬드 = 5월 200만↑)
+    return (MONTH_SUMS[e.year+'-'+(+e.month)]||0) >= (e.minPremium||0);
+  }
+  if(e.type==='active_months_min'){
+    // 기간 내 minPremium 이상 가동한 달이 minMonths개 이상 (예: 1Q 그린플래티넘 = 1~3월 중 2개월 20만↑)
+    let n=0, y=e.fromYear, mo=e.fromMonth;
+    while(y<e.toYear || (y===e.toYear && mo<=e.toMonth)){
+      if((MONTH_SUMS[y+'-'+mo]||0) >= (e.minPremium||0)) n++;
+      mo++; if(mo>12){ mo=1; y++; }
+    }
+    return n >= (e.minMonths||1);
+  }
+  return true; // 알 수 없는 타입은 숨기지 않음 (보수적)
+}
+
+function matchBand(P){ let b=null; for(const t of BANDS){ if(P>=t) b=t; } return b; }
+
+// ⭐ 그룹 한정 항목: 내가 멤버인 그룹의 것만 보임 (이름 또는 문서ID로 매칭)
+function inAudience(groupRef){
+  if(!groupRef) return true; // 한정 없음 = 전체 공개
+  const g = GROUPS.find(x => x.name===groupRef || x.id===groupRef);
+  return !!(g && myUid && (g.memberUids||[]).includes(myUid));
+}
+
+// ⭐ 내가 멤버인 그룹들의 특별시상 → 모든 회사에 공통 추가되는 항목들
+function mySpecialItems(){
+  if(!myUid) return [];
+  return GROUPS
+    .filter(g => (g.memberUids||[]).includes(myUid) && g.special && +g.special.rate > 0)
+    .map(g => ({
+      id:'gspecial_'+g.id, label:g.special.label||'그룹 특별시상',
+      sub:(+g.special.rate)+'%', mode:'rate', rate:+g.special.rate,
+      timing:g.special.timing==='13th'?'13th':'next_month', on:true, special:true
+    }));
+}
+
+// 회사(시상 항목들) 기준 1건당 예상 — 익월시상 + 13회차시상 + 수수료(기본+유지)
+// 그룹 특별시상은 모든 회사에 공통으로 더해짐. 수수료율은 손보/생보 자동 구분.
+function calc(items, company){
+  const rt = ratesFor(company);
+  const all = [...(items||[]), ...mySpecialItems()];
+  const r = window.AwardsCore.aggregate(all, perf, {
+    product: prodMode, commRate: rt.comm, keepRate: rt.keep,
+    keepFrom: KEEP_FROM, keepTo: KEEP_TO,
+    inAudience, meetsEligibility
+  });
+  return {
+    수수료:r.수수료, 기본시상:r.기본시상, 익월시상:r.익월시상, 익월합계:r.익월합계,
+    next: r.기본시상 + r.익월시상,                 // (구) 수수료 제외 익월 시상 합
+    r13:r.r13, tbd:r.tbd, award: r.기본시상 + r.익월시상 + r.r13 + r.tbd,
+    commission:r.수수료, keepTotal:r.keepTotal, keepEach:r.keepEach, keepN:r.keepN,
+    total:r.총액, band:r.band, detail:r.detail,
+    commRate:r.commRate, keepRate:r.keepRate, life:isLife(company)
+  };
+}
+
+// ── 렌더 ──
+// ── 시상 회차(년·월) 목록 구성 + 선택기 채우기 ──
+function buildPeriods(){
+  const map=new Map();
+  POLICIES.forEach(p=>{ if(!p.ym) return;
+    const e=map.get(p.ym)||{ym:p.ym,label:p.ymLabel,count:0};
+    e.count++; map.set(p.ym,e);
+  });
+  PERIODS=[...map.values()].sort((a,b)=> b.ym.localeCompare(a.ym)); // 최신순
+  const sel=F('periodSel'), bar=F('periodBar');
+  if(!sel||!bar) return;
+  if(!PERIODS.length){ bar.style.display='none'; selPeriod=null; return; }
+  // 기본 = 가장 최근 회차. 단 회차가 1개뿐이면 선택기 자체를 숨김.
+  if(selPeriod===null) selPeriod = PERIODS[0].ym;
+  if(PERIODS.length<=1){ bar.style.display='none'; selPeriod=PERIODS[0].ym; return; }
+  bar.style.display='flex';
+  const opts = PERIODS.map(p=>`<option value="${p.ym}" ${p.ym===selPeriod?'selected':''}>${p.label} (${p.count}개사)</option>`).join('');
+  sel.innerHTML = opts + `<option value="__all__" ${selPeriod==='__all__'?'selected':''}>📋 전체 회차 보기</option>`;
+}
+window.setPeriod=function(v){ selPeriod=v; render(); };
+
+// 현재 선택된 회차에 해당하는 시상만 추림
+function visiblePolicies(){
+  if(!selPeriod || selPeriod==='__all__') return POLICIES;
+  return POLICIES.filter(p=>p.ym===selPeriod);
+}
+
+function render(){
+  const grid=F('grid');
+  if(!POLICIES.length){
+    grid.innerHTML = `<div class="empty"><div class="ic">📋</div>
+      <p>아직 올려둔 시상이 없어요.<br>관리자 페이지에서 <b>관심 있는 보험사 시상</b>을 먼저 올리면<br>여기에서 나란히 비교할 수 있어요.</p></div>`;
+    return;
+  }
+  const list = visiblePolicies();
+  if(!list.length){
+    grid.innerHTML = `<div class="empty"><div class="ic">📅</div>
+      <p>이 회차에 등록된 시상이 없어요.<br>위에서 다른 회차를 골라보세요.</p></div>`;
+    return;
+  }
+  grid.innerHTML = list.map((p,idx)=>{
+    const r = calc(p.items, p.company);
+    const open = openSet.has(p._id);
+    const bandLabel = r.band ? `${man(r.band)}만↑ 구간` : '구간 미달';
+    const typeTag = r.life
+      ? `<span class="comm-type life" style="font-size:10px;padding:2px 7px;">💙 생보</span>`
+      : `<span class="comm-type nl" style="font-size:10px;padding:2px 7px;">🛡 손보</span>`;
+
+    const nextRows = r.detail.filter(d=>d.timing==='next' && d.kind!=='수수료');
+    const r13Rows  = r.detail.filter(d=>d.timing==='13th');
+    const tbdRows  = r.detail.filter(d=>d.timing==='tbd');
+    // ⚡ 익월만 모드: 익월 합계 = 수수료 + 기본시상 + 익월 시상
+    const isNext = viewMode==='next';
+    const bigVal = isNext ? r.익월합계 : r.total;
+    const subHtml = isNext
+      ? `수수료 <b>${man(r.수수료)}만</b> + 기본시상 <b>${man(r.기본시상)}만</b> + 익월 시상 <b>${man(r.익월시상)}만</b> · <span class="band-now">${bandLabel}</span>`
+      : `시상 <b>${man(r.award)}만</b> + 수수료 <b>${man(r.commission+r.keepTotal)}만</b> · <span class="band-now">${bandLabel}</span>`;
+    const rowHtml = d => `<div class="dt-row ${d.on?'':'off'}">
+        <div class="lab">${d.special?'⭐ ':''}${esc(d.label||'')}${d.sub?`<small>${esc(d.sub)}${d.special?' · 그룹 한정':''}</small>`:''}</div>
+        <div class="amt">${d.amount?man(d.amount)+'만':'–'}</div></div>`;
+
+    const extra = (p.extras&&p.extras.length)
+      ? `<div class="dt-extra">${p.extras.map(esc).join('<br>')}</div>` : '';
+
+    return `<div class="co-card ${open?'open':''}" data-id="${esc(p._id)}">
+      <div class="co-head" data-id="${esc(p._id)}">
+        <div class="co-top">
+          <span class="co-name">${esc(p.company)}</span>
+          ${typeTag}
+          <span class="co-period">${esc(p.label)}</span>
+        </div>
+        <div class="co-sum">
+          <div class="big num">${man(bigVal)}<span class="w">만원</span></div>
+          <div class="sub">${subHtml}</div>
+        </div>
+        <div class="co-toggle">상세 <span class="arr">▾</span></div>
+      </div>
+      <div class="co-detail">
+        ${nextRows.length?`<div class="dt-sec">익월 지급 시상</div>${nextRows.map(rowHtml).join('')}`:''}
+        ${isNext ? `
+        <div class="dt-sec">수수료 <small style="font-weight:600;color:var(--ink3);">(${r.life?'생보':'손보'} 율 적용)</small></div>
+        <div class="dt-row"><div class="lab">수수료 (${r.commRate}%)<small>회사 지급 방식에 따라 분할될 수 있어요</small></div><div class="amt">${man(r.commission)}만</div></div>
+        <div class="dt-extra">13회차 시상·유지 수수료는 🧮 총액에서 확인</div>
+        ` : `
+        ${r13Rows.length?`<div class="dt-sec">13회차 지급 시상</div>${r13Rows.map(rowHtml).join('')}`:''}
+        ${tbdRows.length?`<div class="dt-sec">지급시기 미정 시상 <small style="font-weight:600;color:var(--ink3);">(시상안에 미표기 — 합계 포함)</small></div>${tbdRows.map(rowHtml).join('')}`:''}
+        <div class="dt-sec">수수료 <small style="font-weight:600;color:var(--ink3);">(${r.life?'생보':'손보'} 율 적용)</small></div>
+        <div class="dt-row"><div class="lab">수수료 (${r.commRate}%)</div><div class="amt">${man(r.commission)}만</div></div>
+        <div class="dt-row"><div class="lab">유지 수수료 (${r.keepRate}%)<small>${KEEP_FROM}~${KEEP_TO}회차 분할 · 회차당 ${man(r.keepEach)}만 × ${r.keepN}회</small></div><div class="amt">${man(r.keepTotal)}만</div></div>
+        `}
+        ${extra}
+      </div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.co-head').forEach(el=>el.addEventListener('click',()=>{
+    const id=el.dataset.id;
+    if(openSet.has(id)) openSet.delete(id); else openSet.add(id);
+    render();
+  }));
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ── 실적 입력 ──
+function setPerf(v){
+  perf = Math.max(0, Math.round(v));
+  F('perf').value = comma(perf);
+  render();
+}
+F('minus').addEventListener('click',()=>{
+  // 5만 격자에 맞춰 내림 (예: 9만 → 5만)
+  const next = (perf % STEP === 0) ? perf - STEP : Math.floor(perf/STEP)*STEP;
+  setPerf(Math.max(0, next));
+});
+F('plus').addEventListener('click',()=>{
+  const next = (perf % STEP === 0) ? perf + STEP : Math.ceil(perf/STEP)*STEP;
+  setPerf(next);
+});
+F('perf').addEventListener('input',()=>{
+  perf = +onlyDigits(F('perf').value)||0;
+  render();
+});
+F('perf').addEventListener('blur',()=>{ F('perf').value = comma(perf); });
+// 손보/생보 분리 수수료율 입력 4개 — 같은 패턴으로 일괄 바인딩
+[ ['commNL','nl','comm'], ['keepNL','nl','keep'], ['commL','life','comm'], ['keepL','life','keep'] ]
+.forEach(([id, type, key])=>{
+  F(id).addEventListener('input',()=>{
+    RATES[type][key] = +onlyDigits(F(id).value)||0;
+    F(id).value = comma(RATES[type][key]);
+    syncRateSummary();
+    render();
+  });
+});
+syncRateSummary();
+
+// ── Firestore 로드 (income-simulator와 동일 흐름) ──
+async function loadAwards(){
+  // ⭐ 추가시상 그룹 — 보안규칙상 "내가 멤버인 그룹"만 조회 가능 (비멤버에겐 존재 자체 숨김)
+  GROUPS=[];
+  if(myUid){
+    try{
+      const gq=query(collection(db,'awardGroups'), where('memberUids','array-contains',myUid));
+      const gs=await getDocs(gq);
+      gs.forEach(d=>GROUPS.push({id:d.id, ...d.data()}));
+    }catch(e){ GROUPS=[]; }
+  }
+  await loadMyPerf(); // 🎯 자격 조건 판정용 — 내 계약 월별 실적
+  try{
+    const snap=await getDocs(collection(db,'awards'));
+    const loaded=[];
+    snap.forEach(docu=>{
+      const d=docu.data();
+      const its=itemsFromDoc(d);
+      if(!its.length) return;
+      const wk=d.week?` ${d.week}주차`:'';
+      const yy=d.year?String(d.year).slice(2):'';
+      const ym=(d.year&&d.month)?`${d.year}-${String(d.month).padStart(2,'0')}`:'';
+      loaded.push({
+        company:d.company||'(미상)',
+        label:`${yy}년 ${d.month}월${wk}`,
+        ym, ymLabel:(d.year&&d.month)?`${d.year}년 ${d.month}월`:'(연월 미상)',
+        items:its, extras:extrasFromDoc(d), _id:docu.id
+      });
+    });
+    if(loaded.length){
+      loaded.sort((a,b)=> a.company.localeCompare(b.company) || (''+b._id).localeCompare(''+a._id));
+      POLICIES=loaded;
+      buildPeriods();
+      F('cmp-status').innerHTML=`✅ 등록 시상 <b>${loaded.length}건</b> · 실적을 바꾸면 회사별 예상수익이 같이 움직여요.`;
+    } else {
+      F('cmp-status').innerHTML=`등록된 시상이 없어요. 관리자에서 시상을 올리면 여기에 표시됩니다.`;
+    }
+  }catch(e){
+    F('cmp-status').innerHTML=`시상을 불러오지 못했어요. <span style="color:var(--ink3)">(${e.code||e.message||'오류'})</span>`;
+  }
+  render();
+}
+
+// ── 인증 후 로드 (income-simulator와 동일) ──
+function decodeToken(t){
+  try {
+    t = String(t||'').replace(/-/g,'+').replace(/_/g,'/');
+    while (t.length % 4) t += '=';
+    const s = atob(t); const i = s.indexOf(':');
+    if (i < 1) return null;
+    return { email: s.slice(0, i), pw: s.slice(i + 1) };
+  } catch(e) { return null; }
+}
+let _started=false;
+onAuthStateChanged(auth, async(user)=>{
+  if(user) myUid = user.uid; // ⭐ 그룹 한정 시상 판별용
+  if(_started) return;
+  if(user){ _started=true; await loadAwards(); return; }
+  let token=null;
+  try{ token = localStorage.getItem('mujinViewerToken'); }catch(e){}
+  const cred = token ? decodeToken(token) : null;
+  if(cred){
+    try{ await signInWithEmailAndPassword(auth, cred.email, cred.pw); return; }catch(e){}
+  }
+  _started=true; await loadAwards();
+});
+
+// 초기 렌더 (로드 전에도 빈 화면 표시)
+render();
+</script>
+<script type="module">
+import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (e) { db = getFirestore(app); }
+const auth = getAuth(app);
+
+const F = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const itemsFromDoc = window.AwardsCore.itemsFromDoc;
+
+let ROWS = [];        // [{company, ym, ymLabel, week, basic, special, hasBand}]
+let MONTHS = [];      // [{ym, label, count}] 최신순
+let selMonth = null;
+
+// 시상 문서 → 익월 시상률 지표(인보험 기준)
+function metricFromDoc(d){
+  const its = itemsFromDoc(d).filter(it => it.product === '인보험');
+  let basic = 0, special = 0, hasBand = false;
+  its.forEach(it=>{
+    if(it.kind === '기본시상' && it.mode === 'rate') basic += (+it.rate || 0);
+    else if(it.kind === '익월시상' && it.mode === 'rate') special += (+it.rate || 0);
+    else if(it.kind === '익월시상' && it.mode === 'band') hasBand = true;
+  });
+  return { basic, special, hasBand };
+}
+
+async function loadAwards(){
+  try{
+    const snap = await getDocs(collection(db, 'awards'));
+    const rows = [];
+    snap.forEach(docu=>{
+      const d = docu.data();
+      if(!(d.year && d.month)) return;
+      const m = metricFromDoc(d);
+      if(!m.basic && !m.special && !m.hasBand) return; // 인보험 익월 시상 없는 문서 제외
+      rows.push({
+        company: d.company || '(미상)',
+        ym: `${d.year}-${String(d.month).padStart(2,'0')}`,
+        ymLabel: `${d.year}년 ${d.month}월`,
+        week: d.week ? +d.week : 0,   // 0 = 월 전체
+        basic: m.basic, special: m.special, hasBand: m.hasBand
+      });
+    });
+    ROWS = rows;
+    buildMonths();
+    if(rows.length){
+      F('stats-status').innerHTML = `✅ 등록 시상 <b>${rows.length}건</b> · 같은 달에 주차별로 시상률이 어떻게 달라지는지 한눈에 비교하세요.`;
+    } else {
+      F('stats-status').innerHTML = `등록된 시상이 없어요. 관리자에서 시상을 올리면 여기에 표시됩니다.`;
+    }
+  }catch(e){
+    F('stats-status').innerHTML = `시상을 불러오지 못했어요. <span style="color:var(--ink3)">(${esc(e.code||e.message||'오류')})</span>`;
+  }
+  render();
+}
+
+function buildMonths(){
+  const map = new Map();
+  ROWS.forEach(r=>{
+    const e = map.get(r.ym) || { ym:r.ym, label:r.ymLabel, count:0 };
+    e.count++; map.set(r.ym, e);
+  });
+  MONTHS = [...map.values()].sort((a,b)=> b.ym.localeCompare(a.ym)); // 최신순
+  const sel = F('monthSel');
+  if(!MONTHS.length){ if(sel) sel.innerHTML=''; selMonth=null; return; }
+  if(selMonth === null) selMonth = MONTHS[0].ym; // 기본 = 가장 최근 달
+  if(sel) sel.innerHTML = MONTHS.map(m=>`<option value="${m.ym}" ${m.ym===selMonth?'selected':''}>${m.label}</option>`).join('');
+}
+window.setMonth = function(v){ selMonth = v; render(); };
+
+function weekLabel(w){ return w === 0 ? '월 전체' : (w + '주차'); }
+
+function render(){
+  const board = F('board');
+  if(!ROWS.length){
+    board.innerHTML = `<div class="empty"><div class="ic">📋</div>
+      <p>아직 올려둔 시상이 없어요.<br>관리자 페이지에서 시상을 올리면<br>여기에서 주차별로 비교할 수 있어요.</p></div>`;
+    F('legend').style.display='none';
+    return;
+  }
+  const rows = ROWS.filter(r => r.ym === selMonth);
+  if(!rows.length){
+    board.innerHTML = `<div class="empty"><div class="ic">📅</div><p>이 달에 등록된 시상이 없어요.</p></div>`;
+    F('legend').style.display='none';
+    return;
+  }
+
+  // 열(주차) 구성: 등장한 주차 오름차순 + 월 전체는 맨 뒤
+  const weekSet = [...new Set(rows.map(r=>r.week))];
+  const weeks = weekSet.filter(w=>w>0).sort((a,b)=>a-b);
+  if(weekSet.includes(0)) weeks.push(0);
+
+  // 행(회사) 구성
+  const companies = [...new Set(rows.map(r=>r.company))].sort((a,b)=>a.localeCompare(b));
+
+  // 셀 색인 + 주차별 최고 기본시상률(강조용)
+  const cell = {}; // cell[company][week] = metric
+  const bestByWeek = {};
+  rows.forEach(r=>{
+    (cell[r.company] = cell[r.company] || {})[r.week] = r;
+    if(r.basic > (bestByWeek[r.week]||0)) bestByWeek[r.week] = r.basic;
+  });
+
+  const head = `<tr><th class="co-head">회사</th>${weeks.map(w=>`<th>${weekLabel(w)}</th>`).join('')}</tr>`;
+  const body = companies.map(co=>{
+    const tds = weeks.map(w=>{
+      const m = cell[co] && cell[co][w];
+      if(!m) return `<td><span class="cell-empty">—</span></td>`;
+      const isBest = m.basic > 0 && m.basic === bestByWeek[w];
+      const parts = [];
+      if(m.basic > 0) parts.push(`<div class="cell-pct">${m.basic}%</div>`);
+      else parts.push(`<div class="cell-pct" style="color:var(--ink3)">·</div>`);
+      if(m.special > 0) parts.push(`<div class="cell-sp">+${m.special}%</div>`);
+      if(m.hasBand) parts.push(`<div class="cell-band">📊 구간</div>`);
+      return `<td class="${isBest?'best':''}">${parts.join('')}</td>`;
+    }).join('');
+    return `<tr><td class="co-cell">${esc(co)}</td>${tds}</tr>`;
+  }).join('');
+
+  board.innerHTML = `<div class="matrix-scroll"><table class="matrix"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  F('legend').style.display='flex';
+}
+
+// ── 인증 (awards-compare와 동일 흐름: 로그인 세션 또는 viewer 토큰) ──
+function decodeToken(t){
+  try {
+    t = String(t||'').replace(/-/g,'+').replace(/_/g,'/');
+    while (t.length % 4) t += '=';
+    const s = atob(t); const i = s.indexOf(':');
+    if (i < 1) return null;
+    return { email: s.slice(0, i), pw: s.slice(i + 1) };
+  } catch(e) { return null; }
+}
+let _started = false;
+onAuthStateChanged(auth, async(user)=>{
+  if(_started) return;
+  if(user){ _started = true; await loadAwards(); return; }
+  let token = null;
+  try{ token = localStorage.getItem('mujinViewerToken'); }catch(e){}
+  const cred = token ? decodeToken(token) : null;
+  if(cred){
+    try{ await signInWithEmailAndPassword(auth, cred.email, cred.pw); return; }catch(e){}
+  }
+  _started = true; await loadAwards();
+});
+
+render();
+</script>
+</body>
+</html>

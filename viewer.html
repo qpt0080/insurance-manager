@@ -552,7 +552,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <div id="screen-performance" class="screen">
       <div id="perf-content"></div>
     </div>
-    <!-- 시상 비교 (awards-compare.html을 iframe으로 임베드 — 토큰 공유, 코드 분리) -->
+    <!-- 시상 비교 (settlement.html?embed=compare 임베드 — 토큰 공유, 코드 분리) -->
     <div id="screen-awards" class="screen">
       <iframe id="awards-frame" title="시상 비교" style="width:100%;border:0;display:block;background:transparent;"></iframe>
     </div>
@@ -2912,7 +2912,7 @@ window.showTab = function(tab, skipHistory) {
 // ── 시상 비교 iframe: 처음 열 때만 로드(이후 유지), 높이는 헤더 제외한 화면에 맞춤 ──
 function ensureAwardsFrame() {
   const f = document.getElementById('awards-frame');
-  if (f && !f.getAttribute('src')) f.setAttribute('src', 'awards-compare.html');
+  if (f && !f.getAttribute('src')) f.setAttribute('src', 'settlement.html?embed=compare');
   sizeAwardsFrame();
 }
 function sizeAwardsFrame() {

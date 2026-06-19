@@ -522,6 +522,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     </div>
     <div class="header-dday" id="hdr-dday" title="이번 달 마감까지 남은 일수"></div>
     <div class="header-right">
+      <button onclick="switchTab('dashboard')" class="btn btn-sm" title="홈">🏠<span class="hdr-label"> 홈</span></button>
       <button onclick="goViewer()" class="btn btn-sm" title="뷰어로 내 계약 보기">👁</button>
       <button onclick="doLogout()" class="btn btn-sm">🚪<span class="hdr-label"> 로그아웃</span></button>
     </div>
@@ -549,7 +550,6 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <!-- 탭 네비 (2줄 바둑판) -->
 <nav class="tab-nav">
   <div class="tab-nav-inner tab-grid">
-    <div class="tab-nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard"><span class="ti">🏠</span><span class="tl">홈</span></div>
     <div class="tab-nav-item" onclick="switchTab('upload')" id="nav-upload"><span class="ti">📤</span><span class="tl">업로드</span></div>
     <div class="tab-nav-item" onclick="switchTab('contracts')" id="nav-contracts"><span class="ti">🗂</span><span class="tl">계약 관리</span></div>
     <div class="tab-nav-item" onclick="switchTab('commission')" id="nav-commission"><span class="ti">💰</span><span class="tl">수수료</span></div>
@@ -557,9 +557,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <div class="tab-nav-item" onclick="location.href='notice.html'" id="nav-notice"><span class="ti">🔔</span><span class="tl">공지</span></div>
     <div class="tab-nav-item ext" onclick="window.open('dashboard.html','_blank','noopener')"><span class="ti">📊</span><span class="tl">팀 대시보드</span><span class="ext-mark">↗</span></div>
     <div class="tab-nav-item ext" onclick="window.open('income-simulator.html','_blank','noopener')"><span class="ti">🧮</span><span class="tl">시뮬레이션</span><span class="ext-mark">↗</span></div>
-    <div class="tab-nav-item ext" onclick="window.open('awards-compare.html','_blank','noopener')"><span class="ti">🏆</span><span class="tl">시상 비교</span><span class="ext-mark">↗</span></div>
-    <div class="tab-nav-item ext" onclick="window.open('awards-stats.html','_blank','noopener')"><span class="ti">📈</span><span class="tl">주차별 통계</span><span class="ext-mark">↗</span></div>
-    <div class="tab-nav-item ext" onclick="window.open('awards-manage.html','_blank','noopener')"><span class="ti">✏️</span><span class="tl">시상 관리</span><span class="ext-mark">↗</span></div>
+    <div class="tab-nav-item ext" onclick="window.open('settlement.html','_blank','noopener')"><span class="ti">🧾</span><span class="tl">정산 허브</span><span class="ext-mark">↗</span></div>
   </div>
 </nav>
 
@@ -894,9 +892,14 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
     <div id="comm-calc-area" style="display:none;">
       <div class="card" style="margin-bottom:10px;">
         <div id="comm-summary"></div>
-        <button onclick="saveCommission()" class="btn btn-primary btn-full" style="margin-top:14px;font-size:14px;padding:13px;">
-          💾 이 달 수수료/시상 저장하기
-        </button>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button onclick="saveCommission()" class="btn btn-primary" style="flex:1;font-size:14px;padding:13px;">
+            💾 이 달 저장
+          </button>
+          <button onclick="deleteCommission()" class="btn" style="font-size:14px;padding:13px 18px;color:var(--red);border-color:rgba(220,38,38,.4);">
+            🗑 삭제
+          </button>
+        </div>
         <div id="comm-save-status" style="display:none;font-size:12px;text-align:center;margin-top:8px;"></div>
       </div>
     </div>
@@ -2871,6 +2874,21 @@ window.saveCommission=async function(){
   }catch(e){status.textContent='❌ 실패: '+e.message;status.style.color='var(--red)';}
 };
 
+window.deleteCommission=async function(){
+  const data=window._pendingCommData; if(!data) return;
+  const docId=`${data.agentId}_${data.year}_${String(data.month).padStart(2,'0')}`;
+  if(!confirm(`${data.year}년 ${data.month}월 저장된 수수료/시상 기록을 삭제할까요?\n지급예정·완료·취소 내역이 모두 사라져요.`)) return;
+  const status=document.getElementById('comm-save-status');
+  status.style.display='block';status.textContent='삭제 중...';status.style.color='var(--text3)';
+  try{
+    await deleteDoc(doc(db,'commissions',docId));
+    await loadAllCommissions();
+    renderCommList(data.agentId);
+    status.textContent='🗑 삭제됐어요';status.style.color='var(--red)';
+    showToast('🗑 이 달 수수료/시상 삭제됐어요');
+  }catch(e){status.textContent='❌ 실패: '+e.message;status.style.color='var(--red)';}
+};
+
 window.switchCommView=function(mode){
   commViewMode=mode;
   ['scheduled','paid','cancelled'].forEach(m=>{
@@ -3480,7 +3498,7 @@ window.deleteAwardsByMonth = async function() {
 window.switchTab = function(tab, skipHistory) {
   document.querySelectorAll('.tab-nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
-  document.getElementById('nav-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab)?.classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if (tab === 'contracts') { buildContractsFilters(); renderContractsList(); }
   if (tab === 'upload') { initAwardCheckSelects(); renderAwardStatusCard(); loadAwardList(); loadNoticePool().then(renderNoticeSavedList); }
