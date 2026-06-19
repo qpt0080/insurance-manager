@@ -278,6 +278,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
       <div class="dash-date" id="date">—</div>
       <div class="dash-dday" id="hdr-dday" title="이번 달 마감까지 남은 일수"></div>
       <button id="fsBtn" class="fs-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+      <button id="navBtn" class="fs-btn" style="margin-left:6px;"></button>
     </div>
   </div>
 
@@ -988,5 +989,6 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 </script>
+<script>(function(){var b=document.getElementById("navBtn");if(!b)return;if(window.opener&&!window.opener.closed){b.textContent="\u2715 \ub2eb\uae30";b.onclick=function(){window.close();};}else{b.textContent="\ud83c\udfe0 \ud648";b.onclick=function(){location.href="admin.html";};}})();</script>
 </body>
 </html>

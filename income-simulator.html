@@ -154,9 +154,10 @@
 </head>
 <body>
 <div class="wrap">
-  <header>
+  <header style="position:relative;">
     <div class="eyebrow">예상수입 시뮬레이터</div>
     <h1>이 정도 하면, <em>이 정도</em> 받습니다</h1>
+    <button id="navBtn" style="position:absolute;top:0;right:0;font-family:inherit;font-size:12px;font-weight:700;color:var(--ink2);background:var(--card);border:1.5px solid var(--line2);border-radius:8px;padding:7px 13px;cursor:pointer;"></button>
   </header>
 
   <!-- 시상 정책 -->
@@ -590,5 +591,6 @@ bindProdSeg();
   window.addEventListener("orientationchange", applyScale);
 })();
 </script>
+<script>(function(){var b=document.getElementById("navBtn");if(!b)return;if(window.opener&&!window.opener.closed){b.textContent="\u2715 \ub2eb\uae30";b.onclick=function(){window.close();};}else{b.textContent="\ud83c\udfe0 \ud648";b.onclick=function(){location.href="admin.html";};}})();</script>
 </body>
 </html>

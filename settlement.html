@@ -308,7 +308,7 @@ body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
 <body>
 <header class="shell-header">
   <div class="shell-logo">무진 <span>보험</span><span class="badge">정산 허브</span></div>
-  <a class="home-btn" href="admin.html">🏠 홈</a>
+  <a class="home-btn" id="navBtn" href="admin.html">🏠 홈</a>
 </header>
 <nav class="sub-nav">
   <div class="sub-tab" data-sub="manage"  onclick="showSub('manage')">✏️ 시상 관리</div>
@@ -510,6 +510,10 @@ function showSub(name){
   }
   var h=(location.hash||'').replace('#','');
   showSub(['manage','compare','stats'].indexOf(h)>=0 ? h : 'manage');
+})();
+(function(){
+  var b=document.getElementById('navBtn'); if(!b) return;
+  if(window.opener && !window.opener.closed){ b.textContent='✕ 닫기'; b.onclick=function(e){e.preventDefault();window.close();}; }
 })();
 
 </script>
