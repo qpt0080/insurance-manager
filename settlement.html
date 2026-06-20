@@ -1145,22 +1145,24 @@ function calc(items, company){
 }
 
 // ── 렌더 ──
-// ── 시상 회차(년·월) 목록 구성 + 선택기 채우기 ──
+// ── 시상 회차(년·월·주차) 목록 구성 + 선택기 채우기 ──
 function buildPeriods(){
   const map=new Map();
-  POLICIES.forEach(p=>{ if(!p.ym) return;
-    const e=map.get(p.ym)||{ym:p.ym,label:p.ymLabel,count:0};
-    e.count++; map.set(p.ym,e);
+  POLICIES.forEach(p=>{ if(!p.pkey) return;
+    const e=map.get(p.pkey)||{key:p.pkey,label:p.pLabel,count:0};
+    e.count++; map.set(p.pkey,e);
   });
-  PERIODS=[...map.values()].sort((a,b)=> b.ym.localeCompare(a.ym)); // 최신순
+  PERIODS=[...map.values()].sort((a,b)=> b.key.localeCompare(a.key)); // 최신 회차순(월·주차)
   const sel=F('periodSel'), bar=F('periodBar');
   if(!sel||!bar) return;
   if(!PERIODS.length){ bar.style.display='none'; selPeriod=null; return; }
-  // 기본 = 가장 최근 회차. 단 회차가 1개뿐이면 선택기 자체를 숨김.
-  if(selPeriod===null) selPeriod = PERIODS[0].ym;
-  if(PERIODS.length<=1){ bar.style.display='none'; selPeriod=PERIODS[0].ym; return; }
+  // 기본 = 가장 최근 회차. 이전 선택 회차가 사라졌으면 최신으로 보정.
+  if(selPeriod===null) selPeriod = PERIODS[0].key;
+  if(selPeriod!=='__all__' && !PERIODS.some(p=>p.key===selPeriod)) selPeriod = PERIODS[0].key;
+  // 회차가 1개뿐이면 선택기 자체를 숨김.
+  if(PERIODS.length<=1){ bar.style.display='none'; selPeriod=PERIODS[0].key; return; }
   bar.style.display='flex';
-  const opts = PERIODS.map(p=>`<option value="${p.ym}" ${p.ym===selPeriod?'selected':''}>${p.label} (${p.count}개사)</option>`).join('');
+  const opts = PERIODS.map(p=>`<option value="${p.key}" ${p.key===selPeriod?'selected':''}>${p.label} (${p.count}개사)</option>`).join('');
   sel.innerHTML = opts + `<option value="__all__" ${selPeriod==='__all__'?'selected':''}>📋 전체 회차 보기</option>`;
 }
 window.setPeriod=function(v){ selPeriod=v; render(); };
@@ -1168,7 +1170,7 @@ window.setPeriod=function(v){ selPeriod=v; render(); };
 // 현재 선택된 회차에 해당하는 시상만 추림
 function visiblePolicies(){
   if(!selPeriod || selPeriod==='__all__') return POLICIES;
-  return POLICIES.filter(p=>p.ym===selPeriod);
+  return POLICIES.filter(p=>p.pkey===selPeriod);
 }
 
 function render(){
@@ -1302,10 +1304,12 @@ async function loadAwards(){
       const wk=d.week?` ${d.week}주차`:'';
       const yy=d.year?String(d.year).slice(2):'';
       const ym=(d.year&&d.month)?`${d.year}-${String(d.month).padStart(2,'0')}`:'';
+      const pkey = ym ? (ym + (d.week?`-W${String(d.week).padStart(2,'0')}`:'')) : '';
       loaded.push({
         company:d.company||'(미상)',
         label:`${yy}년 ${d.month}월${wk}`,
         ym, ymLabel:(d.year&&d.month)?`${d.year}년 ${d.month}월`:'(연월 미상)',
+        pkey, pLabel:(d.year&&d.month)?`${d.month}월${wk}`:'(연월 미상)',
         items:its, extras:extrasFromDoc(d), _id:docu.id
       });
     });
