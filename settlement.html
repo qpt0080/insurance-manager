@@ -293,6 +293,7 @@ body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
   #sub-stats .cell-pct{font-size:16px;font-weight:800;color:var(--ink);line-height:1.1;}
   #sub-stats .cell-sp{font-size:11px;font-weight:700;color:var(--green);margin-top:2px;}
   #sub-stats .cell-band{font-size:11px;color:var(--ink3);margin-top:2px;}
+  #sub-stats .cell-sub{font-size:10px;color:var(--ink3);margin-top:3px;line-height:1.35;font-weight:600;}
   #sub-stats .cell-empty{color:var(--ink3);font-weight:600;}
   #sub-stats td.best{background:var(--green-soft);}
   #sub-stats td.best .cell-pct{color:var(--green);}
@@ -302,6 +303,19 @@ body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
   #sub-stats .empty{text-align:center;padding:60px 20px;color:var(--ink3);}
   #sub-stats .empty .ic{font-size:38px;margin-bottom:10px;}
   #sub-stats .disclaim{font-size:11.5px;color:var(--ink3);margin-top:18px;line-height:1.6;}
+  #sub-stats .chart-box{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:16px;}
+  #sub-stats .chart-ctrl{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  #sub-stats .cc-label{font-size:12px;font-weight:700;color:var(--ink2);white-space:nowrap;}
+  #sub-stats #perfRange{flex:1;accent-color:#2C46B8;}
+  #sub-stats .cc-val{font-size:14px;font-weight:800;color:#2C46B8;min-width:64px;text-align:right;}
+  #sub-stats .chart-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--ink3);margin-bottom:14px;}
+  #sub-stats .chart-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;}
+  #sub-stats .cbar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+  #sub-stats .cbar-name{width:70px;font-size:12px;font-weight:700;color:var(--ink);flex-shrink:0;text-align:right;line-height:1.2;}
+  #sub-stats .cbar-track{flex:1;display:flex;height:24px;border-radius:5px;overflow:hidden;background:var(--paper);border:1px solid var(--line2);}
+  #sub-stats .cbar-seg{height:100%;transition:width .25s ease;}
+  #sub-stats .cbar-total{font-size:12px;font-weight:800;color:var(--ink2);width:52px;flex-shrink:0;text-align:right;}
+  #sub-stats .chart-note{font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.5;}
 </style>
 <script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </head>
@@ -468,24 +482,39 @@ body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
   
 
   <div class="topbar">
-    <a class="back-link" href="#compare" onclick="showSub('compare');return false;">← 시상 비교로</a>
-    <div class="month-pick">
+    <div class="month-pick" style="margin-left:auto;">
       <label for="monthSel">📅 월</label>
       <select id="monthSel" onchange="setMonth(this.value)"></select>
     </div>
   </div>
 
   <div class="status" id="stats-status">시상 불러오는 중…</div>
+
+  <div class="chart-box" id="chartBox" style="display:none;">
+    <div class="chart-ctrl">
+      <span class="cc-label">월 실적</span>
+      <input type="range" id="perfRange" min="50000" max="1000000" step="50000" value="100000" oninput="onPerfChange(this.value)">
+      <span class="cc-val" id="perfVal">10만원</span>
+    </div>
+    <div class="chart-legend">
+      <span><i style="background:#2C46B8"></i>기본시상</span>
+      <span><i style="background:#85B7EB"></i>익월 추가</span>
+      <span><i style="background:#B4B2A9"></i>13회차</span>
+    </div>
+    <div id="chartBars"></div>
+    <div class="chart-note" id="chartNote"></div>
+  </div>
+
   <div id="board"></div>
 
   <div class="legend" id="legend" style="display:none;">
-    <span><b>큰 숫자</b> = 익월 기본시상률(인보험)</span>
-    <span><b style="color:var(--green)">+N%</b> = 추가 익월시상률</span>
-    <span><b>📊</b> = 구간형 시상 있음(%로 표기 불가)</span>
-    <span><b style="color:var(--green)">▲ 최고</b> = 그 주 최고율</span>
+    <span><b>큰 숫자</b> = 익월 시상 합산률 <b>(슬라이더 실적 기준)</b></span>
+    <span>그 아래 = 기본 + 추가 + 구간형 분해</span>
+    <span><b>구간 N만</b> = 구간형 시상 10만 환산액</span>
+    <span><b style="color:var(--green)">▲ 최고</b> = 그 주 합산 최고</span>
   </div>
 
-  <p class="disclaim">올려둔 시상안의 <b>익월 지급 기본시상률</b> 기준이에요. 구간형(가동·연속·주력 등)은 실적에 따라 금액이 달라져 %로 표기되지 않으니 📊로만 표시했어요. 실제 지급은 정책·유지 조건에 따라 달라집니다.</p>
+  <p class="disclaim"><b>위 슬라이더에서 고른 실적 기준</b> 익월 시상 합산률이에요(수수료 제외). 표의 큰 숫자는 익월 지급분만이고, 13회차 유지 시상은 차트에 회색으로만 표시했어요. 구간형(가동·연속·주력 등)은 실적이 커지면 비율이 달라질 수 있고, 실제 지급은 정책·유지 조건에 따라 달라집니다.</p>
 </div>
 </div>
 
@@ -1338,20 +1367,33 @@ const F = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const itemsFromDoc = window.AwardsCore.itemsFromDoc;
 
-let ROWS = [];        // [{company, ym, ymLabel, week, basic, special, hasBand}]
+let ROWS = [];        // [{company, ym, ymLabel, week, items}]
 let MONTHS = [];      // [{ym, label, count}] 최신순
 let selMonth = null;
+let PERF = 100000;    // 슬라이더 실적 기준
+const AC = window.AwardsCore;
 
-// 시상 문서 → 익월 시상률 지표(인보험 기준)
-function metricFromDoc(d){
-  const its = itemsFromDoc(d).filter(it => it.product === '인보험');
-  let basic = 0, special = 0, hasBand = false;
-  its.forEach(it=>{
+// 인보험 시상 항목만 (실적 가변 계산용으로 보관)
+function insItems(d){ return itemsFromDoc(d).filter(it => it.product === '인보험'); }
+
+// 익월 지급 합산 지표(표용) — perf 기준. 구간형은 perf 구간 금액을 %로 환산.
+function metricNext(items, perf){
+  const band = AC.matchBand(perf);
+  let basic = 0, special = 0, bandAmt = 0;
+  items.forEach(it=>{
+    if(it.timing !== 'next') return;
     if(it.kind === '기본시상' && it.mode === 'rate') basic += (+it.rate || 0);
     else if(it.kind === '익월시상' && it.mode === 'rate') special += (+it.rate || 0);
-    else if(it.kind === '익월시상' && it.mode === 'band') hasBand = true;
+    else if(it.kind === '익월시상' && it.mode === 'band') bandAmt += (band ? (it.bands[band]||0) : 0);
   });
-  return { basic, special, hasBand };
+  const bandPct = perf ? Math.round(bandAmt / perf * 100) : 0;
+  return { basic, special, bandAmt, bandPct, total: basic + special + bandPct };
+}
+
+// 차트용 금액 분해(기본 / 익월추가 / 13회차) — perf 기준
+function metricBars(items, perf){
+  const r = AC.aggregate(items, perf, { product:'인보험', commRate:0 });
+  return { basic: r.기본시상, next: r.익월시상, r13: r.r13 };
 }
 
 async function loadAwards(){
@@ -1361,20 +1403,20 @@ async function loadAwards(){
     snap.forEach(docu=>{
       const d = docu.data();
       if(!(d.year && d.month)) return;
-      const m = metricFromDoc(d);
-      if(!m.basic && !m.special && !m.hasBand) return; // 인보험 익월 시상 없는 문서 제외
+      const its = insItems(d);
+      if(!its.length) return; // 인보험 시상 없는 문서 제외
       rows.push({
         company: d.company || '(미상)',
         ym: `${d.year}-${String(d.month).padStart(2,'0')}`,
         ymLabel: `${d.year}년 ${d.month}월`,
         week: d.week ? +d.week : 0,   // 0 = 월 전체
-        basic: m.basic, special: m.special, hasBand: m.hasBand
+        items: its
       });
     });
     ROWS = rows;
     buildMonths();
     if(rows.length){
-      F('stats-status').innerHTML = `✅ 등록 시상 <b>${rows.length}건</b> · 같은 달에 주차별로 시상률이 어떻게 달라지는지 한눈에 비교하세요.`;
+      F('stats-status').innerHTML = `✅ 등록 시상 <b>${rows.length}건</b> · 슬라이더 실적 기준 익월 시상 합산률을 주차별로 비교하세요.`;
     } else {
       F('stats-status').innerHTML = `등록된 시상이 없어요. 관리자에서 시상을 올리면 여기에 표시됩니다.`;
     }
@@ -1405,13 +1447,13 @@ function render(){
   if(!ROWS.length){
     board.innerHTML = `<div class="empty"><div class="ic">📋</div>
       <p>아직 올려둔 시상이 없어요.<br>관리자 페이지에서 시상을 올리면<br>여기에서 주차별로 비교할 수 있어요.</p></div>`;
-    F('legend').style.display='none';
+    F('legend').style.display='none'; F('chartBox').style.display='none';
     return;
   }
   const rows = ROWS.filter(r => r.ym === selMonth);
   if(!rows.length){
     board.innerHTML = `<div class="empty"><div class="ic">📅</div><p>이 달에 등록된 시상이 없어요.</p></div>`;
-    F('legend').style.display='none';
+    F('legend').style.display='none'; F('chartBox').style.display='none';
     return;
   }
 
@@ -1423,25 +1465,32 @@ function render(){
   // 행(회사) 구성
   const companies = [...new Set(rows.map(r=>r.company))].sort((a,b)=>a.localeCompare(b));
 
-  // 셀 색인 + 주차별 최고 기본시상률(강조용)
-  const cell = {}; // cell[company][week] = metric
+  // 셀 색인 + 주차별 최고 합산률(현재 실적 기준)
+  const cell = {};
+  rows.forEach(r=>{ (cell[r.company] = cell[r.company] || {})[r.week] = r; });
   const bestByWeek = {};
-  rows.forEach(r=>{
-    (cell[r.company] = cell[r.company] || {})[r.week] = r;
-    if(r.basic > (bestByWeek[r.week]||0)) bestByWeek[r.week] = r.basic;
+  weeks.forEach(w=>{
+    companies.forEach(co=>{
+      const row = cell[co] && cell[co][w];
+      if(row){ const t = metricNext(row.items, PERF).total; if(t > (bestByWeek[w]||0)) bestByWeek[w] = t; }
+    });
   });
 
   const head = `<tr><th class="co-head">회사</th>${weeks.map(w=>`<th>${weekLabel(w)}</th>`).join('')}</tr>`;
   const body = companies.map(co=>{
     const tds = weeks.map(w=>{
-      const m = cell[co] && cell[co][w];
-      if(!m) return `<td><span class="cell-empty">—</span></td>`;
-      const isBest = m.basic > 0 && m.basic === bestByWeek[w];
+      const row = cell[co] && cell[co][w];
+      if(!row) return `<td><span class="cell-empty">—</span></td>`;
+      const m = metricNext(row.items, PERF);
+      const isBest = m.total > 0 && m.total === bestByWeek[w];
       const parts = [];
-      if(m.basic > 0) parts.push(`<div class="cell-pct">${m.basic}%</div>`);
+      if(m.total > 0) parts.push(`<div class="cell-pct">${m.total}%</div>`);
       else parts.push(`<div class="cell-pct" style="color:var(--ink3)">·</div>`);
-      if(m.special > 0) parts.push(`<div class="cell-sp">+${m.special}%</div>`);
-      if(m.hasBand) parts.push(`<div class="cell-band">📊 구간</div>`);
+      const sub = [];
+      if(m.basic > 0) sub.push(`기본 ${m.basic}%`);
+      if(m.special > 0) sub.push(`추가 ${m.special}%`);
+      if(m.bandAmt > 0) sub.push(`구간 ${Math.round(m.bandAmt/10000)}만`);
+      if(sub.length) parts.push(`<div class="cell-sub">${sub.join(' + ')}</div>`);
       return `<td class="${isBest?'best':''}">${parts.join('')}</td>`;
     }).join('');
     return `<tr><td class="co-cell">${esc(co)}</td>${tds}</tr>`;
@@ -1449,7 +1498,37 @@ function render(){
 
   board.innerHTML = `<div class="matrix-scroll"><table class="matrix"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
   F('legend').style.display='flex';
+  renderChart(companies, cell, weeks);
 }
+
+// 회사별 스택 막대(기본/익월추가/13회차) — 회사별 최신 주차 기준
+function renderChart(companies, cell, weeks){
+  const box = F('chartBox'), bars = F('chartBars');
+  const man = n => Math.round(n/10000);
+  const data = companies.map(co=>{
+    let row = null;
+    weeks.forEach(w=>{ if(cell[co] && cell[co][w]) row = cell[co][w]; });
+    if(!row) return null;
+    const b = metricBars(row.items, PERF);
+    return { co, basic:b.basic, next:b.next, r13:b.r13, sum:b.basic+b.next+b.r13 };
+  }).filter(Boolean).sort((a,b)=> (b.basic+b.next) - (a.basic+a.next));
+  if(!data.length){ box.style.display='none'; return; }
+  box.style.display='block';
+  const maxSum = Math.max.apply(null, data.map(d=>d.sum).concat(1));
+  const seg = (amt,color)=> amt>0 ? `<div class="cbar-seg" style="width:${amt/maxSum*100}%;background:${color};"></div>` : '';
+  bars.innerHTML = data.map(d=>`<div class="cbar-row">
+      <div class="cbar-name">${esc(d.co)}</div>
+      <div class="cbar-track">${seg(d.basic,'#2C46B8')}${seg(d.next,'#85B7EB')}${seg(d.r13,'#B4B2A9')}</div>
+      <div class="cbar-total">${man(d.sum)}만</div>
+    </div>`).join('');
+  F('chartNote').innerHTML = `월 실적 <b>${man(PERF)}만원</b> 기준 · 파랑 = 익월(기본+추가), 회색 = 13회차 유지분. 수수료는 제외했어요.`;
+}
+
+window.onPerfChange = function(v){
+  PERF = +v;
+  F('perfVal').textContent = Math.round(PERF/10000) + '만원';
+  render();
+};
 
 // ── 인증 (awards-compare와 동일 흐름: 로그인 세션 또는 viewer 토큰) ──
 function decodeToken(t){

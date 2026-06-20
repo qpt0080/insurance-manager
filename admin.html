@@ -2736,7 +2736,13 @@ window.onCommSelChange = async function() {
   const agentId = document.getElementById('comm-agent-sel').value;
   const year    = parseInt(document.getElementById('comm-year-sel').value);
   const month   = parseInt(document.getElementById('comm-month-sel').value);
-  if (!agentId||!year||!month) return;
+  if (!agentId||!year||!month) {
+    document.getElementById('comm-calc-area').style.display='none';
+    window._pendingCommData=null;
+    const lst=document.getElementById('comm-list-area');
+    if(lst) lst.innerHTML='<div class="empty">설계사를 선택하면 수수료·시상 내역이 표시됩니다</div>';
+    return;
+  }
   const cts = customersCache
     .filter(c=>c.agentId===agentId)
     .flatMap(c=>(c.contracts||[]).map(ct=>({...ct,_custName:c.name})))
