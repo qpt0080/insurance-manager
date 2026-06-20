@@ -208,6 +208,8 @@ body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
   #sub-compare .co-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
   #sub-compare .co-name{font-size:15px;font-weight:800;letter-spacing:-.2px;}
   #sub-compare .co-period{font-size:11px;font-weight:700;color:var(--ink3);}
+  #sub-compare .co-card.top{border-color:#E0A800;box-shadow:0 0 0 1.5px #E0A80055, var(--shadow);}
+  #sub-compare .crown{font-size:11px;font-weight:800;color:#B8860B;background:#FFF6DA;border:1px solid #E7C84B;border-radius:999px;padding:1px 8px;margin-left:4px;white-space:nowrap;}
   #sub-compare .co-sum{margin-top:12px;}
   #sub-compare .co-sum .big{font-weight:600;font-size:30px;line-height:1;letter-spacing:-.01em;color:var(--gold-deep);}
   #sub-compare .co-sum .big .w{font-size:14px;font-weight:600;color:var(--ink2);margin-left:2px;}
@@ -471,6 +473,14 @@ body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
   </div>
 
   <div class="status" id="cmp-status">시상 불러오는 중…</div>
+  <div id="cmpToolbar" style="display:none;align-items:center;gap:9px;margin:0 0 10px;">
+    <span style="font-size:12px;font-weight:800;color:var(--ink2);white-space:nowrap;">정렬</span>
+    <div class="seg" style="margin-top:0;flex:0 0 auto;">
+      <button class="seg-btn on" id="sortAmount" onclick="setSortMode('amount')" style="padding:7px 12px;">💰 금액순</button>
+      <button class="seg-btn" id="sortCompany" onclick="setSortMode('company')" style="padding:7px 12px;">🏢 회사순</button>
+    </div>
+    <span id="cmpPeriodNow" style="margin-left:auto;font-size:11px;font-weight:700;color:var(--ink3);white-space:nowrap;"></span>
+  </div>
   <div class="co-grid" id="grid"></div>
 
   <p class="disclaim">올려둔 시상안 기준 <b>참고용 예측</b>이에요. 실제 지급은 정책·유지 조건에 따라 달라집니다.<br>🧮 총액 = 계약 1건당 익월+13회차 시상과 수수료 전체 · ⚡ 익월만 = 다음 달에 받는 수수료+기본시상+익월 시상 · 기본은 인보험 기준(상단에서 전체 전환)</p>
@@ -1040,6 +1050,15 @@ window.setViewMode = function(m){
   document.getElementById('segNext').classList.toggle('on', m==='next');
   render();
 };
+// 카드 정렬: 'amount' = 예상수익 많은 순(기본) · 'company' = 회사명 가나다순
+let sortMode = 'amount';
+window.setSortMode = function(m){
+  sortMode = m;
+  const sa=document.getElementById('sortAmount'), sc=document.getElementById('sortCompany');
+  if(sa) sa.classList.toggle('on', m==='amount');
+  if(sc) sc.classList.toggle('on', m==='company');
+  render();
+};
 // 상품군: '인보험'(기본) = 인보험 시상만 합산 · '전체' = 펫·재물 등 모든 상품
 let prodMode = '인보험';
 window.setProdMode = function(p){
@@ -1180,15 +1199,29 @@ function render(){
       <p>아직 올려둔 시상이 없어요.<br>관리자 페이지에서 <b>관심 있는 보험사 시상</b>을 먼저 올리면<br>여기에서 나란히 비교할 수 있어요.</p></div>`;
     return;
   }
-  const list = visiblePolicies();
-  if(!list.length){
+  const toolbar = F('cmpToolbar');
+  const raw = visiblePolicies();
+  if(!raw.length){
+    if(toolbar) toolbar.style.display='none';
     grid.innerHTML = `<div class="empty"><div class="ic">📅</div>
       <p>이 회차에 등록된 시상이 없어요.<br>위에서 다른 회차를 골라보세요.</p></div>`;
     return;
   }
-  grid.innerHTML = list.map((p,idx)=>{
-    const r = calc(p.items, p.company);
+  // 현재 보기 모드(총액/익월만) 기준 예상수익을 미리 계산하고 정렬
+  let list = raw.map(p=>{ const r=calc(p.items,p.company); return {p, r, val:(viewMode==='next'? r.익월합계 : r.total)}; });
+  if(sortMode==='company') list.sort((a,b)=> a.p.company.localeCompare(b.p.company,'ko'));
+  else list.sort((a,b)=> b.val - a.val || a.p.company.localeCompare(b.p.company,'ko'));
+  const topVal = Math.max(...list.map(x=>x.val));
+  // 툴바: 비교 대상 2건 이상일 때만 노출 + 현재 회차 라벨 표시
+  if(toolbar){
+    toolbar.style.display = (list.length>1) ? 'flex' : 'none';
+    const nowEl=F('cmpPeriodNow');
+    if(nowEl) nowEl.textContent = (selPeriod==='__all__') ? '📋 전체 회차' : (list[0].p.label||'');
+  }
+  const showPeriodBadge = (selPeriod==='__all__'); // 전체 회차 보기일 때만 카드에 회차 배지
+  grid.innerHTML = list.map(({p,r,val})=>{
     const open = openSet.has(p._id);
+    const isTop = topVal>0 && val===topVal;
     const bandLabel = r.band ? `${man(r.band)}만↑ 구간` : '구간 미달';
     const typeTag = r.life
       ? `<span class="comm-type life" style="font-size:10px;padding:2px 7px;">💙 생보</span>`
@@ -1210,12 +1243,13 @@ function render(){
     const extra = (p.extras&&p.extras.length)
       ? `<div class="dt-extra">${p.extras.map(esc).join('<br>')}</div>` : '';
 
-    return `<div class="co-card ${open?'open':''}" data-id="${esc(p._id)}">
+    return `<div class="co-card ${open?'open':''}${isTop?' top':''}" data-id="${esc(p._id)}">
       <div class="co-head" data-id="${esc(p._id)}">
         <div class="co-top">
           <span class="co-name">${esc(p.company)}</span>
           ${typeTag}
-          <span class="co-period">${esc(p.label)}</span>
+          ${isTop?'<span class="crown">👑 최고</span>':''}
+          ${showPeriodBadge?`<span class="co-period">${esc(p.label)}</span>`:''}
         </div>
         <div class="co-sum">
           <div class="big num">${man(bigVal)}<span class="w">만원</span></div>
