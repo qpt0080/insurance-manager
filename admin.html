@@ -1458,6 +1458,7 @@ function calcAgentNextMonthAward(agentId, year, month) {
   if (!year || !month) return z;
   const awards = awardsCache.filter(a => a.year === year && a.month === month);
   if (!awards.length) return z;
+  const baseDoneCos = new Set(); // 회사별 기본시상 1회만 합산 (주차 문서가 여러 개여도 중복 방지)
   awards.forEach(award => {
     const co = award.company;
     const coCts = customersCache.filter(c => c.agentId === agentId)
@@ -1468,8 +1469,18 @@ function calcAgentNextMonthAward(agentId, year, month) {
     (award.tiers || []).forEach(tier => {
       // 기본시상: 인보험 기본시상만 회사 보험료에 적용 (펫·재물 기본은 제외 — 상품별 정밀 매칭은 후속)
       if (tier.type === 'basic' && tier.payTiming === 'next_month') {
-        const rate = (tier.periods?.[0]?.totalRate ?? tier.periods?.[0]?.ownRate ?? 0);
-        if (rate && window.AwardsCore.classifyProduct(tier.label) === '인보험') z.base += prem * rate / 100;
+        // 기본시상은 월 단위(보험사당 1회)라, 같은 회사 시상이 여러 주차로 등록돼도 중복 합산하지 않음
+        if (baseDoneCos.has(co)) return;
+        if (window.AwardsCore.classifyProduct(tier.label) !== '인보험') return;
+        // 계약별로 가입일이 속한 기간의 요율 적용 (예: 6.1~14 380% / 6.15~30 320%)
+        coCts.forEach(ct => {
+          const cp = parseFloat(String(ct.premium || '').replace(/[^0-9.]/g, '')) || 0;
+          if (!cp) return;
+          const fd = _parseFullDateAdmin(ct);
+          const rate = window.AwardsCore.periodRate(tier.periods, fd?.month, fd?.day);
+          if (rate) z.base += cp * rate / 100;
+        });
+        baseDoneCos.add(co);
         return;
       }
       if (['consecutive', 'club'].includes(tier.type) || !tier.tiers?.length) return;
@@ -1585,7 +1596,7 @@ function renderAdminPerf() {
       </div>
       <div style="padding-top:9px;border-top:1px solid ${footBd};">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;font-weight:600;color:var(--text3);">수수료</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text3);">수수료 <span style="font-size:9px;color:var(--text3);opacity:.8;">(익월)</span></span>
           <span style="font-size:11px;font-weight:800;color:${s.commEst > 0 ? 'var(--text)' : 'var(--text3)'};">${commMan}</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">

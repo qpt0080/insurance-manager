@@ -31,6 +31,28 @@
   }
   function isInsurance(label) { return classifyProduct(label) === '인보험'; }
 
+  /* ── 기간별 요율 선택 ────────────────────────────────────────
+   *  basic tier의 periods 중 (month, day)가 속한 기간의 요율을 반환.
+   *  날짜가 없거나 매칭되는 기간이 없으면 첫 기간 요율(없으면 0)로 폴백.
+   *  기본시상은 월 내 기간(예: 6.1~14 380% / 6.15~30 320%)이라 같은 달 비교만. */
+  function rateOfPeriod(p) {
+    if (!p) return 0;
+    return (p.totalRate != null ? p.totalRate : (p.ownRate != null ? p.ownRate : 0));
+  }
+  function periodRate(periods, month, day) {
+    periods = periods || [];
+    if (!periods.length) return 0;
+    if (month != null && day != null) {
+      for (var i = 0; i < periods.length; i++) {
+        var p = periods[i];
+        if (!p || !p.startDate || !p.endDate) continue;
+        var s = p.startDate.split('-').map(Number), e = p.endDate.split('-').map(Number);
+        if (month === s[0] && month === e[0] && day >= s[1] && day <= e[1]) return rateOfPeriod(p);
+      }
+    }
+    return rateOfPeriod(periods[0]);
+  }
+
   /* ── 지급시기 분류 ───────────────────────────────────────────
    *  '13th' = 13회차 유지, 'tbd' = 미표기(익월로 단정하지 않음), 'next' = 익월 */
   function classifyTiming(tier) {
@@ -106,8 +128,7 @@
       var base = { timing: timing, product: product, on: true, audienceGroup: ag, eligibility: el };
 
       if (t.type === 'basic') {
-        var p = (t.periods && t.periods[0]) || {};
-        var rate = (p.totalRate != null ? p.totalRate : (p.ownRate != null ? p.ownRate : 0));
+        var rate = periodRate(t.periods, null, null); // 단일 시뮬: 첫 기간(최대 요율). 실적 화면은 계약일로 periodRate 직접 호출
         out.push(Object.assign({ id: t.id || ('b' + i), label: t.label || '기본시상', type: 'basic',
           kind: '기본시상', mode: 'rate', rate: rate, sub: rate + '%' }, base));
       } else if (t.type === 'special') {
@@ -189,6 +210,7 @@
     BAND_KEYS: BAND_KEYS,
     classifyProduct: classifyProduct,
     isInsurance: isInsurance,
+    periodRate: periodRate,
     classifyTiming: classifyTiming,
     bandsFromTiers: bandsFromTiers,
     bandsFromConsecutive: bandsFromConsecutive,

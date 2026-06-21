@@ -316,7 +316,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
         <div class="kpi-ico">🏆</div>
         <div class="kpi-label">예상 수수료</div>
         <div class="kpi-value"><span id="kpi-comm">0</span><span class="unit">만원</span></div>
-        <div class="kpi-foot">기본 522% 기준</div>
+        <div class="kpi-foot">기본 522% · 익월분</div>
       </div>
       <div class="kpi-card" style="--kc:var(--amber);--kc-bg:rgba(217,119,6,.1);">
         <div class="kpi-ico">🏆</div>
@@ -459,8 +459,19 @@ function isLifeCompany(name){
 }
 function parsePeriod(ct){
   const d = ct.startDate || ct.rawJson?.계약일 || '';
-  const m = d.match(/(\d{4})[.\-\/](\d{1,2})/);
-  return m ? {year:parseInt(m[1]), month:parseInt(m[2])} : null;
+  const m = d.match(/(\d{4})[.\-\/](\d{1,2})(?:[.\-\/](\d{1,2}))?/);
+  return m ? {year:parseInt(m[1]), month:parseInt(m[2]), day: m[3]?parseInt(m[3]):null} : null;
+}
+// 계약 가입일이 주차 가동시상 기간(startDate~endDate)에 속하는지
+function inWeeklyPeriod(ct, period, ay, am){
+  if(!period || !period.startDate || !period.endDate) return true; // 기간 없으면 전체 허용
+  const fd = parsePeriod(ct);
+  if(!fd || fd.day == null) return false; // 일자 모르면 주차 매칭 불가 (안전하게 제외)
+  if(fd.year !== ay || fd.month !== am) return false;
+  const [sM,sD] = period.startDate.split('-').map(Number);
+  const [eM,eD] = period.endDate.split('-').map(Number);
+  if(fd.month===sM && fd.month===eM) return fd.day>=sD && fd.day<=eD;
+  return false;
 }
 function premOf(ct){ return parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -483,24 +494,41 @@ function computeAwards(active){
   let awBase = 0, awBand = 0;
   const months = PERIOD==='year' ? Array.from({length:CUR_MONTH}, (_,i)=>i+1) : [CUR_MONTH];
   months.forEach(mn => {
-    const coPrem = {};
+    // 회사별 이 달 계약 목록
+    const coCtsList = {};
     monthContractsOf(active, CUR_YEAR, mn).forEach(ct => {
       const co = ct.company || ct.rawJson?.보험사 || '기타';
-      coPrem[co] = (coPrem[co]||0) + premOf(ct);
+      (coCtsList[co] = coCtsList[co] || []).push(ct);
     });
-    Object.keys(coPrem).forEach(co => {
-      const award = awardsCache.find(a => a.company === co && a.year === CUR_YEAR && a.month === mn);
-      if (!award) return;
-      const prem = coPrem[co];
+    const baseDoneCos = new Set(); // 회사별 기본시상 1회만 (주차 문서 여러 개여도 중복 방지)
+    // 같은 달의 모든 회차(주차) 시상 문서를 순회 — admin 정산과 동일 로직
+    awardsCache.filter(a => a.year === CUR_YEAR && a.month === mn).forEach(award => {
+      const co = award.company;
+      const coCts = coCtsList[co] || [];
+      const prem = coCts.reduce((s, ct) => s + premOf(ct), 0);
+      if (!prem) return;
       (award.tiers||[]).forEach(t => {
+        // 기본시상: 인보험만 · 계약별 가입일 기간 요율 · 회사당 1회
         if (t.type === 'basic' && t.payTiming === 'next_month') {
-          const rate = (t.periods?.[0]?.totalRate ?? t.periods?.[0]?.ownRate ?? 0);
-          if (rate && window.AwardsCore.classifyProduct(t.label) === '인보험') awBase += prem * rate / 100;
+          if (baseDoneCos.has(co)) return;
+          if (window.AwardsCore.classifyProduct(t.label) !== '인보험') return;
+          coCts.forEach(ct => {
+            const p = parsePeriod(ct);
+            const rate = window.AwardsCore.periodRate(t.periods, p?.month, p?.day);
+            if (rate) awBase += premOf(ct) * rate / 100;
+          });
+          baseDoneCos.add(co);
           return;
         }
         if (['consecutive','club'].includes(t.type) || !(t.tiers||[]).length) return;
-        const steps = [...t.tiers].filter(s => s.threshold != null).sort((a,b) => a.threshold - b.threshold);
-        const best = [...steps].reverse().find(s => prem >= s.threshold);
+        // 주차 가동시상은 그 주차 기간에 가입한 계약만 합산 (월 전체 보험료 적용 방지)
+        let usePrem = prem;
+        if (t.period && (t.type === 'weekly' || t.type === 'weekly_extra' || /주차/.test(t.label || ''))) {
+          usePrem = coCts.filter(ct => inWeeklyPeriod(ct, t.period, CUR_YEAR, mn))
+            .reduce((s, ct) => s + premOf(ct), 0);
+        }
+        if (!usePrem) return;
+        const best = [...t.tiers].reverse().find(s => s.threshold != null && usePrem >= s.threshold);
         if (best && best.reward && t.payTiming === 'next_month') awBand += best.reward;
       });
     });
@@ -849,7 +877,7 @@ function renderSim(){
   (award.tiers||[]).forEach(t => {
     // 기본시상(인보험 430% 등): 시뮬 보험료 × 요율 (익월). 단일 보험료 시뮬이라 인보험 기본만 적용
     if (t.type === 'basic' && t.payTiming === 'next_month') {
-      const rate = (t.periods?.[0]?.totalRate ?? t.periods?.[0]?.ownRate ?? 0);
+      const rate = window.AwardsCore.periodRate(t.periods); // 단일 가정: 첫 기간(최대 요율)
       if (rate && window.AwardsCore.classifyProduct(t.label) === '인보험') baseTotal += curPrem * rate / 100;
       return;
     }
