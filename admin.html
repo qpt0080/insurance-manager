@@ -3443,6 +3443,7 @@ window.saveAwardJson = async function() {
     const docId = awardDocId(year, month, company, week);
     await setDoc(doc(db,'awards',docId), {
       ...awardExtracted,
+      ym: `${year}-${String(month).padStart(2,'0')}`,   // 정렬·범위 쿼리용 (예: "2026-06")
       uploadedAt: new Date().toISOString(),
       uploadedBy: currentAdmin?.uid||'admin'
     });

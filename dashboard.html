@@ -432,7 +432,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 <script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { firebaseConfig } from "./firebase-config.js";
@@ -549,7 +549,8 @@ async function loadAll(){
     const [aSnap, cSnap, awSnap] = await Promise.all([
       getDocs(collection(db,'agents')),
       getDocs(collection(db,'customers')),
-      getDocs(collection(db,'awards')),
+      // 시상은 올해 문서만 (대시보드는 CUR_YEAR만 사용 → 문서ID "YYYY_..." 범위로 제한)
+      getDocs(query(collection(db,'awards'), where(documentId(), '>=', `${CUR_YEAR}_`))),
     ]);
     agentsCache = []; customersCache = []; awardsCache = [];
     aSnap.forEach(d => agentsCache.push({...d.data()}));

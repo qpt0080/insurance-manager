@@ -261,6 +261,10 @@ body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
   --shadow:0 1px 2px rgba(40,30,10,.04),0 8px 28px rgba(40,30,10,.06);
   }
   #sub-stats *{box-sizing:border-box;}
+  #sub-stats .scope-toggle{margin-left:8px;padding:3px 10px;font-size:11.5px;font-weight:700;
+    color:var(--gold-deep);background:var(--gold-soft);border:1px solid var(--line2);
+    border-radius:var(--r-full);cursor:pointer;white-space:nowrap;vertical-align:middle;}
+  #sub-stats .scope-toggle:hover{background:#E2E7FD;}
   #sub-stats{margin:0;background:var(--paper);color:var(--ink);
     font-family:'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
     -webkit-font-smoothing:antialiased;line-height:1.45;}
@@ -1409,7 +1413,7 @@ render();
 </script>
 <script type="module">
 import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, query, where, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -1423,6 +1427,14 @@ const auth = getAuth(app);
 const F = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const itemsFromDoc = window.AwardsCore.itemsFromDoc;
+
+// ── 최근 N개월만 읽기 (문서ID = "YYYY_MM_..." 규칙 이용, 백필 불필요) ──
+const RECENT_MONTHS = 6;          // 기본 조회 범위
+let statsLoadAll = false;         // 전체 기간 토글
+function ymCutoff(months){
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - (months - 1));
+  return `${d.getFullYear()}_${String(d.getMonth()+1).padStart(2,'0')}`;
+}
 
 let ROWS = [];        // [{company, ym, ymLabel, week, items}]
 let MONTHS = [];      // [{ym, label, count}] 최신순
@@ -1455,7 +1467,10 @@ function metricBars(items, perf){
 
 async function loadAwards(){
   try{
-    const snap = await getDocs(collection(db, 'awards'));
+    const ref = collection(db, 'awards');
+    // 전체 토글이 꺼져 있으면 최근 RECENT_MONTHS개월 문서만 (문서ID 범위로 필터 → 백필 불필요)
+    const q = statsLoadAll ? ref : query(ref, where(documentId(), '>=', ymCutoff(RECENT_MONTHS)));
+    const snap = await getDocs(q);
     const rows = [];
     snap.forEach(docu=>{
       const d = docu.data();
@@ -1472,16 +1487,27 @@ async function loadAwards(){
     });
     ROWS = rows;
     buildMonths();
+    const scope = statsLoadAll
+      ? `전체 기간`
+      : `최근 ${RECENT_MONTHS}개월`;
+    const toggle = `<button type="button" class="scope-toggle" onclick="toggleScope()">${statsLoadAll ? `최근 ${RECENT_MONTHS}개월만 보기` : '전체 기간 보기'}</button>`;
     if(rows.length){
-      F('stats-status').innerHTML = `✅ 등록 시상 <b>${rows.length}건</b> · 슬라이더 실적 기준 익월 시상 합산률을 주차별로 비교하세요.`;
+      F('stats-status').innerHTML = `✅ <b>${scope}</b> 등록 시상 <b>${rows.length}건</b> · 슬라이더 실적 기준 익월 시상 합산률을 주차별로 비교하세요. ${toggle}`;
     } else {
-      F('stats-status').innerHTML = `등록된 시상이 없어요. 관리자에서 시상을 올리면 여기에 표시됩니다.`;
+      F('stats-status').innerHTML = `${scope}에 등록된 시상이 없어요. 관리자에서 시상을 올리면 여기에 표시됩니다. ${toggle}`;
     }
   }catch(e){
     F('stats-status').innerHTML = `시상을 불러오지 못했어요. <span style="color:var(--ink3)">(${esc(e.code||e.message||'오류')})</span>`;
   }
   render();
 }
+
+window.toggleScope = function(){
+  statsLoadAll = !statsLoadAll;
+  selMonth = null;            // 범위가 바뀌면 최신 달로 다시 맞춤
+  F('stats-status').innerHTML = '시상 다시 불러오는 중…';
+  loadAwards();
+};
 
 function buildMonths(){
   const map = new Map();
