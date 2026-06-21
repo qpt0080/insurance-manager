@@ -731,7 +731,6 @@ async function loadCustomers() {
   customers.sort((a,b) => (a.name||'').localeCompare(b.name||''));
   if (!customers.length) {
     if (agentInfo && agentInfo.role === 'admin') {
-      console.log('[뷰어 진단] 담당 고객 0명 — 조회 기준 uid:', auth.currentUser.uid, '/ 고객 문서의 agentId가 이 값과 일치해야 표시됩니다.');
       adminEmptyDiagnosis();
     }
   }
@@ -2320,7 +2319,21 @@ window.copyNoticeReport = function(custId) {
 };
 
 window.copyDetailText = function(text, label) {
-  navigator.clipboard.writeText(text)
+  const fallback = () => new Promise((resolve, reject) => {
+    try {
+      const t = document.createElement('textarea');
+      t.value = text; t.setAttribute('readonly', '');
+      t.style.position = 'fixed'; t.style.top = '-9999px';
+      document.body.appendChild(t); t.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(t);
+      ok ? resolve() : reject(new Error('execCommand copy failed'));
+    } catch (e) { reject(e); }
+  });
+  const write = (navigator.clipboard && navigator.clipboard.writeText)
+    ? navigator.clipboard.writeText(text).catch(fallback)
+    : fallback();
+  write
     .then(() => showToast(`✅ ${label} 복사됐어요!`))
     .catch(() => showToast('❌ 복사 실패'));
 };

@@ -167,7 +167,11 @@
       <select class="sel company" id="sel-company"></select>
       <select class="sel week" id="sel-week"></select>
     </div>
-    <div class="policy-note" id="policy-status">시상 불러오는 중…</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="policy-note" id="policy-status" style="flex:1;min-width:0;">시상 불러오는 중…</div>
+      <button id="simRefresh" onclick="refreshSim()" title="최신 시상 다시 불러오기" aria-label="새로고침"
+        style="flex:0 0 auto;font-family:inherit;font-size:15px;line-height:1;padding:6px 9px;border:1.5px solid var(--line2,#dfe3ea);border-radius:8px;background:#fff;color:var(--ink2,#5a6472);cursor:pointer;">↻</button>
+    </div>
   </div>
 
   <!-- 월 실적 & 수수료 -->
@@ -303,6 +307,16 @@ selCo.addEventListener('change',()=>{ rebuildPolicySelect(); renderItems(); rend
 selWk.addEventListener('change',()=>{ loadPolicy(); renderItems(); renderAll(); });
 
 // ── Firestore에서 등록 시상 로드 ──
+// ── 수동 새로고침: 최신 시상 다시 불러오기 ──
+window.refreshSim = async function(){
+  const btn=F('simRefresh');
+  if(btn){ btn.disabled=true; btn.style.opacity='.45'; btn.style.cursor='default'; }
+  F('policy-status').innerHTML='시상 새로고침 중…';
+  try{ await loadAwards(); }
+  catch(e){ F('policy-status').innerHTML='새로고침 실패 ('+(e.code||e.message||'오류')+')'; }
+  finally{ if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; } }
+};
+
 async function loadAwards(){
   try{
     const snap=await getDocs(collection(db,'awards'));

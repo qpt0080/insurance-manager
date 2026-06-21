@@ -278,6 +278,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
       <div class="dash-date" id="date">—</div>
       <div class="dash-dday" id="hdr-dday" title="이번 달 마감까지 남은 일수"></div>
       <button id="fsBtn" class="fs-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+      <button id="dashRefresh" class="fs-btn" onclick="refreshDash()" title="지금 새로고침 (자동 5분)" aria-label="새로고침" style="margin-left:6px;">↻</button>
       <button id="navBtn" class="fs-btn" style="margin-left:6px;"></button>
     </div>
   </div>
@@ -506,6 +507,14 @@ function computeAwards(active){
   });
   return {awBase, awBand};
 }
+
+// ── 즉시 새로고침 (자동 5분 주기와 별개로 수동 갱신) ──
+window.refreshDash = async function(){
+  const btn=document.getElementById('dashRefresh');
+  if(btn){ btn.disabled=true; btn.style.opacity='.45'; btn.style.cursor='default'; }
+  try{ await loadAll(); }
+  finally{ if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; } }
+};
 
 async function loadAll(){
   try{

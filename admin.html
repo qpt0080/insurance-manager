@@ -599,7 +599,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 
     <!-- 미배정 고객 알림 -->
     <div class="card" id="orphan-card" style="display:none;border-color:var(--amber);border-left:4px solid var(--amber);background:linear-gradient(135deg,var(--amber-light) 0%,var(--surface) 60%);">
-      <div class="card-title" style="color:var(--amber);border-bottom-color:rgba(180,83,9,.15);">⚠️ 담당 정리가 필요한 고객 <span id="orphan-count" class="chip amber"></span></div>
+      <div class="card-title" style="color:var(--amber);border-bottom-color:rgba(180,83,9,.15);">⚠️ 담당 정리가 필요한 고객 <span id="orphan-count-card" class="chip amber"></span></div>
       <div style="font-size:12px;color:var(--amber);margin-bottom:12px;line-height:1.7;">담당 설계사가 없거나(삭제·미배정), 비활성 처리된 설계사가 담당인 고객이에요. 현역 설계사에게 이관해주세요. (계약 데이터는 그대로 보존됩니다)</div>
       <div id="orphan-list"></div>
     </div>
@@ -1655,7 +1655,7 @@ function renderDashboard() {
   const orphanList = document.getElementById('orphan-list');
   if (allOrphans.length > 0) {
     orphanCard.style.display = 'block';
-    document.getElementById('orphan-count').textContent = allOrphans.length + '명';
+    document.getElementById('orphan-count-card').textContent = allOrphans.length + '명';
     const agentOptions = agentsCache.filter(a => !a.disabled).map(a => `<option value="${a.uid}">${escHtml(a.name||a.email)}</option>`).join('');
     orphanList.innerHTML = allOrphans.map(c => {
       const contracts = c.contracts||[];
