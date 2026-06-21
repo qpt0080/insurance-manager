@@ -472,7 +472,11 @@ body.embed-mode .shell-header,body.embed-mode .sub-nav{display:none!important;}
     <select id="periodSel" onchange="setPeriod(this.value)" style="flex:1;min-width:0;padding:8px 10px;border:1.5px solid var(--line2);border-radius:var(--r-xs);font-size:13px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink);outline:none;"></select>
   </div>
 
-  <div class="status" id="cmp-status">시상 불러오는 중…</div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="status" id="cmp-status" style="flex:1;min-width:0;">시상 불러오는 중…</div>
+    <button id="cmpRefresh" onclick="refreshCompare()" title="최신 시상 다시 불러오기" aria-label="새로고침"
+      style="flex:0 0 auto;font-family:inherit;font-size:16px;line-height:1;padding:7px 10px;border:1.5px solid var(--line2);border-radius:var(--r-sm);background:var(--card);color:var(--ink2);cursor:pointer;">↻</button>
+  </div>
   <div id="cmpToolbar" style="display:none;align-items:center;gap:9px;margin:0 0 10px;">
     <span style="font-size:12px;font-weight:800;color:var(--ink2);white-space:nowrap;">정렬</span>
     <div class="seg" style="margin-top:0;flex:0 0 auto;">
@@ -560,12 +564,19 @@ function showSub(name){
 <script src="awards-core.js"></script>
 <script type="module">
 import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { firebaseConfig } from "./firebase-config.js";
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// 오프라인 영속성: 가장 먼저 실행되는 블록이라 여기서 캐시 설정으로 초기화해야
+// 이후 블록(시상 비교·통계)이 같은 인스턴스를 공유해 오프라인 비교가 동작한다.
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (e) {
+  db = getFirestore(app);
+}
 const auth = getAuth(app);
 
 let ALL = [];            // 전체 awards 문서 [{_docId, ...data}]
@@ -1315,6 +1326,16 @@ F('perf').addEventListener('blur',()=>{ F('perf').value = comma(perf); });
   });
 });
 syncRateSummary();
+
+// ── 수동 새로고침: 최신 시상을 다시 불러옴 (관리자가 올린 새 시상 반영) ──
+window.refreshCompare = async function(){
+  const btn=F('cmpRefresh');
+  if(btn){ btn.disabled=true; btn.style.opacity='.45'; btn.style.cursor='default'; }
+  F('cmp-status').innerHTML='시상 새로고침 중…';
+  try{ await loadAwards(); }
+  catch(e){ F('cmp-status').innerHTML=`새로고침 실패 <span style="color:var(--ink3)">(${e.code||e.message||'오류'})</span>`; }
+  finally{ if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; } }
+};
 
 // ── Firestore 로드 (income-simulator와 동일 흐름) ──
 async function loadAwards(){
