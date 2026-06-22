@@ -1335,9 +1335,18 @@ function calcAwardEstimate(cts) {
 
         // 기본시상: 인보험 기본시상만 회사 보험료에 적용 (펫·재물 기본 제외 — 후속 정밀 매칭)
         if (tier.type === 'basic' && tier.payTiming === 'next_month') {
-          // 요율 추출은 공용 AwardsCore.periodRate로 통일 (회사 합산이라 단일 구간 = periods[0])
-          const rate = window.AwardsCore.periodRate(tier.periods, null, null);
-          const amt = (rate && window.AwardsCore.classifyProduct(tier.label) === '인보험') ? prem * rate / 100 : 0;
+          // 인보험 기본시상만
+          if (window.AwardsCore.classifyProduct(tier.label) !== '인보험') return;
+          // 계약 건별 계산: 각 계약일에 맞는 구간(period) 요율을 적용해 합산.
+          // 단일 구간이면 모든 계약이 periods[0] → 회사 합산과 동일. 다구간이면 계약일별로 갈림.
+          let amt = 0;
+          (companyContracts[co]||[]).forEach(ct => {
+            const cprem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0;
+            if (!cprem) return;
+            const p = parsePeriod(ct);
+            const r = window.AwardsCore.periodRate(tier.periods, p?.month, p?.day);
+            amt += cprem * r / 100;
+          });
           if (amt) {
             awardResults.push({ label: tier.label, type:'basic', payTiming: tier.payTiming,
               reward: amt, goldReward:null, threshold:0, currPrem:prem,
