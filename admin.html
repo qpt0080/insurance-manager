@@ -1357,7 +1357,22 @@ async function loadAgents() {
 async function loadCustomers() {
   const snap = await getDocs(collection(db,'customers'));
   customersCache = [];
-  snap.forEach(d => customersCache.push({...d.data(), _docId: d.id}));
+  const backfill = [];
+  snap.forEach(d => {
+    const data = d.data();
+    customersCache.push({...data, _docId: d.id});
+    // lastContractYm 없는 기존 문서 자가 백필 (대시보드가 올해 계약 고객만 읽게 하는 필드).
+    // 이미 읽은 스냅샷에서 계산만 하므로 추가 읽기 비용 없음. 첫 로드 때 1회성 쓰기.
+    if (data.lastContractYm === undefined) {
+      backfill.push(updateDoc(doc(db,'customers',d.id), { lastContractYm: ymOfContracts(data.contracts) }));
+    }
+  });
+  if (backfill.length) {
+    Promise.allSettled(backfill).then(r => {
+      const ok = r.filter(x => x.status==='fulfilled').length;
+      if (ok) console.info(`[backfill] lastContractYm ${ok}건 채움`);
+    });
+  }
 }
 
 // ── 어드민 실적 상태 (0 = 전체) ──
@@ -1735,7 +1750,7 @@ window.saveContractDate = async function(custDocId, ctId) {
   });
   if (btn) { btn.textContent='…'; btn.disabled=true; }
   try {
-    await updateDoc(doc(db,'customers',custDocId), {contracts: updated});
+    await updateDoc(doc(db,'customers',custDocId), {contracts: updated, lastContractYm: ymOfContracts(updated)});
     showToast('✅ 계약일이 수정됐어요.');
     if (btn) { btn.textContent='💾'; btn.disabled=false; btn.style.display='none'; }
     await loadAll(); buildContractsFilters(); renderContractsList();
@@ -2374,6 +2389,7 @@ window.saveUploadContract = async function() {
         agentId: agentUid,
         agentName: agent?.name || '',
         contracts: [newContract],
+        lastContractYm: ymOfContracts([newContract]),
         createdAt: new Date().toISOString(),
       };
       await setDoc(doc(db,'customers',newDocId), newCust);
@@ -2439,7 +2455,7 @@ window.saveUploadContract = async function() {
         showToast(`✅ "${existing.name}" 고객에 계약 추가 완료!`);
       }
 
-      const updatePayload = { contracts: updatedContracts };
+      const updatePayload = { contracts: updatedContracts, lastContractYm: ymOfContracts(updatedContracts) };
       if (agentUid && agentUid !== existing.agentId) {
         updatePayload.agentId = agentUid;
         updatePayload.agentName = agent?.name || '';
@@ -2785,29 +2801,29 @@ window.onCommSelChange = async function() {
   renderCommList(agentId);
 };
 
-function parsePeriod(ct) {
-  const d = ct.startDate||ct.rawJson?.계약일||'';
-  const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
-  if (ym) return {year:parseInt(ym[1]),month:parseInt(ym[2])};
-  const y = d.match(/(\d{4})/);
-  return y ? {year:parseInt(y[1]),month:null} : null;
+function parsePeriod(ct) { return window.AwardsCore.parsePeriod(ct); }
+
+// 고객 문서의 "최근 계약월" — contracts 중 가장 늦은 계약일의 YYYY-MM (없으면 null).
+// 대시보드가 올해 계약 있는 고객만 읽도록(고객 전체 스캔 방지) 비정규화 저장한다.
+function ymOfContracts(contracts){
+  let max = null;
+  (contracts||[]).forEach(ct=>{
+    const p = parsePeriod(ct);
+    if(p && p.year && p.month){
+      const ym = `${p.year}-${String(p.month).padStart(2,'0')}`;
+      if(!max || ym > max) max = ym;
+    }
+  });
+  return max;
 }
 
-// 주차 시상 매칭용 — 계약일 일(day) 파싱 + 기간 포함 여부
+// 주차 시상 매칭용 — 계약일 일(day) 파싱 + 기간 포함 여부 (공용 AwardsCore 위임)
 function _parseFullDateAdmin(ct){
-  const d=ct.startDate||ct.rawJson?.계약일||'';
-  const m=String(d).match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
-  return m?{year:+m[1],month:+m[2],day:+m[3]}:null;
+  const fd = window.AwardsCore.parsePeriod(ct);
+  return (fd && fd.day != null) ? fd : null;
 }
 function inWeeklyPeriodAdmin(ct,period,ay,am){
-  if(!period||!period.startDate||!period.endDate) return true; // 기간 없으면 전체 허용
-  const fd=_parseFullDateAdmin(ct);
-  if(!fd) return false; // 일자 모르면 주차 시상 매칭 불가 (안전하게 제외)
-  if(fd.year!==ay||fd.month!==am) return false;
-  const [sM,sD]=period.startDate.split('-').map(Number);
-  const [eM,eD]=period.endDate.split('-').map(Number);
-  if(fd.month===sM&&fd.month===eM) return fd.day>=sD&&fd.day<=eD;
-  return false;
+  return window.AwardsCore.inWeeklyPeriod(ct, period, ay, am);
 }
 
 function renderCommCalc(agentId,year,month,cts) {
@@ -2845,11 +2861,14 @@ function renderCommCalc(agentId,year,month,cts) {
   });
   const nextTotal=nextMonthAwards.reduce((s,a)=>s+a.reward,0);
   const thTotal  =thirteenthAwards.reduce((s,a)=>s+a.reward,0);
-  const pay25    =new Date(year,month,25);
+  // ⚠ year/month 는 1-based(계약월). JS Date의 month 인자는 0-based이므로
+  //   new Date(year, month, ...) 는 "익월"을 가리킨다 — 익월 지급 규칙에 맞춘 의도된 동작.
+  //   (12월이면 month=12 → 익년 1월로 자동 오버플로 처리됨)
+  const pay25    =new Date(year,month,25);              // 익월 25일
   const pay25Str =`${pay25.getFullYear()}년 ${pay25.getMonth()+1}월 25일`;
-  const payEnd   =new Date(year,month+1,0);
+  const payEnd   =new Date(year,month+1,0);             // 익월 말일
   const payEndStr=`${payEnd.getFullYear()}년 ${payEnd.getMonth()+1}월 ${payEnd.getDate()}일`;
-  const th13Date =new Date(year,month+12,1);
+  const th13Date =new Date(year,month+12,1);            // 13회차(계약 익월 + 12개월)
   const th13Str  =`${th13Date.getFullYear()}년 ${th13Date.getMonth()+1}월`;
 
   window._pendingCommData={agentId,year,month,totalPrem,basicComm,items:[
@@ -3999,7 +4018,7 @@ window.deleteContract = async function(custDocId, ctId, name) {
       showToast(`✅ "${cust.name}" 고객이 삭제됐어요.`);
     } else {
       const updated = allContracts.filter((ct,i) => (ct.id||'ci'+i) !== ctId);
-      await updateDoc(doc(db,'customers',custDocId), {contracts: updated});
+      await updateDoc(doc(db,'customers',custDocId), {contracts: updated, lastContractYm: ymOfContracts(updated)});
       showToast('✅ 계약이 삭제됐어요.');
     }
     await loadAll(); buildContractsFilters(); renderContractsList();
