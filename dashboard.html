@@ -457,22 +457,9 @@ function activeCustomers(){
 function isLifeCompany(name){
   return /생명|생보|라이프|한화생|삼성생|교보생|흥국생|동양생|미래에셋생|푸본현대생|처브라이프|AIA|DB생명|KDB생명|ABL생명|DGB생명|iM라이프|메트라이프|신한라이프|카카오페이생명/.test(name||'');
 }
-function parsePeriod(ct){
-  const d = ct.startDate || ct.rawJson?.계약일 || '';
-  const m = d.match(/(\d{4})[.\-\/](\d{1,2})(?:[.\-\/](\d{1,2}))?/);
-  return m ? {year:parseInt(m[1]), month:parseInt(m[2]), day: m[3]?parseInt(m[3]):null} : null;
-}
+function parsePeriod(ct){ return window.AwardsCore.parsePeriod(ct); }
 // 계약 가입일이 주차 가동시상 기간(startDate~endDate)에 속하는지
-function inWeeklyPeriod(ct, period, ay, am){
-  if(!period || !period.startDate || !period.endDate) return true; // 기간 없으면 전체 허용
-  const fd = parsePeriod(ct);
-  if(!fd || fd.day == null) return false; // 일자 모르면 주차 매칭 불가 (안전하게 제외)
-  if(fd.year !== ay || fd.month !== am) return false;
-  const [sM,sD] = period.startDate.split('-').map(Number);
-  const [eM,eD] = period.endDate.split('-').map(Number);
-  if(fd.month===sM && fd.month===eM) return fd.day>=sD && fd.day<=eD;
-  return false;
-}
+function inWeeklyPeriod(ct, period, ay, am){ return window.AwardsCore.inWeeklyPeriod(ct, period, ay, am); }
 function premOf(ct){ return parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,'')) || 0; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function curMonthContracts(custs){            // (호환용) 이번 달
@@ -548,7 +535,9 @@ async function loadAll(){
   try{
     const [aSnap, cSnap, awSnap] = await Promise.all([
       getDocs(collection(db,'agents')),
-      getDocs(collection(db,'customers')),
+      // 고객은 올해 계약이 있는 사람만 (lastContractYm = 최근 계약월). 대시보드는 올해 기준이라
+      // 올해 계약 없는 고객은 어차피 0 기여 → 전체 스캔 방지. (admin이 기존 문서에 이 필드를 백필)
+      getDocs(query(collection(db,'customers'), where('lastContractYm','>=', `${CUR_YEAR}-01`))),
       // 시상은 올해 문서만 (대시보드는 CUR_YEAR만 사용 → 문서ID "YYYY_..." 범위로 제한)
       getDocs(query(collection(db,'awards'), where(documentId(), '>=', `${CUR_YEAR}_`))),
     ]);

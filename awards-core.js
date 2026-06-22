@@ -206,8 +206,35 @@
              총액: 총액, band: band, commRate: commRate, keepRate: keepRate, detail: detail };
   }
 
+  /* ── 계약일 파싱 / 주차 기간 매칭 (전 페이지 공용 단일 원본) ──────
+   *  날짜 소스: ct.startDate → rawJson.계약일 (uploadedAt은 업로드시점이라 계약일로 쓰지 않음)
+   *  parsePeriod: {year, month, day|null} | null
+   *  inWeeklyPeriod: 계약일이 주차 시상 기간(MM-DD~MM-DD) 안에 드는지 */
+  function ctDate(ct) {
+    return (ct && (ct.startDate || (ct.rawJson && ct.rawJson['계약일']))) || '';
+  }
+  function parsePeriod(ct) {
+    var d = String(ctDate(ct));
+    var m = d.match(/(\d{4})[.\-\/](\d{1,2})(?:[.\-\/](\d{1,2}))?/);
+    if (m) return { year: +m[1], month: +m[2], day: m[3] ? +m[3] : null };
+    var y = d.match(/(\d{4})/);
+    return y ? { year: +y[1], month: null, day: null } : null;
+  }
+  function inWeeklyPeriod(ct, period, ay, am) {
+    if (!period || !period.startDate || !period.endDate) return true; // 기간 없으면 전체 허용
+    var fd = parsePeriod(ct);
+    if (!fd || fd.day == null) return false;                          // 일자 모르면 매칭 불가(안전하게 제외)
+    if (fd.year !== ay || fd.month !== am) return false;
+    var s = period.startDate.split('-').map(Number);
+    var e = period.endDate.split('-').map(Number);
+    if (fd.month === s[0] && fd.month === e[0]) return fd.day >= s[1] && fd.day <= e[1]; // 같은 달 주차
+    return false;
+  }
+
   window.AwardsCore = {
     BAND_KEYS: BAND_KEYS,
+    parsePeriod: parsePeriod,
+    inWeeklyPeriod: inWeeklyPeriod,
     classifyProduct: classifyProduct,
     isInsurance: isInsurance,
     periodRate: periodRate,

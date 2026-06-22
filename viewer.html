@@ -789,33 +789,15 @@ function getCtDate(ct) {
   // 계약일이 없으면 null 반환 → 기간 필터에서 제외됨
   return ct.startDate || ct.rawJson?.계약일 || null;
 }
-function parsePeriod(ct) {
-  const d = getCtDate(ct);
-  if (!d) return null;
-  const ym = d.match(/(\d{4})[.\-\/](\d{1,2})/);
-  if (ym) return {year: parseInt(ym[1]), month: parseInt(ym[2])};
-  const y = d.match(/(\d{4})/);
-  return y ? {year: parseInt(y[1]), month: null} : null;
-}
+function parsePeriod(ct) { return window.AwardsCore.parsePeriod(ct); }
 // 계약일 일(day) 단위 파싱 — 주차 시상 매칭용
 function parseFullDate(ct) {
-  const d = getCtDate(ct);
-  if (!d) return null;
-  const m = d.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
-  if (m) return {year:+m[1], month:+m[2], day:+m[3]};
-  return null;
+  const fd = window.AwardsCore.parsePeriod(ct);
+  return (fd && fd.day != null) ? fd : null;
 }
 // 계약이 주차 시상 기간(period: MM-DD ~ MM-DD)에 포함되는지
 function inWeeklyPeriod(ct, period, awardYear, awardMonth) {
-  if (!period || !period.startDate || !period.endDate) return true; // 기간 없으면 전체 허용
-  const fd = parseFullDate(ct);
-  if (!fd) return false; // 일자 모르면 주차 시상 매칭 불가 (안전하게 제외)
-  if (fd.year !== awardYear || fd.month !== awardMonth) return false;
-  const [sM,sD] = period.startDate.split('-').map(Number);
-  const [eM,eD] = period.endDate.split('-').map(Number);
-  // 같은 달 기준 day 비교 (대부분 한 달 안의 주차)
-  if (fd.month === sM && fd.month === eM) return fd.day >= sD && fd.day <= eD;
-  return false;
+  return window.AwardsCore.inWeeklyPeriod(ct, period, awardYear, awardMonth);
 }
 
 function buildPeriodChips() {
@@ -1353,7 +1335,8 @@ function calcAwardEstimate(cts) {
 
         // 기본시상: 인보험 기본시상만 회사 보험료에 적용 (펫·재물 기본 제외 — 후속 정밀 매칭)
         if (tier.type === 'basic' && tier.payTiming === 'next_month') {
-          const rate = (tier.periods?.[0]?.totalRate ?? tier.periods?.[0]?.ownRate ?? 0);
+          // 요율 추출은 공용 AwardsCore.periodRate로 통일 (회사 합산이라 단일 구간 = periods[0])
+          const rate = window.AwardsCore.periodRate(tier.periods, null, null);
           const amt = (rate && window.AwardsCore.classifyProduct(tier.label) === '인보험') ? prem * rate / 100 : 0;
           if (amt) {
             awardResults.push({ label: tier.label, type:'basic', payTiming: tier.payTiming,
