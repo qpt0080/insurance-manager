@@ -441,6 +441,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 let agentsCache = [], customersCache = [], awardsCache = [];
+let refreshTimer = null;   // 5분 자동 새로고침 인터벌 (중복 등록 방지)
 const NOW = new Date();
 const CUR_YEAR = NOW.getFullYear(), CUR_MONTH = NOW.getMonth() + 1;
 
@@ -1004,7 +1005,8 @@ document.addEventListener('fullscreenchange', ()=>{
 onAuthStateChanged(auth, (user) => {
   if (user) {
     loadAll();
-    setInterval(() => { if (auth.currentUser) loadAll(); }, 5*60*1000);
+    // onAuthStateChanged가 (로그아웃→재로그인 등으로) 다시 불려도 인터벌이 쌓이지 않게 1회만 등록
+    if (!refreshTimer) refreshTimer = setInterval(() => { if (auth.currentUser) loadAll(); }, 5*60*1000);
   } else {
     document.getElementById('loading').style.display = 'none';
     const err = document.getElementById('error');
