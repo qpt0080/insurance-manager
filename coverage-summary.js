@@ -191,7 +191,7 @@
     // 카테고리 행 1개
     function catRow(rid, cat, count, headHTML, itemsHTML) {
       return '<div style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px;overflow:hidden;background:var(--surface);">' +
-        '<div onclick="window.CovAgg.toggle(\'' + rid + '\')" style="display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;">' +
+        '<div id="' + rid + '_t" role="button" tabindex="0" aria-expanded="false" aria-controls="' + rid + '_d" onclick="window.CovAgg.toggle(\'' + rid + '\')" style="display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;">' +
         '<span style="font-size:17px;">' + cat.icon + '</span>' +
         '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;">' + cat.label +
         '<span style="font-size:11px;font-weight:500;color:var(--text3);margin-left:5px;">' + count + '건</span></div></div>' +
@@ -274,6 +274,8 @@
     var open = d.style.display !== 'none';
     d.style.display = open ? 'none' : 'block';
     if (ar) ar.textContent = open ? '▼' : '▲';
+    var t = document.getElementById(rid + '_t');
+    if (t) t.setAttribute('aria-expanded', String(!open));
   }
 
   global.CovAgg = {

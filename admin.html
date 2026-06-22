@@ -1154,6 +1154,15 @@ async function txEditContracts(custId, mutate){
 }
 window.__getAdminIdToken = async function(){ try{ return auth.currentUser ? await auth.currentUser.getIdToken() : null; }catch(e){ return null; } };
 window.__getAdminUid = function(){ return auth.currentUser ? auth.currentUser.uid : null; };
+// 키보드 접근성: role="button"인 비표준 버튼을 Enter/Space로 실행 (보장 카테고리 펼치기 등)
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+  const el = e.target;
+  if (!el || el.getAttribute?.('role') !== 'button') return;
+  if (['BUTTON','A','INPUT','TEXTAREA','SELECT'].includes(el.tagName)) return;
+  e.preventDefault();
+  el.click();
+});
 
 let agentsCache = [];
 let invitesCache = []; // 발급한 초대 목록 [{code,email,name,used,...}]
