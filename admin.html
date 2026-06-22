@@ -1107,12 +1107,13 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 <div id="toast"></div>
 
 <script src="awards-core.js"></script>
+<script>if(!window.AwardsCore){console.error("[치명] awards-core.js를 불러오지 못했습니다 \u2014 시상 계산\u00b7날짜 처리\u00b7계약 저장이 동작하지 않습니다. 새로고침하거나 같은 폴더에 awards-core.js가 있는지 확인하세요.");(function(){function banner(){if(document.getElementById("awards-core-missing"))return;var b=document.createElement("div");b.id="awards-core-missing";b.textContent="\u26a0 \ud575\uc2ec \ud30c\uc77c(awards-core.js)\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc5b4\uc694. \uc2dc\uc0c1\u00b7\uacc4\uc57d \uc800\uc7a5\uc774 \uc81c\ud55c\ub429\ub2c8\ub2e4. \uc0c8\ub85c\uace0\uce68\ud574 \uc8fc\uc138\uc694.";b.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;background:#b91c1c;color:#fff;font:600 13px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;padding:10px 14px;text-align:center;";(document.body||document.documentElement).appendChild(b);}if(document.body)banner();else addEventListener("DOMContentLoaded",banner);})();}</script>
 <script src="ui-feedback.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc,
-  updateDoc, query, where, addDoc, writeBatch
+  updateDoc, query, where, addDoc, writeBatch, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -1138,7 +1139,19 @@ async function commitBatched(items, apply){
   }
   return done;
 }
-// 자동추출 워커 호출용: 현재 로그인 토큰/UID를 외부(plain) 스크립트에 노출
+
+// 고객 contracts 배열을 트랜잭션으로 안전 수정 (동시 수정 시 다른 계약 변경 유실 방지).
+// mutate(최신배열) → 새배열. 쓸 때 최신 배열을 다시 읽어 변형을 적용하고 lastContractYm도 재계산.
+async function txEditContracts(custId, mutate){
+  return runTransaction(db, async (tx)=>{
+    const ref = doc(db,'customers',custId);
+    const snap = await tx.get(ref);
+    if(!snap.exists()) throw new Error('고객 문서를 찾을 수 없어요');
+    const arr = mutate((snap.data().contracts||[]));
+    tx.update(ref, { contracts: arr, lastContractYm: ymOfContracts(arr) });
+    return arr;
+  });
+}
 window.__getAdminIdToken = async function(){ try{ return auth.currentUser ? await auth.currentUser.getIdToken() : null; }catch(e){ return null; } };
 window.__getAdminUid = function(){ return auth.currentUser ? auth.currentUser.uid : null; };
 
@@ -1757,16 +1770,15 @@ window.saveContractDate = async function(custDocId, ctId) {
   const val = input.value; // YYYY-MM-DD
   const cust = customersCache.find(c => c._docId === custDocId);
   if (!cust) return;
-  const updated = (cust.contracts||[]).map((ct,i) => {
-    const id = ct.id || ('ci'+i);
-    if (id !== ctId) return ct;
-    const nc = {...ct, startDate: val, dateEstimated: false};
-    if (nc.rawJson) nc.rawJson = {...nc.rawJson, 계약일: val};
-    return nc;
-  });
   if (btn) { btn.textContent='…'; btn.disabled=true; }
   try {
-    await updateDoc(doc(db,'customers',custDocId), {contracts: updated, lastContractYm: ymOfContracts(updated)});
+    await txEditContracts(custDocId, arr => arr.map((ct,i) => {
+      const id = ct.id || ('ci'+i);
+      if (id !== ctId) return ct;
+      const nc = {...ct, startDate: val, dateEstimated: false};
+      if (nc.rawJson) nc.rawJson = {...nc.rawJson, 계약일: val};
+      return nc;
+    }));
     showToast('✅ 계약일이 수정됐어요.');
     if (btn) { btn.textContent='💾'; btn.disabled=false; btn.style.display='none'; }
     await loadAll(); buildContractsFilters(); renderContractsList();
@@ -1904,7 +1916,7 @@ window.mergeAgentIntoAdmin = async function(uid, name) {
     try {
       const ag = agentsCache.find(x => x.uid === uid);
       if (ag && ag.loginId) await deleteDoc(doc(db,'loginIds', ag.loginId));
-    } catch(e) {}
+    } catch(e) { console.warn('loginId 매핑 삭제 실패:', e); }
 
     // 3) 설계사 문서 제거
     await deleteDoc(doc(db,'agents',uid));
@@ -2068,7 +2080,7 @@ window.applyUploadJson = async function() {
   }
   parsedContractData = parsed;
   // 고지의무 목록이 비어있으면 먼저 로드
-  if (!noticesCache.length) { try { await loadNotices(); } catch(e){} }
+  if (!noticesCache.length) { try { await loadNotices(); } catch(e){ console.warn('loadNotices 실패:', e); } }
   renderUploadPreview(parsed);
   showUploadStatus('done', `✅ 담보 ${parsed.담보목록?.length||0}개 인식됐어요. 아래에서 고객을 선택해주세요.`);
 };
@@ -2822,19 +2834,8 @@ window.onCommSelChange = async function() {
 
 function parsePeriod(ct) { return window.AwardsCore.parsePeriod(ct); }
 
-// 고객 문서의 "최근 계약월" — contracts 중 가장 늦은 계약일의 YYYY-MM (없으면 null).
-// 대시보드가 올해 계약 있는 고객만 읽도록(고객 전체 스캔 방지) 비정규화 저장한다.
-function ymOfContracts(contracts){
-  let max = null;
-  (contracts||[]).forEach(ct=>{
-    const p = parsePeriod(ct);
-    if(p && p.year && p.month){
-      const ym = `${p.year}-${String(p.month).padStart(2,'0')}`;
-      if(!max || ym > max) max = ym;
-    }
-  });
-  return max;
-}
+// 고객 문서의 "최근 계약월" — 공용 AwardsCore로 위임 (대시보드 최근계약 윈도우용)
+function ymOfContracts(contracts){ return window.AwardsCore.ymOfContracts(contracts); }
 
 // 주차 시상 매칭용 — 계약일 일(day) 파싱 + 기간 포함 여부 (공용 AwardsCore 위임)
 function _parseFullDateAdmin(ct){
@@ -3272,7 +3273,7 @@ window.saveNoticeJson=async function(){
   status.style.display='block'; status.textContent='수집 중...'; status.style.color='var(--text3)';
   try {
     const raw=document.getElementById('notice-json-textarea').value;
-    try{ noticeExtracted=JSON.parse(raw); }catch(e){}
+    try{ noticeExtracted=JSON.parse(raw); }catch(e){ console.warn('고지 JSON 파싱 실패:', e); }
     await loadNoticePool();
     const have = new Set(noticePool.map(poolKeyOf));
     let added=0, dup=0;
@@ -3476,7 +3477,7 @@ window.saveAwardJson = async function() {
   status.style.display='block'; status.textContent='저장 중...'; status.style.color='var(--text3)';
   try {
     const raw = document.getElementById('award-json-textarea').value;
-    try { awardExtracted = JSON.parse(raw); } catch(e) {}
+    try { awardExtracted = JSON.parse(raw); } catch(e) { console.warn('시상 JSON 파싱 실패:', e); }
     const { year, month, company, week } = awardExtracted;
     const docId = awardDocId(year, month, company, week);
     await setDoc(doc(db,'awards',docId), {
@@ -4036,8 +4037,7 @@ window.deleteContract = async function(custDocId, ctId, name) {
       await deleteDoc(doc(db,'customers',custDocId));
       showToast(`✅ "${cust.name}" 고객이 삭제됐어요.`);
     } else {
-      const updated = allContracts.filter((ct,i) => (ct.id||'ci'+i) !== ctId);
-      await updateDoc(doc(db,'customers',custDocId), {contracts: updated, lastContractYm: ymOfContracts(updated)});
+      await txEditContracts(custDocId, arr => arr.filter((ct,i) => (ct.id||'ci'+i) !== ctId));
       showToast('✅ 계약이 삭제됐어요.');
     }
     await loadAll(); buildContractsFilters(); renderContractsList();
