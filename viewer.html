@@ -1295,6 +1295,8 @@ function calcAwardEstimate(cts) {
   // 월 단위 시상(연속가동·클럽)은 같은 회사·같은 달이면 어느 주차 문서에서 와도 한 번만 계산
   // (주차 가동시상은 period로 각 주차 계약만 잡으므로 중복 아님 → 제외 대상 아님)
   const countedMonthly = new Set();
+  // 기본시상(월 고정)은 회사당 1회만 — 시상 문서가 주차별로 4~5개라 중복 합산 방지 (dashboard와 동일)
+  const baseDoneCos = new Set();
   const monthlyKey = (co, tier) => co + '|' + tier.type + '|' + (tier.label||'') + '|' +
     (tier.tiers||[]).map(t=>`${t.prevThreshold||t.threshold||0}:${t.currThreshold||0}:${t.reward||0}:${t.goldReward||''}`).join(',');
 
@@ -1335,7 +1337,8 @@ function calcAwardEstimate(cts) {
 
         // 기본시상: 인보험 기본시상만 회사 보험료에 적용 (펫·재물 기본 제외 — 후속 정밀 매칭)
         if (tier.type === 'basic' && tier.payTiming === 'next_month') {
-          // 인보험 기본시상만
+          // 인보험 기본시상만 · 회사당 1회 (주차 문서마다 중복 합산 방지)
+          if (baseDoneCos.has(co)) return;
           if (window.AwardsCore.classifyProduct(tier.label) !== '인보험') return;
           // 계약 건별 계산: 각 계약일에 맞는 구간(period) 요율을 적용해 합산.
           // 단일 구간이면 모든 계약이 periods[0] → 회사 합산과 동일. 다구간이면 계약일별로 갈림.
@@ -1353,6 +1356,7 @@ function calcAwardEstimate(cts) {
               nextThreshold:null, nextReward:null, needPrev:false });
             totalEstimate += amt;
           }
+          baseDoneCos.add(co);
           return;
         }
 
