@@ -2391,7 +2391,7 @@ function renderContractScreen(custId, ctId) {
 
   // id로 못 찾으면 ct_idx_ 패턴으로 index 찾기
   if (!ct && ctId && ctId.startsWith('ct_idx_')) {
-    const idx = parseInt(ctId.replace('ct_idx_',''));
+    const idx = parseInt(ctId.replace('ct_idx_',''), 10);
     if (!isNaN(idx) && contracts[idx]) {
       ct = contracts[idx];
       ct.id = ctId;
@@ -2987,7 +2987,7 @@ function findContract(c, ctId) {
   const list = c.contracts||[];
   let ct = list.find(x=>x.id===ctId);
   if (!ct && ctId && ctId.startsWith('ct_idx_')) {
-    const idx = parseInt(ctId.replace('ct_idx_',''));
+    const idx = parseInt(ctId.replace('ct_idx_',''), 10);
     if (!isNaN(idx) && list[idx]) ct = list[idx];
   }
   return ct;
@@ -3000,7 +3000,7 @@ function updateContractInList(c, ctId, updater) {
   if (hasIdMatch) return list.map(ct=> ct.id===ctId ? updater(ct) : ct);
   // id 매칭 없으면 ct_idx_N 인덱스로
   if (ctId && ctId.startsWith('ct_idx_')) {
-    const idx = parseInt(ctId.replace('ct_idx_',''));
+    const idx = parseInt(ctId.replace('ct_idx_',''), 10);
     return list.map((ct,i)=> i===idx ? updater(ct) : ct);
   }
   return list;

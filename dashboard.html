@@ -738,7 +738,7 @@ function countUp(id, target){
   const el = document.getElementById(id);
   if(!el) return;
   const dur = 1100, start = performance.now();
-  const from = parseInt(String(el.textContent).replace(/,/g,'')) || 0;
+  const from = parseInt(String(el.textContent).replace(/,/g,''), 10) || 0;
   function step(t){
     const p = Math.min(1, (t - start) / dur);
     const eased = 1 - Math.pow(1 - p, 3);
