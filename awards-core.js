@@ -220,6 +220,18 @@
     var y = d.match(/(\d{4})/);
     return y ? { year: +y[1], month: null, day: null } : null;
   }
+  // 계약 배열 중 가장 늦은 계약월 "YYYY-MM" (없으면 null) — 대시보드 최근계약 윈도우용
+  function ymOfContracts(contracts) {
+    var max = null;
+    (contracts || []).forEach(function (ct) {
+      var p = parsePeriod(ct);
+      if (p && p.year && p.month) {
+        var ym = p.year + '-' + String(p.month).padStart(2, '0');
+        if (!max || ym > max) max = ym;
+      }
+    });
+    return max;
+  }
   function inWeeklyPeriod(ct, period, ay, am) {
     if (!period || !period.startDate || !period.endDate) return true; // 기간 없으면 전체 허용
     var fd = parsePeriod(ct);
@@ -235,6 +247,7 @@
     BAND_KEYS: BAND_KEYS,
     parsePeriod: parsePeriod,
     inWeeklyPeriod: inWeeklyPeriod,
+    ymOfContracts: ymOfContracts,
     classifyProduct: classifyProduct,
     isInsurance: isInsurance,
     periodRate: periodRate,

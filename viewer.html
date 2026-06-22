@@ -396,6 +396,8 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 .perf-stats-toggle-icon{font-size:14px;color:var(--text3);transition:transform .2s;}
 .perf-stats-toggle-icon.open{transform:rotate(180deg);}
 .perf-stats-body{overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1);}
+/* 키보드 포커스 표시 — 키보드 탐색 시에만 링 표시(마우스 클릭 땐 안 보임) */
+[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:10px;}
 </style>
 <script src="search-engine.js"></script>
 <script>if(!window.InsSearch){window.InsSearch={matchAll:function(h,q){var t=(q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);var s=(h||"").toLowerCase();return t.every(function(x){return s.indexOf(x)!==-1;});},touches:function(t,q){return window.InsSearch.matchAll(t,q);},termsInText:function(){return[];},tokenize:function(q){return (q||"").toLowerCase().trim().split(/\s+/).filter(Boolean);}};console.warn("search-engine.js가 로드되지 않아 기본 검색으로 동작합니다(동의어 미적용). 같은 폴더에 search-engine.js를 올려주세요.");}</script>
@@ -443,7 +445,7 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
       <div class="header-dday" id="hdr-dday" title="이번 달 마감까지 남은 일수"></div>
       <div style="display:flex;align-items:center;gap:7px;flex-shrink:0;">
         <span class="agent-badge" id="agent-badge">로딩중</span>
-        <button class="refresh-btn" onclick="refreshData()" title="새로고침">↻</button>
+        <button class="refresh-btn" onclick="refreshData()" title="새로고침" aria-label="새로고침">↻</button>
       </div>
     </div>
     <!-- 고정 기간 필터 -->
@@ -459,11 +461,11 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
       </div>
     </div>
     <div class="tabs">
-      <div class="tab active" onclick="showTab('home')" id="tab-home">🏠 홈</div>
-      <div class="tab" onclick="showTab('list')" id="tab-list">📋 계약</div>
-      <div class="tab" onclick="showTab('performance')" id="tab-performance">📊 실적</div>
-      <div class="tab" onclick="showTab('awards')" id="tab-awards">🏆 시상</div>
-      <div class="tab" onclick="showTab('notice')" id="tab-notice">🔔 공지</div>
+      <div class="tab active" role="button" tabindex="0" onclick="showTab('home')" id="tab-home">🏠 홈</div>
+      <div class="tab" role="button" tabindex="0" onclick="showTab('list')" id="tab-list">📋 계약</div>
+      <div class="tab" role="button" tabindex="0" onclick="showTab('performance')" id="tab-performance">📊 실적</div>
+      <div class="tab" role="button" tabindex="0" onclick="showTab('awards')" id="tab-awards">🏆 시상</div>
+      <div class="tab" role="button" tabindex="0" onclick="showTab('notice')" id="tab-notice">🔔 공지</div>
     </div>
   </header>
   <script>
@@ -574,11 +576,12 @@ body{font-family:'Pretendard','Noto Sans KR',-apple-system,sans-serif;background
 </div>
 
 <script src="awards-core.js"></script>
+<script>if(!window.AwardsCore){console.error("[치명] awards-core.js를 불러오지 못했습니다 \u2014 시상 계산\u00b7날짜 처리\u00b7계약 저장이 동작하지 않습니다. 새로고침하거나 같은 폴더에 awards-core.js가 있는지 확인하세요.");(function(){function banner(){if(document.getElementById("awards-core-missing"))return;var b=document.createElement("div");b.id="awards-core-missing";b.textContent="\u26a0 \ud575\uc2ec \ud30c\uc77c(awards-core.js)\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc5b4\uc694. \uc2dc\uc0c1\u00b7\uacc4\uc57d \uc800\uc7a5\uc774 \uc81c\ud55c\ub429\ub2c8\ub2e4. \uc0c8\ub85c\uace0\uce68\ud574 \uc8fc\uc138\uc694.";b.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;background:#b91c1c;color:#fff;font:600 13px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;padding:10px 14px;text-align:center;";(document.body||document.documentElement).appendChild(b);}if(document.body)banner();else addEventListener("DOMContentLoaded",banner);})();}</script>
 <script src="ui-feedback.js"></script>
 <script src="share-core.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { firebaseConfig } from "./firebase-config.js";
@@ -1112,7 +1115,7 @@ function renderInsuredCards(el, custList, q) {
     const ctList = g.items.map(x=>{
       const co = x.ct.company||getV(x.ct,'보험사');
       const pr = x.ct.product||getV(x.ct,'상품명');
-      return `<div onclick="openContractScreen('${x.custId}','${x.ct.id}')" style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px dashed var(--border);cursor:pointer;font-size:12px;">
+      return `<div role="button" tabindex="0" onclick="openContractScreen('${x.custId}','${x.ct.id}')" style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px dashed var(--border);cursor:pointer;font-size:12px;">
         <div style="min-width:0;"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(co)} · ${escHtml(pr)}</div>
         <div style="font-size:10px;color:var(--text3);">계약자 ${escHtml(x.holder)}</div></div>
         <span style="color:var(--text3);flex-shrink:0;">›</span></div>`;
@@ -1171,7 +1174,7 @@ function renderCustCard(c, highlight) {
   // 계약일 표시
   const dates = [...new Set(contracts.map(ct=>{const p=parsePeriod(ct);return p?`${p.year}.${String(p.month||'').padStart(2,'0')}`:''}).filter(Boolean))];
   const initials = (c.name||'?').slice(0,1);
-  return `<div class="cust-card" onclick="showDetail('${c._docId||c.id}')">
+  return `<div class="cust-card" role="button" tabindex="0" onclick="showDetail('${c._docId||c.id}')">
     <div class="cust-card-top">
       <div style="display:flex;align-items:center;gap:10px;min-width:0;">
         <div style="width:38px;height:38px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;border:2px solid rgba(59,91,219,.12);">${escHtml(initials)}</div>
@@ -1535,6 +1538,8 @@ window.togglePerfStats = function() {
   const isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '0';
   body.style.maxHeight = isOpen ? '0' : body.scrollHeight + 'px';
   icon.classList.toggle('open', !isOpen);
+  const toggle = document.querySelector('.perf-stats-toggle');
+  if (toggle) toggle.setAttribute('aria-expanded', String(!isOpen));
 };
 
 // ── 실적 탭 — 공통 기간 필터(selYears/selMonths) 사용 ──
@@ -1658,7 +1663,7 @@ function renderHome() {
         <div style="font-size:12px;color:var(--text3);">${escHtml(agentName)} · ${ym}</div>
         <div style="font-size:17px;font-weight:800;color:var(--text);">오늘의 현황</div>
       </div>
-      <button onclick="refreshData()" style="border:none;background:var(--surface2);width:36px;height:36px;border-radius:50%;font-size:15px;cursor:pointer;">🔄</button>
+      <button onclick="refreshData()" aria-label="새로고침" style="border:none;background:var(--surface2);width:36px;height:36px;border-radius:50%;font-size:15px;cursor:pointer;">🔄</button>
     </div>
 
     <!-- 히어로 카드 -->
@@ -1755,7 +1760,7 @@ function renderHome() {
         const prem = parseFloat(String(ct.premium||'').replace(/[^0-9.]/g,''))||0;
         const ctId = ct.id || '';
         return `
-        <div onclick="${ctId?`openContractScreen('${cust._docId}','${ctId}')`:`showDetail('${cust._docId}')`}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer;">
+        <div role="button" tabindex="0" onclick="${ctId?`openContractScreen('${cust._docId}','${ctId}')`:`showDetail('${cust._docId}')`}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer;">
           <div style="width:40px;height:40px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;">${escHtml(initial)}</div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:700;color:var(--text);">${escHtml(nm)}</div>
@@ -1787,7 +1792,7 @@ function renderPerformance() {
   }));
   const premStr = allPrem>0 ? Math.round(allPrem).toLocaleString()+'원' : '0원';
   const statsHtml = `
-  <div class="perf-stats-toggle" onclick="togglePerfStats()">
+  <div class="perf-stats-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="perf-stats-body" onclick="togglePerfStats()">
     <div class="perf-stats-toggle-label">
       👥 <span>내 고객 ${customers.length}명</span>
       <span class="perf-stats-toggle-summary">· 전체 계약 ${allContracts}건</span>
@@ -2247,7 +2252,7 @@ window.showDetail = function(id, skipHistory) {
     const claimedCount=meta.filter(m=>m&&m.claimed).length;
     const memoCount=meta.filter(m=>m&&m.memo).length;
     const p=parsePeriod(ct);
-    return `<div class="contract-card" onclick="openContractScreen('${c._docId||c.id}','${ctIdSafe}')">
+    return `<div class="contract-card" role="button" tabindex="0" onclick="openContractScreen('${c._docId||c.id}','${ctIdSafe}')">
       <div class="contract-header">
         <div><div class="contract-name">${escHtml(company)} · ${escHtml(product)}</div></div>
         ${prem>0?`<div class="contract-premium">${fmt(prem)}</div>`:''}
@@ -2526,7 +2531,7 @@ function renderContractScreen(custId, ctId) {
 
       return `<div class="dambo-card${claimed?' has-claimed':''}${memo?' has-memo':''}" id="dc-${sheetId}-${idx}">
         <!-- 상단: 담보명 + 갱신형/보험료 -->
-        <div class="dambo-top" onclick="toggleDamboDetail('${sheetId}',${idx})">
+        <div class="dambo-top" role="button" tabindex="0" id="dtop-${sheetId}-${idx}" aria-expanded="false" aria-controls="ddet-${sheetId}-${idx}" onclick="toggleDamboDetail('${sheetId}',${idx})">
           <div class="dambo-name">${cv.바로보장?'<span class="chip blue" style="margin-right:4px;font-size:10px">바로보장</span>':''}${escHtml(name)}</div>
           ${topRightChips ? `<div class="dambo-top-meta">${topRightChips}</div>` : ''}
         </div>
@@ -2645,7 +2650,7 @@ function renderContractScreen(custId, ctId) {
   else html += claims.map((cl,i)=>`
     <div class="claim-item">
       <div class="claim-left"><div class="claim-date">${escHtml(cl.date||'')}</div><div class="claim-memo">${escHtml(cl.memo||'')}</div></div>
-      <div class="claim-right">${cl.amount?`<div class="claim-amount">${escHtml(cl.amount)}</div>`:''}<button class="claim-del" onclick="deleteClaim('${custId}','${ctId}',${i})">✕</button></div>
+      <div class="claim-right">${cl.amount?`<div class="claim-amount">${escHtml(cl.amount)}</div>`:''}<button class="claim-del" onclick="deleteClaim('${custId}','${ctId}',${i})" aria-label="보상이력 삭제">✕</button></div>
     </div>`).join('');
   html += `</div>
   <div style="margin-top:8px;background:var(--surface2);border-radius:var(--radius-sm);padding:10px;">
@@ -2684,17 +2689,14 @@ function getDamboCoverageMeta(ct, idx) {
 }
 
 async function saveOneCoverageMeta(custId, ctId, idx, updates) {
-  const c = getCust(custId);
-  const ct = (c.contracts||[]).find(x=>x.id===ctId);
-  if (!ct) return;
-  const cvs = getCoverages(ct);
-  const meta = ct.coverageMeta ? [...ct.coverageMeta] : cvs.map(()=>({}));
-  while (meta.length < cvs.length) meta.push({});
-  meta[idx] = {...(meta[idx]||{}), ...updates};
-  const updatedContracts = (c.contracts||[]).map(x=>x.id===ctId?{...x,coverageMeta:meta}:x);
-  await updateDoc(doc(db,'customers',custId),{contracts:updatedContracts});
-  const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
-  if (ci>=0) customers[ci].contracts = updatedContracts;
+  await txUpdateContracts(custId, arr => arr.map(x => {
+    if (x.id !== ctId) return x;
+    const cvs = getCoverages(x);
+    const meta = x.coverageMeta ? [...x.coverageMeta] : cvs.map(()=>({}));
+    while (meta.length < cvs.length) meta.push({});
+    meta[idx] = {...(meta[idx]||{}), ...updates};
+    return {...x, coverageMeta: meta};
+  }));
 }
 
 window.toggleClaimed = async function(custId, ctId, idx) {
@@ -2723,6 +2725,8 @@ window.toggleDamboDetail = function(sheetId, idx) {
   const open = det.style.display === 'block';
   det.style.display = open ? 'none' : 'block';
   if (hint) hint.textContent = open ? '▼ 상세' : '▲ 접기';
+  const top = document.getElementById(`dtop-${sheetId}-${idx}`);
+  if (top) top.setAttribute('aria-expanded', String(!open));
 };
 
 // 보상력 체크박스 토글 시 입력칸 표시/숨김
@@ -2757,30 +2761,18 @@ window.addClaim = async function(custId, ctId) {
   const memo = document.getElementById(`cl-memo-${ctId}`).value.trim();
   const amount = document.getElementById(`cl-amt-${ctId}`).value.trim();
   if (!memo) { toast('내용을 입력해주세요.'); return; }
-  const c = getCust(custId);
-  const updatedContracts = (c.contracts||[]).map(ct=>{
-    if (ct.id !== ctId) return ct;
-    return {...ct, claims: [...(ct.claims||[]), {date, memo, amount}]};
-  });
   try {
-    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
-    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
-    if (ci>=0) customers[ci].contracts = updatedContracts;
+    await txUpdateContracts(custId, arr => arr.map(ct =>
+      ct.id===ctId ? {...ct, claims: [...(ct.claims||[]), {date, memo, amount}]} : ct));
     renderContractScreen(custId, ctId);
   } catch(e) { toast('저장 실패: '+e.message); }
 };
 
 window.deleteClaim = async function(custId, ctId, claimIdx) {
   if (!await uiConfirm('이 보상이력을 삭제할까요?')) return;
-  const c = getCust(custId);
-  const updatedContracts = (c.contracts||[]).map(ct=>{
-    if (ct.id !== ctId) return ct;
-    return {...ct, claims: (ct.claims||[]).filter((_,i)=>i!==claimIdx)};
-  });
   try {
-    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
-    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
-    if (ci>=0) customers[ci].contracts = updatedContracts;
+    await txUpdateContracts(custId, arr => arr.map(ct =>
+      ct.id===ctId ? {...ct, claims: (ct.claims||[]).filter((_,i)=>i!==claimIdx)} : ct));
     renderContractScreen(custId, ctId);
   } catch(e) { toast('삭제 실패: '+e.message); }
 };
@@ -2796,12 +2788,8 @@ window.cancelEditMemo = function(ctId) {
 };
 window.saveMemo = async function(custId, ctId) {
   const memo = document.getElementById(`memo-ta-${ctId}`).value.trim();
-  const c = getCust(custId);
-  const updatedContracts = (c.contracts||[]).map(ct=>ct.id===ctId?{...ct,memo}:ct);
   try {
-    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
-    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
-    if (ci>=0) customers[ci].contracts = updatedContracts;
+    await txUpdateContracts(custId, arr => arr.map(ct => ct.id===ctId ? {...ct, memo} : ct));
     renderContractScreen(custId, ctId);
     if (currentCustomerId) showDetail(currentCustomerId);
   } catch(e) { toast('저장 실패: '+e.message); }
@@ -2827,16 +2815,14 @@ window.saveContractDate = async function(custId, ctId, ctSafeId) {
   if (!val) { toast('날짜를 선택해주세요.'); return; }
   const cust = customers.find(c => (c._docId||c.id) === custId);
   if (!cust) return;
-  const updatedContracts = (cust.contracts||[]).map((ct,i) => {
-    const id = ct.id || ('ci'+i);
-    if (id !== ctId) return ct;
-    const nc = {...ct, startDate: val, dateEstimated: false};
-    if (nc.rawJson) nc.rawJson = {...nc.rawJson, 계약일: val};
-    return nc;
-  });
   try {
-    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
-    cust.contracts = updatedContracts; // 로컬 캐시 갱신
+    await txUpdateContracts(custId, arr => arr.map((ct,i) => {
+      const id = ct.id || ('ci'+i);
+      if (id !== ctId) return ct;
+      const nc = {...ct, startDate: val, dateEstimated: false};
+      if (nc.rawJson) nc.rawJson = {...nc.rawJson, 계약일: val};
+      return nc;
+    }));
     // 계약일 변경이 기간 필터·홈·실적에 반영되도록 갱신
     if (typeof buildPeriodChips === 'function') buildPeriodChips();
     if (typeof renderHome === 'function') renderHome();
@@ -2874,24 +2860,21 @@ window.savePayMethod = async function(custId, ctId, ctSafeId) {
 
   const c = getCust(custId);
   if (!c) return;
-  const updatedContracts = (c.contracts||[]).map(ct => {
-    if (ct.id !== ctId) return ct;
-    const updated = {...ct, payMethod: method};
-    if (isCard) {
-      updated.cardCompany = cardCompany;
-      updated.cardLast4 = cardLast4;
-      updated.cardHolder = cardHolder;
-    } else {
-      delete updated.cardCompany;
-      delete updated.cardLast4;
-      delete updated.cardHolder;
-    }
-    return updated;
-  });
   try {
-    await updateDoc(doc(db,'customers',custId), {contracts: updatedContracts});
-    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
-    if (ci>=0) customers[ci].contracts = updatedContracts;
+    await txUpdateContracts(custId, arr => arr.map(ct => {
+      if (ct.id !== ctId) return ct;
+      const updated = {...ct, payMethod: method};
+      if (isCard) {
+        updated.cardCompany = cardCompany;
+        updated.cardLast4 = cardLast4;
+        updated.cardHolder = cardHolder;
+      } else {
+        delete updated.cardCompany;
+        delete updated.cardLast4;
+        delete updated.cardHolder;
+      }
+      return updated;
+    }));
     renderContractScreen(custId, ctId);
   } catch(e) { toast('저장 실패: '+e.message); }
 };
@@ -2981,6 +2964,33 @@ window.addEventListener('popstate', function(e) {
 
 // ── 유틸 ──
 function getCust(id) { return customers.find(x=>(x._docId||x.id)===id); }
+
+// 키보드 접근성: role="button"을 가진 비표준 버튼(div 등)에서 Enter/Space로 클릭 실행.
+// 네이티브 button·a·input 등은 브라우저가 이미 처리하므로 제외 → 중복 실행 없음.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+  const el = e.target;
+  if (!el || el.getAttribute?.('role') !== 'button') return;
+  if (['BUTTON','A','INPUT','TEXTAREA','SELECT'].includes(el.tagName)) return;
+  e.preventDefault();          // Space 스크롤 방지 + 기본동작 억제
+  el.click();
+});
+
+// 계약 배열을 트랜잭션으로 안전 수정 (메모·청구 등 동시 편집 시 유실 방지).
+// mutate(최신배열) → 새배열. 쓸 때 최신 배열을 다시 읽어 변형 적용 + lastContractYm 재계산 + 로컬캐시 갱신.
+async function txUpdateContracts(custId, mutate){
+  const next = await runTransaction(db, async (tx)=>{
+    const ref = doc(db,'customers',custId);
+    const snap = await tx.get(ref);
+    if(!snap.exists()) throw new Error('고객 문서를 찾을 수 없어요');
+    const arr = mutate((snap.data().contracts||[]));
+    tx.update(ref, { contracts: arr, lastContractYm: window.AwardsCore.ymOfContracts(arr) });
+    return arr;
+  });
+  const cu = getCust(custId);
+  if (cu) cu.contracts = next;
+  return next;
+}
 
 // 계약 찾기 (id 없는 기존 계약은 ct_idx_N 폴백)
 function findContract(c, ctId) {
@@ -3089,27 +3099,18 @@ window.saveNoticeToContract = async function(custId, ctId) {
     recordedAt: new Date().toISOString(),
   };
 
-  const c = getCust(custId);
-  const updatedContracts = updateContractInList(c, ctId, ct => ({...ct, notice: snapshot}));
   try {
-    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
-    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
-    if (ci>=0) customers[ci].contracts = updatedContracts;
+    await txUpdateContracts(custId, arr =>
+      updateContractInList({contracts: arr}, ctId, ct => ({...ct, notice: snapshot})));
     renderContractScreen(custId, ctId);
   } catch(e) { toast('저장 실패: '+e.message); }
 };
 
 window.deleteNoticeFromContract = async function(custId, ctId) {
   if (!await uiConfirm('이 계약의 고지 조건을 삭제할까요?')) return;
-  const c = getCust(custId);
-  const updatedContracts = updateContractInList(c, ctId, ct => {
-    const {notice, ...rest} = ct;
-    return rest;
-  });
   try {
-    await updateDoc(doc(db,'customers',custId),{contracts: updatedContracts});
-    const ci = customers.findIndex(x=>(x._docId||x.id)===custId);
-    if (ci>=0) customers[ci].contracts = updatedContracts;
+    await txUpdateContracts(custId, arr =>
+      updateContractInList({contracts: arr}, ctId, ct => { const {notice, ...rest} = ct; return rest; }));
     renderContractScreen(custId, ctId);
   } catch(e) { toast('삭제 실패: '+e.message); }
 };
@@ -3119,7 +3120,7 @@ function isLife(s) { return /생명|생보|라이프|한화생|삼성생|교보�
 function isRenew(cv) { return /갱신형/.test(cv.renew||cv.갱신여부||''); }
 function fmt(n) { return Number(String(n).replace(/,/g,'')).toLocaleString()+'원'; }
 function ic(k,v) { if(!v) return ''; const long = ['상품명','특이사항','납입면제조건'].includes(k)||String(v).length>14; return `<div class="info-cell${long?' full':''}"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v))}</div></div>`; }
-function icEdit(k,v,editFn) { return `<div class="info-cell info-cell-editable" style="position:relative;"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v||''))}</div><button class="info-edit-btn" onclick="${editFn}" title="편집">✏️</button></div>`; }
+function icEdit(k,v,editFn) { return `<div class="info-cell info-cell-editable" style="position:relative;"><div class="info-key">${k}</div><div class="info-val">${escHtml(String(v||''))}</div><button class="info-edit-btn" onclick="${editFn}" title="편집" aria-label="편집">✏️</button></div>`; }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // 하드 에러(데이터 로드 실패·비활성 등) — 폼 숨기고 메시지만
 function showError(msg) {
